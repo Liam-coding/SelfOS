@@ -178,10 +178,19 @@ def extract_codex_messages(since: datetime | None = None) -> list[dict]:
 
 
 def _decode_claude_project_name(dir_name: str) -> str:
-    """C--Users-foo-myproject -> myproject (last segment)."""
-    m = re.match(r'^[A-Za-z]{1,2}--(.*)$', dir_name)
+    """Extract the last path segment from an encoded Claude project dir name.
+
+    Windows: C--Users-foo-myproject  (drive letter + -- prefix)
+    macOS:   -Users-foo-myproject    (leading - for root /)
+    """
+    # Windows: starts with drive letter(s) + --
+    m = re.match(r'^[A-Za-z]{1,2}--(.+)$', dir_name)
     if m:
-        parts = m.group(1).split("-")
+        parts = [p for p in m.group(1).split("-") if p]
+        return parts[-1] if parts else dir_name
+    # macOS/Linux: starts with - (encoding of leading /)
+    if dir_name.startswith("-"):
+        parts = [p for p in dir_name.split("-") if p]
         return parts[-1] if parts else dir_name
     return dir_name
 
@@ -282,13 +291,26 @@ def _sample_messages(msgs: list[dict], n: int) -> list[dict]:
 # ── Workspace discovery (kept from previous version) ─────────────────────────
 
 def _decode_claude_project_path(dir_name: str) -> Path | None:
-    m = re.match(r'^([A-Za-z]{1,2})--(.*)$', dir_name)
-    if not m:
-        return None
-    drive = m.group(1).upper() + ":"
-    rest = m.group(2).replace("-", os.sep)
-    p = Path(drive + os.sep + rest)
-    return p if p.exists() else None
+    """Decode a Claude Code project directory name back to a filesystem path.
+
+    Windows encoding: C--Users-foo-bar  →  C:\\Users\\foo\\bar
+    macOS encoding:   -Users-foo-bar    →  /Users/foo/bar
+    """
+    # Windows: drive letter(s) + -- + path segments separated by -
+    m = re.match(r'^([A-Za-z]{1,2})--(.+)$', dir_name)
+    if m:
+        drive = m.group(1).upper() + ":"
+        rest = m.group(2).replace("-", os.sep)
+        p = Path(drive + os.sep + rest)
+        return p if p.exists() else None
+
+    # macOS/Linux: leading - encodes the root /
+    if dir_name.startswith("-"):
+        rest = dir_name[1:].replace("-", "/")
+        p = Path("/" + rest)
+        return p if p.exists() else None
+
+    return None
 
 
 def discover_claude_workspaces() -> list[Path]:

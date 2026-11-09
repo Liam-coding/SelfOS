@@ -133,15 +133,17 @@ Open `vault/PROFILE.md` and `vault/NOW.md`. These are the two files your AI read
 
 Copy the skill into your Claude Code skills directory:
 
+**macOS / Linux:**
 ```bash
-# macOS / Linux
 cp -r .claude/skills/digest ~/.claude/skills/
+```
 
-# Windows
+**Windows:**
+```bat
 xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
 ```
 
-From now on, after running `python bootstrap.py`, just type `/digest` in Claude Code — it will read your latest digest and distribute insights to the vault automatically.
+From now on, after running `python bootstrap.py`, just type `/digest` in Claude Code.
 
 ### Step 5 — Start your first session
 
@@ -313,15 +315,17 @@ AI 会读取摘要，按模块（职业、工作、研究、目标、决策）�
 
 将 skill 复制到 Claude Code 的 skills 目录：
 
+**macOS / Linux：**
 ```bash
-# macOS / Linux
 cp -r .claude/skills/digest ~/.claude/skills/
+```
 
-# Windows
+**Windows：**
+```bat
 xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
 ```
 
-之后每次运行 `python bootstrap.py`，只需在 Claude Code 里输入 `/digest`，它会自动读取最新 digest 并将信息分散到 vault 各模块。
+之后每次运行 `python bootstrap.py`，只需在 Claude Code 里输入 `/digest`。
 
 ### 第五步 — 开始第一次会话
 
