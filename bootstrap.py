@@ -206,7 +206,29 @@ def _parse_ts(ts_str: str) -> datetime | None:
 
 # ── Group and format digest ───────────────────────────────────────────────────
 
-def build_session_digest(messages: list[dict], max_msgs_per_project: int = 40) -> str:
+def compute_signal_quality(messages: list[dict], raw_line_count: int) -> dict:
+    """Compute extraction quality metrics for the digest header.
+
+    Returns a dict with: meaningful_count, raw_count, signal_ratio, label.
+    """
+    meaningful = len(messages)
+    ratio = meaningful / max(raw_line_count, 1)
+    if ratio >= 0.4:
+        label = "high"
+    elif ratio >= 0.15:
+        label = "medium"
+    else:
+        label = "low"
+    return {
+        "meaningful_count": meaningful,
+        "raw_count": raw_line_count,
+        "signal_ratio": round(ratio, 2),
+        "label": label,
+    }
+
+
+def build_session_digest(messages: list[dict], max_msgs_per_project: int = 40,
+                         raw_line_count: int = 0) -> str:
     """
     Group messages by project/cwd, sample up to max_msgs_per_project,
     and render as a structured Markdown digest for the AI to read.
@@ -229,6 +251,17 @@ def build_session_digest(messages: list[dict], max_msgs_per_project: int = 40) -
         f"Generated: {date.today()}",
         f"Total messages extracted: {len(messages)}",
         f"Projects/contexts: {len(sorted_groups)}",
+    ]
+
+    if raw_line_count > 0:
+        quality = compute_signal_quality(messages, raw_line_count)
+        lines.append(
+            f"Signal quality: {quality['label']} "
+            f"({quality['meaningful_count']}/{quality['raw_count']} lines = "
+            f"{quality['signal_ratio']:.0%})"
+        )
+
+    lines += [
         "",
         "---",
         "",
@@ -545,6 +578,46 @@ def cleanup_old_digests(inbox: Path, keep: int = 7) -> int:
     return len(to_delete)
 
 
+VAULT_DIRS = [
+    "90_Inbox",
+    "91_Staging",
+    "01_Career",
+    "02_Work",
+    "03_Research",
+    "04_Health_Fitness",
+    "05_Life",
+    "06_Reviews",
+    "98_Archive",
+    "99_Templates",
+]
+
+VAULT_FILES = ["PROFILE.md", "NOW.md", "GOALS.md", "DECISIONS.md", "CLAUDE.md"]
+
+
+def ensure_vault_structure(vault: Path) -> list[str]:
+    """Create missing vault dirs and files. Returns list of items created."""
+    created = []
+    for d in VAULT_DIRS:
+        p = vault / d
+        if not p.exists():
+            p.mkdir(parents=True)
+            created.append(f"  + {d}/")
+
+    templates_src = Path(__file__).parent / "vault"
+    for fname in VAULT_FILES:
+        dest = vault / fname
+        if not dest.exists():
+            src = templates_src / fname
+            if src.exists():
+                import shutil
+                shutil.copy2(src, dest)
+            else:
+                dest.write_text(f"# {fname.replace('.md', '')}\n\n", encoding="utf-8")
+            created.append(f"  + {fname}")
+
+    return created
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 STATE_FILE_NAME = ".bootstrap_state.json"
@@ -565,6 +638,37 @@ def save_state(vault: Path, state: dict) -> None:
     state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
+def resolve_since(args_days: int, args_full: bool, state: dict) -> datetime | None:
+    """Compute the `since` cutoff from CLI args and persisted state.
+
+    Returns None for full extraction, or a timezone-aware datetime to filter from.
+    """
+    if args_days > 0:
+        return datetime.now(timezone.utc) - timedelta(days=args_days)
+    if args_full or "last_run" not in state:
+        return None
+    return datetime.fromisoformat(state["last_run"])
+
+
+def run_extraction(vault: Path, since: datetime | None, verbose: bool = True) -> list[dict]:
+    """Extract all messages and return sorted list. Side-effect: prints progress."""
+    if verbose:
+        print("  Reading Claude Code sessions...", end=" ", flush=True)
+    claude_msgs = extract_claude_messages(since)
+    if verbose:
+        print(f"{len(claude_msgs)} messages")
+
+    if verbose:
+        print("  Reading Codex sessions...", end=" ", flush=True)
+    codex_msgs = extract_codex_messages(since)
+    if verbose:
+        print(f"{len(codex_msgs)} messages")
+
+    all_msgs = claude_msgs + codex_msgs
+    all_msgs.sort(key=lambda m: m["ts"])
+    return all_msgs
+
+
 def main():
     import sys
     if hasattr(sys.stdout, "reconfigure"):
@@ -577,6 +681,8 @@ def main():
                         help="Only include sessions from the last N days (default: all)")
     parser.add_argument("--full", action="store_true",
                         help="Force full re-extraction (ignore last-run state)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Preview extraction without writing any files")
     args = parser.parse_args()
 
     vault = Path("./vault").resolve()
@@ -585,6 +691,13 @@ def main():
 
     print("SelfOS Bootstrap")
 
+    # Ensure vault structure is complete
+    created = ensure_vault_structure(vault)
+    if created:
+        print("  Created missing vault structure:")
+        for item in created:
+            print(item)
+
     # Auto-install /digest skill
     if install_skill():
         print("  /digest skill: ready")
@@ -592,33 +705,32 @@ def main():
         print("  /digest skill: not found (skill file missing)")
 
     state = load_state(vault)
-    since = None
+    since = resolve_since(args.days, args.full, state)
 
     if args.days > 0:
-        since = datetime.now(timezone.utc) - timedelta(days=args.days)
         print(f"Extracting sessions from the last {args.days} days...")
-    elif args.full or "last_run" not in state:
+    elif since is None:
         print("Extracting all sessions (full mode)...")
     else:
-        last_run_str = state["last_run"]
-        since = datetime.fromisoformat(last_run_str)
         print(f"Extracting sessions since last run ({since.strftime('%Y-%m-%d %H:%M UTC')})...")
 
-    print("  Reading Claude Code sessions...", end=" ", flush=True)
-    claude_msgs = extract_claude_messages(since)
-    print(f"{len(claude_msgs)} messages")
-
-    print("  Reading Codex sessions...", end=" ", flush=True)
-    codex_msgs = extract_codex_messages(since)
-    print(f"{len(codex_msgs)} messages")
-
-    all_msgs = claude_msgs + codex_msgs
-    all_msgs.sort(key=lambda m: m["ts"])
+    all_msgs = run_extraction(vault, since)
 
     if not all_msgs:
         print("\nNo new messages since last run.")
         if since:
             print("Run with --full to re-extract everything.")
+        return
+
+    if args.dry_run:
+        contexts = len(set(m["cwd"] or m["project"] for m in all_msgs))
+        oldest = min(m["ts"] for m in all_msgs).strftime("%Y-%m-%d")
+        newest = max(m["ts"] for m in all_msgs).strftime("%Y-%m-%d")
+        print(f"\n[dry-run] Would write: vault/90_Inbox/{date.today()}-sessions-digest.md")
+        print(f"  Messages : {len(all_msgs)}")
+        print(f"  Contexts : {contexts}")
+        print(f"  Date range: {oldest} → {newest}")
+        print("  (no files written)")
         return
 
     digest = build_session_digest(all_msgs)

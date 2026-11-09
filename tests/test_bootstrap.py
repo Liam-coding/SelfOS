@@ -275,3 +275,166 @@ class TestCleanupOldDigests:
     def test_empty_inbox(self, tmp_path):
         deleted = bs.cleanup_old_digests(tmp_path, keep=7)
         assert deleted == 0
+
+
+# ── resolve_since ─────────────────────────────────────────────────────────────
+
+class TestResolveSince:
+    def test_days_flag_overrides_state(self):
+        state = {"last_run": "2026-01-01T00:00:00+00:00"}
+        result = bs.resolve_since(args_days=7, args_full=False, state=state)
+        assert result is not None
+        # Should be ~7 days ago from now, not from state
+        delta = datetime.now(timezone.utc) - result
+        assert 6 < delta.days < 9
+
+    def test_full_flag_returns_none(self):
+        state = {"last_run": "2026-01-01T00:00:00+00:00"}
+        assert bs.resolve_since(0, True, state) is None
+
+    def test_no_state_returns_none(self):
+        assert bs.resolve_since(0, False, {}) is None
+
+    def test_state_returns_last_run(self):
+        ts = "2026-06-01T10:00:00+00:00"
+        state = {"last_run": ts}
+        result = bs.resolve_since(0, False, state)
+        assert result is not None
+        assert result.isoformat() == ts
+
+
+# ── Integration: fake JSONL → extract → digest ────────────────────────────────
+
+class TestIntegrationExtractAndDigest:
+    def _write_claude_session(self, proj_dir: Path, messages: list[str]) -> None:
+        proj_dir.mkdir(parents=True, exist_ok=True)
+        lines = []
+        for i, text in enumerate(messages):
+            record = {
+                "type": "user",
+                "timestamp": f"2026-06-0{i+1}T10:00:00.000Z",
+                "cwd": str(proj_dir),
+                "message": {"content": text},
+            }
+            lines.append(json.dumps(record))
+        (proj_dir / "session.jsonl").write_text("\n".join(lines), encoding="utf-8")
+
+    def test_extract_from_fake_session(self, tmp_path, monkeypatch):
+        # Set up fake ~/.claude/projects/
+        claude_dir = tmp_path / ".claude" / "projects"
+        proj = claude_dir / "C--Users-foo-myapp"
+        self._write_claude_session(proj, [
+            "I want to build a machine learning pipeline for text classification",
+            "done",  # noise — should be filtered
+            "We need to add a preprocessing step that handles multilingual input",
+        ])
+        monkeypatch.setattr(bs.Path, "home", lambda: tmp_path)
+
+        msgs = bs.extract_claude_messages(since=None)
+        # "done" is filtered; 2 meaningful messages remain
+        assert len(msgs) == 2
+        texts = [m["text"] for m in msgs]
+        assert any("machine learning" in t for t in texts)
+        assert any("multilingual" in t for t in texts)
+
+    def test_digest_from_fake_session(self, tmp_path, monkeypatch):
+        claude_dir = tmp_path / ".claude" / "projects"
+        proj = claude_dir / "C--Users-foo-selfos"
+        self._write_claude_session(proj, [
+            "Building a personal knowledge management system with AI",
+            "The goal is to track my research papers and decisions",
+        ])
+        monkeypatch.setattr(bs.Path, "home", lambda: tmp_path)
+
+        msgs = bs.extract_claude_messages(since=None)
+        assert len(msgs) == 2
+
+        digest = bs.build_session_digest(msgs)
+        assert "personal knowledge management" in digest
+        assert "research papers" in digest
+        assert "# SelfOS Session Digest" in digest
+
+
+# ── ensure_vault_structure ────────────────────────────────────────────────────
+
+class TestEnsureVaultStructure:
+    def test_creates_missing_dirs(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        created = bs.ensure_vault_structure(vault)
+        dir_names = [c.strip().lstrip("+ ").rstrip("/") for c in created if c.strip().endswith("/")]
+        for d in bs.VAULT_DIRS:
+            assert (vault / d).is_dir(), f"Missing: {d}"
+
+    def test_creates_missing_files(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.ensure_vault_structure(vault)
+        for fname in bs.VAULT_FILES:
+            assert (vault / fname).exists(), f"Missing: {fname}"
+
+    def test_does_not_overwrite_existing(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        existing = vault / "PROFILE.md"
+        existing.write_text("# My Custom Profile\n", encoding="utf-8")
+        bs.ensure_vault_structure(vault)
+        assert existing.read_text(encoding="utf-8") == "# My Custom Profile\n"
+
+    def test_returns_created_list(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        created = bs.ensure_vault_structure(vault)
+        assert len(created) > 0
+
+    def test_idempotent(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.ensure_vault_structure(vault)
+        created_second = bs.ensure_vault_structure(vault)
+        assert created_second == []
+
+
+# ── compute_signal_quality ────────────────────────────────────────────────────
+
+class TestComputeSignalQuality:
+    def _make_msgs(self, n):
+        base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        return [{"ts": base, "text": f"msg {i}", "source": "claude", "project": "p", "cwd": ""} for i in range(n)]
+
+    def test_high_signal(self):
+        msgs = self._make_msgs(50)
+        result = bs.compute_signal_quality(msgs, raw_line_count=100)
+        assert result["label"] == "high"
+        assert result["signal_ratio"] == 0.5
+
+    def test_medium_signal(self):
+        msgs = self._make_msgs(20)
+        result = bs.compute_signal_quality(msgs, raw_line_count=100)
+        assert result["label"] == "medium"
+
+    def test_low_signal(self):
+        msgs = self._make_msgs(5)
+        result = bs.compute_signal_quality(msgs, raw_line_count=100)
+        assert result["label"] == "low"
+
+    def test_zero_raw_count_no_division_error(self):
+        msgs = self._make_msgs(10)
+        result = bs.compute_signal_quality(msgs, raw_line_count=0)
+        assert result["label"] == "high"
+
+    def test_digest_includes_quality_when_raw_count_provided(self):
+        msgs = [
+            {"ts": datetime(2026, 6, 1, tzinfo=timezone.utc), "source": "claude",
+             "project": "p", "cwd": "/proj", "text": "building a thing"}
+        ]
+        digest = bs.build_session_digest(msgs, raw_line_count=10)
+        assert "Signal quality" in digest
+
+    def test_digest_omits_quality_when_no_raw_count(self):
+        msgs = [
+            {"ts": datetime(2026, 6, 1, tzinfo=timezone.utc), "source": "claude",
+             "project": "p", "cwd": "/proj", "text": "building a thing"}
+        ]
+        digest = bs.build_session_digest(msgs, raw_line_count=0)
+        assert "Signal quality" not in digest
