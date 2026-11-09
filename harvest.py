@@ -1100,8 +1100,9 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   }}
   .harvest-btn:hover{{background:rgba(99,102,241,.4)}}
   /* ── Hero: greeting left + ring right ── */
-  .hero{{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem;gap:2rem}}
-  .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2rem}}
+  .hero{{display:flex;align-items:center;margin-bottom:1.75rem;gap:0}}
+  .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2.5rem}}
+  .hero-overall{{flex:1;display:flex;justify-content:flex-start;padding-left:2.5rem}}
   /* ── Overall ring (right side) ── */
   .overall{{display:flex;flex-direction:column;align-items:center;gap:.75rem;flex-shrink:0}}
   .overall-ring-wrap{{position:relative;width:160px;height:160px}}
@@ -1182,29 +1183,31 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <div class="greeting" id="greeting-text"
          data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
   </div>
-  <div class="overall">
-    <div class="overall-ring-wrap">
-      <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
-        <circle class="overall-ring-bg" cx="80" cy="80" r="{r_big}"/>
-        <circle class="overall-ring-fill" cx="80" cy="80" r="{r_big}"
-          stroke="{overall_color}"
-          stroke-dasharray="{arc_big} {circ_big}"
-          stroke-dashoffset="0"/>
-      </svg>
-      <div class="overall-ring-score">
-        <span class="overall-ring-num">{overall_display}</span>
-        <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+  <div class="hero-overall">
+    <div class="overall">
+      <div class="overall-ring-wrap">
+        <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
+          <circle class="overall-ring-bg" cx="80" cy="80" r="{r_big}"/>
+          <circle class="overall-ring-fill" cx="80" cy="80" r="{r_big}"
+            stroke="{overall_color}"
+            stroke-dasharray="{arc_big} {circ_big}"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="overall-ring-score">
+          <span class="overall-ring-num">{overall_display}</span>
+          <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+        </div>
       </div>
-    </div>
-    <div class="overall-info">
-      <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
-      <p class="overall-status" id="overall-status"
-         data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
-      <p class="overall-count" id="overall-count"
-         data-zh="{scored_count} 个维度有数据"
-         data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
-      <p class="overall-date" id="overall-date"
-         data-zh="更新于 {updated}" data-en="Updated {updated}">更新于 {updated}</p>
+      <div class="overall-info">
+        <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
+        <p class="overall-status" id="overall-status"
+           data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
+        <p class="overall-count" id="overall-count"
+           data-zh="{scored_count} 个维度有数据"
+           data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
+        <p class="overall-date" id="overall-date"
+           data-zh="更新于 {updated}" data-en="Updated {updated}">更新于 {updated}</p>
+      </div>
     </div>
   </div>
 </div>
