@@ -1031,29 +1031,66 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <title>SelfOS — Life Dashboard</title>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:2rem}}
+  body{{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;
+    padding:2rem;
+    color:#e2e8f0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(99,102,241,.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 80%, rgba(16,185,129,.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 60% 10%, rgba(245,158,11,.10) 0%, transparent 45%),
+      #070d1a;
+  }}
   .topbar{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem}}
-  h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}}
-  .subtitle{{color:#64748b;font-size:.875rem}}
-  .lang-btn{{background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:.5rem;padding:.4rem .9rem;font-size:.8rem;cursor:pointer;transition:all .2s}}
-  .lang-btn:hover{{background:#334155;color:#e2e8f0}}
-  .overall{{background:#1e293b;border-radius:1rem;padding:1.5rem 2rem;margin-bottom:2rem;display:flex;align-items:center;gap:2rem}}
-  .overall-score{{font-size:4rem;font-weight:800;line-height:1;color:{overall_color}}}
+  h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem;
+      background:linear-gradient(90deg,#a5b4fc,#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
+  .subtitle{{color:#475569;font-size:.8rem}}
+  .lang-btn{{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1);
+    color:#94a3b8;border-radius:.5rem;padding:.4rem .9rem;
+    font-size:.8rem;cursor:pointer;
+    backdrop-filter:blur(8px);
+    transition:all .2s
+  }}
+  .lang-btn:hover{{background:rgba(255,255,255,.12);color:#e2e8f0}}
+  .overall{{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(20px);
+    border-radius:1.25rem;
+    padding:1.75rem 2rem;
+    margin-bottom:1.5rem;
+    display:flex;align-items:center;gap:2rem;
+    box-shadow:0 8px 32px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.06)
+  }}
+  .overall-score{{font-size:4.5rem;font-weight:900;line-height:1;color:{overall_color};
+    text-shadow:0 0 40px {overall_color}66}}
   .overall-info h2{{font-size:1.125rem;font-weight:600;margin-bottom:.25rem}}
   .overall-info p{{color:#64748b;font-size:.875rem}}
   .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color}}}
-  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem}}
-  .card{{background:#1e293b;border-radius:.75rem;padding:1.25rem}}
+  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.875rem}}
+  .card{{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);
+    backdrop-filter:blur(16px);
+    border-radius:1rem;padding:1.25rem;
+    transition:transform .2s,box-shadow .2s;
+    box-shadow:0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.05)
+  }}
+  .card:hover{{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07)}}
   .card-header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}}
-  .dim-label{{font-size:.875rem;font-weight:600;color:#94a3b8}}
-  .dim-score{{font-size:1.75rem;font-weight:800}}
-  .bar-bg{{background:#334155;border-radius:9999px;height:6px;margin-bottom:.5rem}}
-  .bar-fill{{height:6px;border-radius:9999px;transition:width .5s}}
-  .dim-status{{font-size:.75rem;font-weight:600;margin-bottom:.4rem}}
-  .dim-suggestion{{font-size:.75rem;color:#64748b;line-height:1.4;margin-bottom:.25rem}}
-  .sparkline{{display:block;margin-top:.5rem;opacity:.7}}
-  footer{{margin-top:2rem;color:#475569;font-size:.75rem;text-align:center}}
-  a{{color:inherit}}
+  .dim-label{{font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}}
+  .dim-score{{font-size:1.875rem;font-weight:800}}
+  .bar-bg{{background:rgba(255,255,255,.07);border-radius:9999px;height:5px;margin-bottom:.6rem}}
+  .bar-fill{{height:5px;border-radius:9999px;transition:width .6s cubic-bezier(.4,0,.2,1)}}
+  .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.35rem;letter-spacing:.03em}}
+  .dim-suggestion{{font-size:.72rem;color:#475569;line-height:1.5;margin-bottom:.25rem}}
+  .sparkline{{display:block;margin-top:.5rem;opacity:.6}}
+  footer{{margin-top:2rem;color:#334155;font-size:.72rem;text-align:center}}
+  a{{color:inherit;text-decoration:none}}
+  a:hover{{color:#64748b}}
 </style>
 </head>
 <body>
@@ -1081,7 +1118,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 </div>
 
 <footer>SelfOS Dashboard · <span data-zh="数据来源" data-en="Source" class="i18n">数据来源</span>: vault/ ·
-<a href="90_Inbox/" style="color:#475569"><span class="i18n" data-zh="查看原始摘要" data-en="View raw digest">查看原始摘要</span></a></footer>
+<a href="90_Inbox/"><span class="i18n" data-zh="查看原始摘要" data-en="View raw digest">查看原始摘要</span></a></footer>
 
 <script>
 let lang = 'zh';
@@ -1090,12 +1127,10 @@ function toggleLang() {{
   lang = lang === 'zh' ? 'en' : 'zh';
   document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
   document.documentElement.lang = lang;
-
   const updated = '{updated}';
   document.getElementById('subtitle-text').textContent = lang === 'zh'
     ? '更新于 ' + updated + ' · 基于 vault 内容自动推断 · 仅供参考'
     : 'Updated ' + updated + ' · Auto-inferred from vault content · For reference only';
-
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
