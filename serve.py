@@ -33,13 +33,22 @@ _CONTEXT_FILES = [
 
 def _load_vault_context() -> str:
     parts = []
+
+    # Current scores — most important context for the chat
+    scores_file = VAULT / "SCORES.md"
+    if scores_file.exists():
+        text = scores_file.read_text(encoding="utf-8").strip()
+        if text:
+            parts.append(f"## Current Scores\n{text}")
+
     for name in _CONTEXT_FILES:
         p = VAULT / name
         if p.exists():
             text = p.read_text(encoding="utf-8").strip()
             if text:
                 parts.append(f"## {name}\n{text}")
-    # also include latest digest if available
+
+    # Latest digest
     inbox = VAULT / "90_Inbox"
     if inbox.exists():
         digests = sorted(inbox.glob("*-sessions-digest.md"), reverse=True)
@@ -47,17 +56,25 @@ def _load_vault_context() -> str:
             text = digests[0].read_text(encoding="utf-8").strip()
             if text:
                 parts.append(f"## Latest Session Digest ({digests[0].name})\n{text[:4000]}")
+
     return "\n\n---\n\n".join(parts)
 
 
-SYSTEM_PROMPT = """You are a personal AI assistant embedded in SelfOS — the user's second brain.
-You have access to the user's vault: their profile, current priorities, goals, decisions, and session history.
+SYSTEM_PROMPT = """You are a personal life coach embedded in SelfOS. Your job is to help the user understand and improve their life scores across 7 dimensions: career, work, health, learning, research, life, and family.
+
+You have access to the user's vault data including their current scores, history, goals, and priorities.
+
+Your main tasks:
+- Explain what the scores mean in plain language
+- Identify which dimensions need attention
+- Give concrete, actionable suggestions based on the vault data
+- Track trends over time if history is available
 
 STRICT OUTPUT RULES — no exceptions:
 - Plain text only. Zero markdown. No asterisks, no bold, no italics, no hyphens as bullets, no headers, no backticks.
-- Short. Two to four sentences normally. Never more than a short paragraph.
-- Conversational tone, like a smart friend who knows you well.
-- If you don't know something, say it in one sentence and stop.
+- Short and direct. Two to four sentences normally.
+- Conversational, like a coach who knows you well.
+- Only reference what is actually in the vault data. If a field is empty, say so in one sentence and move on.
 - Match the user's language (Chinese or English).
 
 Vault context:

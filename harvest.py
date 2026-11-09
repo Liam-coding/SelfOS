@@ -1309,8 +1309,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <span class="chat-header-sub" data-zh="了解你的 vault" data-en="knows your vault">了解你的 vault</span>
   </div>
   <div class="chat-messages" id="chat-messages">
-    <div class="msg msg-ai" data-zh="你好，Liam！有什么想聊的？关于你的工作、研究、健康或目标，我都在。"
-         data-en="Hey Liam! Ask me anything about your work, research, health, or goals.">你好，Liam！有什么想聊的？关于你的工作、研究、健康或目标，我都在。</div>
+    <div class="msg msg-ai" data-zh="你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？"
+         data-en="Hey Liam. Your scores are in — which dimension do you want to dig into?">你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？</div>
   </div>
   <div class="chat-input-row">
     <textarea class="chat-input" id="chat-input" rows="1"
