@@ -16,7 +16,7 @@ Your AI agent then reads the digest and distributes insights across vault module
 Nothing is written to canonical vault files without your approval.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 import os
 import re
@@ -676,6 +676,346 @@ def ensure_vault_structure(vault: Path) -> list[str]:
     return created
 
 
+# ── Life score ───────────────────────────────────────────────────────────────
+
+SCORE_DIMENSIONS = [
+    ("career",  "职业发展", "01_Career"),
+    ("work",    "工作/项目", "02_Work"),
+    ("health",  "健康体能",  "04_Health_Fitness"),
+    ("learning","学习成长",  "05_Life"),
+    ("research","研究",      "03_Research"),
+    ("life",    "生活",      "05_Life"),
+    ("family",  "家庭",      None),
+]
+
+SCORES_FILE = "SCORES.md"
+
+
+def _read_vault_text(vault: Path, subdir: str | None) -> str:
+    """Return concatenated text of all .md files under vault/subdir (max 3000 chars)."""
+    if subdir is None:
+        return ""
+    target = vault / subdir
+    if not target.exists():
+        return ""
+    texts = []
+    for f in sorted(target.glob("*.md")):
+        try:
+            texts.append(f.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            pass
+    combined = "\n".join(texts)
+    return combined[:3000]
+
+
+def _infer_score(text: str, dimension: str) -> int | None:
+    """
+    Infer a 1-10 score for a life dimension from vault text.
+    Returns None when there is not enough content to score.
+    Heuristic rules — no external API calls.
+    """
+    if not text or len(text.strip()) < 30:
+        return None
+
+    lower = text.lower()
+
+    # Positive signals (raise score)
+    positive_kw = {
+        "career":   ["promoted", "offer", "hired", "milestone", "raise", "成功", "晋升", "offer", "机会"],
+        "work":     ["shipped", "deployed", "merged", "completed", "done", "发布", "完成", "上线"],
+        "health":   ["pr", "pb", "ran", "trained", "workout", "gym", "healthy", "训练", "跑步", "健身"],
+        "learning": ["learned", "finished", "course", "certificate", "reading", "学完", "通过", "完成"],
+        "research": ["published", "submitted", "paper", "result", "breakthrough", "发表", "投稿", "结果"],
+        "life":     ["happy", "enjoying", "balance", "travel", "hobby", "满足", "开心", "平衡"],
+        "family":   ["family", "parents", "partner", "kids", "together", "家人", "父母", "伴侣", "孩子"],
+    }
+    # Negative signals (lower score)
+    negative_kw = {
+        "career":   ["stuck", "rejected", "fired", "quit", "blocked", "失业", "被拒", "迷茫"],
+        "work":     ["blocked", "overdue", "behind", "bug", "crisis", "延期", "阻塞", "压力"],
+        "health":   ["injured", "sick", "pain", "fatigue", "skipped", "受伤", "生病", "疼", "跳过"],
+        "learning": ["behind", "skipped", "forgot", "stopped", "落后", "停滞"],
+        "research": ["stuck", "rejected", "no progress", "blocked", "停滞", "被拒"],
+        "life":     ["stressed", "lonely", "anxious", "overwhelmed", "压力", "焦虑", "孤独"],
+        "family":   ["conflict", "distant", "argument", "miss", "矛盾", "疏远", "争吵"],
+    }
+
+    pos = sum(1 for kw in positive_kw.get(dimension, []) if kw in lower)
+    neg = sum(1 for kw in negative_kw.get(dimension, []) if kw in lower)
+
+    # Base score: 5 (neutral), shift by signals
+    score = 5 + min(pos, 3) - min(neg, 3)
+    return max(1, min(10, score))
+
+
+def score_vault(vault: Path, skip: list[str] | None = None) -> dict:
+    """
+    Read vault modules and infer a score (1-10) for each life dimension.
+    Returns {dim_key: score_or_None, ...} and writes to SCORES.md.
+    skip: list of dimension keys to exclude (e.g. ["family"]).
+    """
+    skip = skip or []
+    scores = {}
+
+    for key, label, subdir in SCORE_DIMENSIONS:
+        if key in skip:
+            scores[key] = None
+            continue
+        # Family has no dedicated subdir — check root vault files
+        if subdir is None:
+            text = ""
+            for root_file in ["PROFILE.md", "NOW.md", "GOALS.md"]:
+                fp = vault / root_file
+                if fp.exists():
+                    try:
+                        text += fp.read_text(encoding="utf-8", errors="replace")[:500]
+                    except OSError:
+                        pass
+        else:
+            text = _read_vault_text(vault, subdir)
+            # Also include root files for richer context
+            for root_file in ["NOW.md", "GOALS.md"]:
+                fp = vault / root_file
+                if fp.exists():
+                    try:
+                        text += fp.read_text(encoding="utf-8", errors="replace")[:300]
+                    except OSError:
+                        pass
+
+        scores[key] = _infer_score(text, key)
+
+    _append_scores(vault, scores, skip)
+    return scores
+
+
+def _append_scores(vault: Path, scores: dict, skip: list[str]) -> None:
+    """Append today's scores to vault/SCORES.md (create if missing)."""
+    scores_path = vault / SCORES_FILE
+    today = date.today().isoformat()
+
+    # Build score row
+    row_parts = []
+    for key, label, _ in SCORE_DIMENSIONS:
+        if key in skip:
+            row_parts.append(f"{key}: skip")
+        elif scores.get(key) is None:
+            row_parts.append(f"{key}: null")
+        else:
+            row_parts.append(f"{key}: {scores[key]}")
+
+    row = f"- {today} | " + " | ".join(row_parts)
+
+    if not scores_path.exists():
+        header = (
+            "---\n"
+            "type: life-scores\n"
+            "description: Daily life dimension scores (1-10). Append-only.\n"
+            "dimensions: career, work, health, learning, research, life, family\n"
+            "---\n\n"
+            "# Life Scores\n\n"
+            "Each row: `date | dim: score ...` — null = no data, skip = excluded\n\n"
+        )
+        scores_path.write_text(header + row + "\n", encoding="utf-8")
+    else:
+        existing = scores_path.read_text(encoding="utf-8")
+        scores_path.write_text(existing + row + "\n", encoding="utf-8")
+
+
+def load_scores(vault: Path) -> list[dict]:
+    """
+    Parse SCORES.md and return list of {date, career, work, health, ...} dicts.
+    Most recent first.
+    """
+    scores_path = vault / SCORES_FILE
+    if not scores_path.exists():
+        return []
+
+    entries = []
+    for line in scores_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line.startswith("- "):
+            continue
+        line = line[2:]
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) < 2:
+            continue
+        entry = {"date": parts[0]}
+        for part in parts[1:]:
+            if ":" in part:
+                k, v = part.split(":", 1)
+                k, v = k.strip(), v.strip()
+                if v == "null" or v == "":
+                    entry[k] = None
+                elif v == "skip":
+                    entry[k] = "skip"
+                else:
+                    try:
+                        entry[k] = int(v)
+                    except ValueError:
+                        entry[k] = None
+        entries.append(entry)
+
+    return list(reversed(entries))
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
+    """
+    Generate vault/dashboard.html from current scores and SCORES.md history.
+    Returns the path written.
+    """
+    history = load_scores(vault)
+    if scores is None and history:
+        # Use most recent entry
+        latest = history[0]
+        scores = {k: v for k, v in latest.items() if k != "date"}
+
+    dim_meta = {key: label for key, label, _ in SCORE_DIMENSIONS}
+
+    # Compute overall score (average of non-null, non-skip dims)
+    if scores:
+        vals = [v for v in scores.values() if isinstance(v, int)]
+        overall = round(sum(vals) / len(vals), 1) if vals else None
+    else:
+        overall = None
+
+    # Build chart data for sparklines (last 14 entries, oldest→newest)
+    chart_entries = list(reversed(history[:14]))
+    chart_dates = [e["date"] for e in chart_entries]
+
+    def dim_history(key):
+        return [e.get(key) if isinstance(e.get(key), int) else None for e in chart_entries]
+
+    # Color per score
+    def score_color(v):
+        if v is None:
+            return "#6b7280"
+        if v >= 8:
+            return "#22c55e"
+        if v >= 6:
+            return "#eab308"
+        if v >= 4:
+            return "#f97316"
+        return "#ef4444"
+
+    def score_label(v):
+        if v is None:
+            return "暂无数据"
+        if v >= 8:
+            return "良好"
+        if v >= 6:
+            return "一般"
+        if v >= 4:
+            return "需关注"
+        return "较差"
+
+    # Build dimension cards HTML
+    cards_html = ""
+    for key, label, _ in SCORE_DIMENSIONS:
+        v = scores.get(key) if scores else None
+        if v == "skip":
+            continue
+        color = score_color(v if isinstance(v, int) else None)
+        display = str(v) if isinstance(v, int) else "—"
+        slabel = score_label(v if isinstance(v, int) else None)
+        pct = (v * 10) if isinstance(v, int) else 0
+        hist_data = dim_history(key)
+        hist_json = json.dumps(hist_data)
+        cards_html += f"""
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label">{label}</span>
+            <span class="dim-score" style="color:{color}">{display}</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:{pct}%;background:{color}"></div></div>
+          <div class="dim-status" style="color:{color}">{slabel}</div>
+          <canvas class="sparkline" data-values='{hist_json}' data-color='{color}' width="200" height="40"></canvas>
+        </div>"""
+
+    overall_color = score_color(int(overall) if overall and overall >= 1 else None)
+    overall_display = str(overall) if overall is not None else "—"
+    overall_label = score_label(int(overall) if overall and overall >= 1 else None)
+    updated = date.today().isoformat()
+    scored_count = len([v for v in (scores or {}).values() if isinstance(v, int)])
+
+    html = f"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SelfOS — Life Dashboard</title>
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:2rem}}
+  h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}}
+  .subtitle{{color:#64748b;font-size:.875rem;margin-bottom:2rem}}
+  .overall{{background:#1e293b;border-radius:1rem;padding:1.5rem 2rem;margin-bottom:2rem;display:flex;align-items:center;gap:2rem}}
+  .overall-score{{font-size:4rem;font-weight:800;line-height:1;color:{overall_color}}}
+  .overall-info h2{{font-size:1.125rem;font-weight:600;margin-bottom:.25rem}}
+  .overall-info p{{color:#64748b;font-size:.875rem}}
+  .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color}}}
+  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}}
+  .card{{background:#1e293b;border-radius:.75rem;padding:1.25rem}}
+  .card-header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}}
+  .dim-label{{font-size:.875rem;font-weight:600;color:#94a3b8}}
+  .dim-score{{font-size:1.75rem;font-weight:800}}
+  .bar-bg{{background:#334155;border-radius:9999px;height:6px;margin-bottom:.5rem}}
+  .bar-fill{{height:6px;border-radius:9999px;transition:width .5s}}
+  .dim-status{{font-size:.75rem;font-weight:500;margin-bottom:.5rem}}
+  .sparkline{{display:block;margin-top:.5rem;opacity:.7}}
+  footer{{margin-top:2rem;color:#475569;font-size:.75rem;text-align:center}}
+</style>
+</head>
+<body>
+<h1>SelfOS — Life Dashboard</h1>
+<p class="subtitle">更新于 {updated} · 基于 vault 内容自动推断 · 仅供参考</p>
+
+<div class="overall">
+  <div class="overall-score">{overall_display}</div>
+  <div class="overall-info">
+    <h2>综合状态</h2>
+    <p class="overall-status">{overall_label}</p>
+    <p>{scored_count} 个维度有数据</p>
+  </div>
+</div>
+
+<div class="grid">{cards_html}
+</div>
+
+<footer>SelfOS Dashboard · 数据来源: vault/ · <a href="90_Inbox/" style="color:#475569">查看原始摘要</a></footer>
+
+<script>
+document.querySelectorAll('.sparkline').forEach(canvas => {{
+  const values = JSON.parse(canvas.dataset.values);
+  const color = canvas.dataset.color;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const valid = values.filter(v => v !== null);
+  if (valid.length < 2) return;
+  const min = 1, max = 10;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  let first = true;
+  values.forEach((v, i) => {{
+    if (v === null) {{ first = true; return; }}
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / (max - min)) * h;
+    if (first) {{ ctx.moveTo(x, y); first = false; }}
+    else ctx.lineTo(x, y);
+  }});
+  ctx.stroke();
+}});
+</script>
+</body>
+</html>"""
+
+    out = vault / "dashboard.html"
+    out.write_text(html, encoding="utf-8")
+    return out
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 STATE_FILE_NAME = ".bootstrap_state.json"
@@ -850,6 +1190,14 @@ def main():
     elapsed = _time.monotonic() - _start
     print(f"\nDone in {elapsed:.1f}s: {len(all_msgs)} msgs from {contexts} contexts "
           f"→ vault/90_Inbox/{out_path.name}")
+
+    # Score vault and generate dashboard
+    scores = score_vault(vault)
+    dash = generate_dashboard(vault, scores)
+    scored = [k for k, v in scores.items() if isinstance(v, int)]
+    print(f"  Dashboard: {dash.relative_to(vault.parent)} "
+          f"({len(scored)} dimensions scored)")
+
     print()
     print("Next — open Claude Code in this directory and say:")
     print(f'  "Read vault/90_Inbox/{out_path.name} and distribute insights to vault modules."')

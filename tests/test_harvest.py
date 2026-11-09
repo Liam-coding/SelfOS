@@ -558,3 +558,149 @@ class TestBuildStatsReport:
         ]
         report = bs.build_stats_report(msgs)
         assert "claude" in report or "codex" in report
+
+
+# ── score_vault / load_scores / generate_dashboard ───────────────────────────
+
+class TestScoreVault:
+    def test_returns_all_dimensions(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = bs.score_vault(vault)
+        for key, _, _ in bs.SCORE_DIMENSIONS:
+            assert key in scores
+
+    def test_null_when_no_content(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = bs.score_vault(vault)
+        # vault is empty — all should be None
+        assert all(v is None for v in scores.values())
+
+    def test_skip_excludes_dimension(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = bs.score_vault(vault, skip=["family"])
+        assert scores["family"] is None
+
+    def test_scores_written_to_file(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.score_vault(vault)
+        scores_file = vault / bs.SCORES_FILE
+        assert scores_file.exists()
+        content = scores_file.read_text(encoding="utf-8")
+        assert "career" in content
+
+    def test_scores_append_on_second_run(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.score_vault(vault)
+        bs.score_vault(vault)
+        content = (vault / bs.SCORES_FILE).read_text(encoding="utf-8")
+        rows = [l for l in content.splitlines() if l.startswith("- ")]
+        assert len(rows) == 2
+
+    def test_infer_score_positive_signals(self):
+        text = "I trained at the gym today, had a great workout, feeling healthy and strong"
+        score = bs._infer_score(text, "health")
+        assert score is not None
+        assert score >= 6
+
+    def test_infer_score_negative_signals(self):
+        text = "I am sick, injured, in pain, too fatigued to do anything, skipped everything"
+        score = bs._infer_score(text, "health")
+        assert score is not None
+        assert score <= 4
+
+    def test_infer_score_null_on_short_text(self):
+        assert bs._infer_score("hi", "career") is None
+        assert bs._infer_score("", "work") is None
+
+    def test_infer_score_range(self):
+        text = "shipped the feature, deployed to production, merged PR, completed sprint goals"
+        score = bs._infer_score(text, "work")
+        assert score is not None
+        assert 1 <= score <= 10
+
+
+class TestLoadScores:
+    def test_empty_when_no_file(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        assert bs.load_scores(vault) == []
+
+    def test_parses_entries(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.score_vault(vault)
+        entries = bs.load_scores(vault)
+        assert len(entries) >= 1
+        assert "date" in entries[0]
+
+    def test_most_recent_first(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores_path = vault / bs.SCORES_FILE
+        scores_path.write_text(
+            "---\ntype: life-scores\n---\n\n"
+            "- 2026-01-01 | career: 5\n"
+            "- 2026-06-01 | career: 7\n",
+            encoding="utf-8"
+        )
+        entries = bs.load_scores(vault)
+        assert entries[0]["date"] == "2026-06-01"
+        assert entries[1]["date"] == "2026-01-01"
+
+    def test_null_values_parsed(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / bs.SCORES_FILE).write_text(
+            "---\ntype: life-scores\n---\n\n- 2026-01-01 | career: null | work: 5\n",
+            encoding="utf-8"
+        )
+        entries = bs.load_scores(vault)
+        assert entries[0]["career"] is None
+        assert entries[0]["work"] == 5
+
+
+class TestGenerateDashboard:
+    def test_creates_html_file(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        out = bs.generate_dashboard(vault)
+        assert out.exists()
+        assert out.suffix == ".html"
+
+    def test_html_contains_dimensions(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
+        bs.generate_dashboard(vault, scores)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        for _, label, _ in bs.SCORE_DIMENSIONS:
+            assert label in html
+
+    def test_overall_score_shown(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = {key: 8 for key, _, _ in bs.SCORE_DIMENSIONS}
+        bs.generate_dashboard(vault, scores)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "8" in html
+
+    def test_no_data_shows_dash(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault, scores=None)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "—" in html
+
+    def test_skip_dim_not_shown(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
+        scores["family"] = "skip"
+        bs.generate_dashboard(vault, scores)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "家庭" not in html
