@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SelfOS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'><text y='32' font-size='32' font-family='-apple-system,BlinkMacSystemFont,SF Pro Display,sans-serif' font-weight='800' letter-spacing='-1'>SelfOS</text></svg>">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;padding:2.5rem;color:#1d1d1f;
+    background:#f5f5f7;
+  }
+  /* ── Header ── */
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}
+  .header-left{display:flex;flex-direction:column;gap:.2rem}
+  .brand{font-size:3.5rem;font-weight:800;letter-spacing:-.04em;color:#1d1d1f;line-height:1}
+  .slogan{font-size:.8rem;color:#86868b;font-weight:400;letter-spacing:.01em;margin-top:.15rem}
+  .greeting{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:#1d1d1f;margin-top:.75rem;line-height:1.15;text-align:right}
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}
+  .header-btns{display:flex;gap:.5rem;align-items:center}
+  .lang-btn,.harvest-btn{
+    border-radius:10px;padding:.4rem 1rem;
+    font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;
+    white-space:nowrap
+  }
+  .lang-btn{
+    background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.1);
+    color:#1d1d1f
+  }
+  .lang-btn:hover{background:rgba(0,0,0,.1)}
+  .harvest-btn{
+    background:rgba(0,125,250,.1);border:1px solid rgba(0,125,250,.25);
+    color:#0071e3
+  }
+  .harvest-btn:hover{background:rgba(0,125,250,.18)}
+  /* ── Hero ── */
+  .hero{display:flex;align-items:center;margin-bottom:1.75rem;gap:0}
+  .hero-greeting{flex:1;display:flex;justify-content:flex-end;padding-right:2.5rem}
+  .hero-overall{flex:1;display:flex;justify-content:flex-start;padding-left:2.5rem}
+  /* ── Overall ring ── */
+  .overall{display:flex;flex-direction:column;align-items:center;gap:.75rem;flex-shrink:0}
+  .overall-ring-wrap{position:relative;width:160px;height:160px}
+  .overall-ring{transform:rotate(-90deg)}
+  .overall-ring-bg{fill:none;stroke:rgba(0,0,0,.07);stroke-width:8}
+  .overall-ring-fill{fill:none;stroke-width:8;stroke-linecap:round}
+  .overall-ring-score{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center
+  }
+  .overall-ring-num{font-size:2.25rem;font-weight:300;line-height:1;
+    color:rgba(0,0,0,.55);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .overall-ring-label{display:none}
+  .overall-info{text-align:center}
+  .overall-info h2{font-size:.75rem;font-weight:500;color:#86868b;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.08em}
+  .overall-status{font-size:.85rem;font-weight:500;color:#515154;margin-bottom:.15rem}
+  .overall-count{font-size:.7rem;color:#86868b}
+  .overall-date{font-size:.65rem;color:#aeaeb2;margin-top:.3rem}
+  /* ── Cards ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+  .card{
+    background:#fff;border:1px solid rgba(0,0,0,.08);
+    border-radius:18px;padding:1.25rem 1.25rem 1rem;
+    box-shadow:0 2px 12px rgba(0,0,0,.06);
+    transition:box-shadow .2s,transform .2s
+  }
+  .card:hover{box-shadow:0 4px 20px rgba(0,0,0,.1);transform:translateY(-1px)}
+  .card-header{margin-bottom:.75rem}
+  .dim-label{font-size:.68rem;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:.08em}
+  /* Ring (cards) */
+  .ring-wrap{position:relative;width:72px;height:72px;margin:0 auto .75rem}
+  .ring{transform:rotate(-90deg)}
+  .ring-bg{fill:none;stroke:rgba(0,0,0,.07);stroke-width:5}
+  .ring-fill{fill:none;stroke-width:5;stroke-linecap:round}
+  .ring-score{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:1.25rem;font-weight:600;color:#1d1d1f;letter-spacing:-.03em
+  }
+  .dim-status{font-size:.72rem;font-weight:600;margin-bottom:.4rem;text-align:center}
+  .dim-suggestion{font-size:.7rem;color:#86868b;line-height:1.5;text-align:center}
+  .sparkline{display:block;margin-top:.625rem;opacity:.6}
+  /* Legend */
+  .legend{
+    background:#fff;border:1px solid rgba(0,0,0,.08);
+    border-radius:14px;padding:1.125rem 1.5rem;margin-top:1.25rem;
+    display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;
+    box-shadow:0 1px 6px rgba(0,0,0,.04)
+  }
+  .legend-title{font-size:.7rem;font-weight:600;color:#86868b;
+    text-transform:uppercase;letter-spacing:.08em;margin-right:.25rem}
+  .legend-item{display:flex;align-items:center;gap:.45rem}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .legend-text{font-size:.75rem;color:#1d1d1f;font-weight:500}
+  .legend-range{font-size:.68rem;color:#86868b;margin-left:.1rem}
+  footer{margin-top:1.5rem;color:#aeaeb2;font-size:.7rem;text-align:center}
+  a{color:#0071e3;text-decoration:none}
+  /* ── Chat panel ── */
+  .chat-panel{
+    position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);
+    width:320px;height:520px;
+    background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:20px;
+    box-shadow:0 8px 40px rgba(0,0,0,.12);
+    display:flex;flex-direction:column;overflow:hidden;
+    z-index:100
+  }
+  .chat-header{
+    padding:.875rem 1.125rem;border-bottom:1px solid rgba(0,0,0,.07);
+    display:flex;align-items:center;gap:.625rem;flex-shrink:0
+  }
+  .chat-header-dot{width:8px;height:8px;border-radius:50%;background:#0071e3;flex-shrink:0}
+  .chat-header-title{font-size:.8rem;font-weight:600;color:#1d1d1f}
+  .chat-header-sub{font-size:.68rem;color:#86868b;margin-left:auto}
+  .chat-messages{
+    flex:1;overflow-y:auto;padding:.875rem 1rem;
+    display:flex;flex-direction:column;gap:.625rem;
+    scroll-behavior:smooth
+  }
+  .chat-messages::-webkit-scrollbar{width:4px}
+  .chat-messages::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:2px}
+  .msg{max-width:88%;padding:.55rem .8rem;border-radius:14px;font-size:.8rem;line-height:1.5;word-break:break-word}
+  .msg-user{
+    align-self:flex-end;background:#0071e3;color:#fff;
+    border-bottom-right-radius:4px
+  }
+  .msg-ai{
+    align-self:flex-start;background:#f5f5f7;color:#1d1d1f;
+    border-bottom-left-radius:4px
+  }
+  .msg-ai.thinking{color:#86868b;font-style:italic}
+  .chat-input-row{
+    padding:.75rem;border-top:1px solid rgba(0,0,0,.07);
+    display:flex;gap:.5rem;flex-shrink:0
+  }
+  .chat-input{
+    flex:1;border:1px solid rgba(0,0,0,.12);border-radius:10px;
+    padding:.5rem .75rem;font-size:.8rem;font-family:inherit;
+    outline:none;resize:none;background:#f5f5f7;color:#1d1d1f;
+    line-height:1.4;max-height:80px;overflow-y:auto
+  }
+  .chat-input:focus{border-color:#0071e3;background:#fff}
+  .chat-send{
+    background:#0071e3;color:#fff;border:none;border-radius:10px;
+    width:34px;height:34px;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1rem;transition:background .15s;align-self:flex-end
+  }
+  .chat-send:hover{background:#0077ed}
+  .chat-send:disabled{background:#aeaeb2;cursor:not-allowed}
+  .chat-toggle{
+    position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);
+    background:#0071e3;color:#fff;border:none;border-radius:14px;
+    padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,113,227,.35);z-index:100;
+    display:none;white-space:nowrap
+  }
+  .chat-toggle:hover{background:#0077ed}
+  @media(max-width:900px){
+    .chat-panel{left:.75rem;width:280px}
+    body{padding-left:1rem}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <div class="brand">SelfOS</div>
+    <div class="slogan" data-zh="你的第二大脑，为 AI 时代而生"
+         data-en="Your second brain, built for the AI era">你的第二大脑，为 AI 时代而生</div>
+  </div>
+  <div class="header-right">
+    <div class="header-btns">
+      <button class="harvest-btn" onclick="runHarvest()" id="harvest-btn"
+              data-zh="⟳ 更新数据" data-en="⟳ Harvest">⟳ 更新数据</button>
+      <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-greeting">
+    <div class="greeting" id="greeting-text"
+         data-zh="你好，Liam" data-en="Hello, Liam">你好，Liam</div>
+  </div>
+  <div class="hero-overall">
+    <div class="overall">
+      <div class="overall-ring-wrap">
+        <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
+          <circle class="overall-ring-bg" cx="80" cy="80" r="68"/>
+          <circle class="overall-ring-fill" cx="80" cy="80" r="68"
+            stroke="#eab308"
+            stroke-dasharray="256.36 427.26"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="overall-ring-score">
+          <span class="overall-ring-num">6.0</span>
+          <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+        </div>
+      </div>
+      <div class="overall-info">
+        <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
+        <p class="overall-status" id="overall-status"
+           data-zh="一般" data-en="OK">一般</p>
+        <p class="overall-count" id="overall-count"
+           data-zh="2 个维度有数据"
+           data-en="2 dimensions scored">2 个维度有数据</p>
+        <p class="overall-date" id="overall-date"
+           data-zh="更新于 2026-11-09" data-en="Updated 2026-11-09">更新于 2026-11-09</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="职业发展" data-en="Career">职业发展</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#6b7280"
+                stroke-dasharray="0 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">—</span>
+          </div>
+          <div class="dim-status" style="color:#6b7280" data-zh="暂无数据" data-en="No data">暂无数据</div>
+          <div class="dim-suggestion" data-zh="填充 vault 内容后自动生成建议" data-en="Add vault content to get suggestions">填充 vault 内容后自动生成建议</div>
+          <canvas class="sparkline" data-values='[5, 5, 5, 5, null, 5, null, null, null, null, null, null, null, null]' data-color='#6b7280' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="工作/项目" data-en="Work">工作/项目</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#f97316"
+                stroke-dasharray="87.96 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">5</span>
+          </div>
+          <div class="dim-status" style="color:#f97316" data-zh="需关注" data-en="Watch">需关注</div>
+          <div class="dim-suggestion" data-zh="挑出最重要的一个任务，今天先完成它" data-en="Pick the single most important task and finish it today">挑出最重要的一个任务，今天先完成它</div>
+          <canvas class="sparkline" data-values='[6, 6, 6, 6, null, 5, null, null, null, null, null, null, null, 5]' data-color='#f97316' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="健康体能" data-en="Health">健康体能</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#6b7280"
+                stroke-dasharray="0 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">—</span>
+          </div>
+          <div class="dim-status" style="color:#6b7280" data-zh="暂无数据" data-en="No data">暂无数据</div>
+          <div class="dim-suggestion" data-zh="填充 vault 内容后自动生成建议" data-en="Add vault content to get suggestions">填充 vault 内容后自动生成建议</div>
+          <canvas class="sparkline" data-values='[6, 6, 6, 6, null, 5, null, null, null, null, null, null, null, null]' data-color='#6b7280' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="学习成长" data-en="Learning">学习成长</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#6b7280"
+                stroke-dasharray="0 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">—</span>
+          </div>
+          <div class="dim-status" style="color:#6b7280" data-zh="暂无数据" data-en="No data">暂无数据</div>
+          <div class="dim-suggestion" data-zh="填充 vault 内容后自动生成建议" data-en="Add vault content to get suggestions">填充 vault 内容后自动生成建议</div>
+          <canvas class="sparkline" data-values='[6, 6, 6, 6, null, 6, null, null, null, null, null, null, null, null]' data-color='#6b7280' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="研究" data-en="Research">研究</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#eab308"
+                stroke-dasharray="123.15 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">7</span>
+          </div>
+          <div class="dim-status" style="color:#eab308" data-zh="一般" data-en="OK">一般</div>
+          <div class="dim-suggestion" data-zh="进展好，及时记录假设和结果，防止遗忘" data-en="Good progress — log hypotheses and results before they fade">进展好，及时记录假设和结果，防止遗忘</div>
+          <canvas class="sparkline" data-values='[6, 6, 6, 6, null, 6, null, null, null, null, null, null, null, 7]' data-color='#eab308' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="生活" data-en="Life">生活</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#6b7280"
+                stroke-dasharray="0 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">—</span>
+          </div>
+          <div class="dim-status" style="color:#6b7280" data-zh="暂无数据" data-en="No data">暂无数据</div>
+          <div class="dim-suggestion" data-zh="填充 vault 内容后自动生成建议" data-en="Add vault content to get suggestions">填充 vault 内容后自动生成建议</div>
+          <canvas class="sparkline" data-values='[5, 5, 5, 5, null, 5, null, null, null, null, null, null, null, null]' data-color='#6b7280' width="200" height="36"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="dim-label" data-zh="家庭" data-en="Family">家庭</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="28"/>
+              <circle class="ring-fill" cx="36" cy="36" r="28"
+                stroke="#6b7280"
+                stroke-dasharray="0 175.92904"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">—</span>
+          </div>
+          <div class="dim-status" style="color:#6b7280" data-zh="暂无数据" data-en="No data">暂无数据</div>
+          <div class="dim-suggestion" data-zh="填充 vault 内容后自动生成建议" data-en="Add vault content to get suggestions">填充 vault 内容后自动生成建议</div>
+          <canvas class="sparkline" data-values='[5, 5, 5, 5, 5, 5, 5, 5, null, null, null, null, null, null]' data-color='#6b7280' width="200" height="36"></canvas>
+        </div>
+</div>
+
+<div class="legend">
+  <span class="legend-title" data-zh="评分说明" data-en="Scale">评分说明</span>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#ef4444"></div>
+    <span class="legend-text" data-zh="较差" data-en="Poor">较差</span>
+    <span class="legend-range">1–3</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#f97316"></div>
+    <span class="legend-text" data-zh="需关注" data-en="Watch">需关注</span>
+    <span class="legend-range">4–5</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#eab308"></div>
+    <span class="legend-text" data-zh="一般" data-en="OK">一般</span>
+    <span class="legend-range">6–7</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#22c55e"></div>
+    <span class="legend-text" data-zh="良好" data-en="Great">良好</span>
+    <span class="legend-range">8–10</span>
+  </div>
+</div>
+
+<footer>SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
+<a href="vault/90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
+
+<!-- Chat panel -->
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-header-dot"></div>
+    <span class="chat-header-title" data-zh="问问我的 AI" data-en="Ask My AI">问问我的 AI</span>
+    <span class="chat-header-sub" data-zh="了解你的 vault" data-en="knows your vault">了解你的 vault</span>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg msg-ai" data-zh="你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？"
+         data-en="Hey Liam. Your scores are in — which dimension do you want to dig into?">你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？</div>
+  </div>
+  <div class="chat-input-row">
+    <textarea class="chat-input" id="chat-input" rows="1"
+      placeholder="输入消息…" data-ph-zh="输入消息…" data-ph-en="Type a message…"></textarea>
+    <button class="chat-send" id="chat-send" onclick="sendChat()">↑</button>
+  </div>
+</div>
+
+<script>
+let lang = 'zh';
+function toggleLang() {
+  lang = lang === 'zh' ? 'en' : 'zh';
+  document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-zh][data-en]').forEach(el => {
+    el.textContent = el.dataset[lang];
+  });
+  const inp = document.getElementById('chat-input');
+  inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
+}
+function runHarvest() {
+  const btn = document.getElementById('harvest-btn');
+  btn.disabled = true;
+  btn.textContent = lang === 'zh' ? '运行中…' : 'Running…';
+  fetch('/__harvest__', {method:'POST'})
+    .catch(() => {})
+    .finally(() => { setTimeout(() => location.reload(), 2500); });
+}
+
+// ── Chat ──
+const chatHistory = [];
+function appendMsg(text, role) {
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'msg-user' : 'msg-ai');
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('chat-send').disabled = true;
+
+  appendMsg(text, 'user');
+  chatHistory.push({role:'user', content: text});
+
+  const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
+  thinking.classList.add('thinking');
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({messages: chatHistory})
+    });
+    const data = await res.json();
+    thinking.remove();
+    const reply = data.reply || data.error || 'Error';
+    appendMsg(reply, 'ai');
+    chatHistory.push({role:'assistant', content: reply});
+  } catch(e) {
+    thinking.textContent = lang === 'zh' ? '连接失败，请启动 serve.py' : 'Connection failed — run serve.py';
+    thinking.classList.add('thinking');
+  }
+  document.getElementById('chat-send').disabled = false;
+  inp.focus();
+}
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// Sparkline
+document.querySelectorAll('.sparkline').forEach(canvas => {
+  const values = JSON.parse(canvas.dataset.values);
+  const color = canvas.dataset.color;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  if (values.filter(v => v !== null).length < 2) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+  let first = true;
+  values.forEach((v, i) => {
+    if (v === null) { first = true; return; }
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - 1) / 9) * (h - 4) - 2;
+    if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+});
+</script>
+</body>
+</html>
