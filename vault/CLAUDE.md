@@ -44,7 +44,58 @@ Every claim must be one of:
 - All files: UTF-8, Markdown, YAML frontmatter with `type`, `updated`, `source` where relevant
 - `DECISIONS.md` is append-only — add entries, never delete or overwrite old ones
 
-## Four Standard Workflows
+## Vault Module Map
+
+When distributing information, use this mapping:
+
+| What you find in the digest | Write to |
+|---|---|
+| Job title, employer, career history, GitHub repos, tech skills | `01_Career/profile.md` |
+| Active projects, tech stack, tasks, blockers, next actions | `02_Work/[project-name].md` |
+| Research papers, experiments, hypotheses, findings, venues | `03_Research/[project-name].md` |
+| Training, health, fitness logs | `04_Health_Fitness/log.md` |
+| Learning goals, courses, books, side interests | `05_Life/learning.md` |
+| Current priorities, focus, what's active right now | `NOW.md` |
+| Explicit goals stated by the user | `GOALS.md` |
+| Explicit decisions made by the user | `DECISIONS.md` (append-only) |
+
+---
+
+## Five Standard Workflows
+
+**digest-to-vault** — Distribute session digest across vault modules:
+
+Triggered by: user says "read the digest" / "distribute insights" / "process sessions"
+
+1. Read `90_Inbox/[date]-sessions-digest.md`
+2. Read the Instructions block at the top of the digest — it tells you what to infer
+3. For each context section in the digest:
+   - Identify the project/domain (work, research, learning, life, health)
+   - Extract concrete facts: what was built, decided, learned, struggled with
+   - Note technologies, tools, frameworks mentioned
+   - Note any explicit goals, priorities, or blockers the user expressed
+4. Group findings by vault module (see Vault Module Map above)
+5. Write ONE staging file per module that has new information:
+   - `91_Staging/YYYY-MM-DD-digest-career.md`
+   - `91_Staging/YYYY-MM-DD-digest-work-[project].md`
+   - `91_Staging/YYYY-MM-DD-digest-research-[project].md`
+   - `91_Staging/YYYY-MM-DD-digest-now.md`
+   - `91_Staging/YYYY-MM-DD-digest-goals.md`
+   - etc.
+6. Each staging file must:
+   - Start with frontmatter: `type`, `updated`, `source: session-digest`, `target: [vault path]`
+   - Label every inference as `[ai-inference]`
+   - List only what is clearly supported by the digest text — no fabrication
+   - Include direct quotes from the digest as evidence where useful
+7. Present a summary table to the user:
+   ```
+   Module            | Staging file                        | Key findings
+   01_Career         | 91_Staging/...-career.md            | Python, Java, SAP; GitHub repos found
+   02_Work/mem_anno  | 91_Staging/...-work-mem_anno.md     | LLM rerank experiments, JEV model
+   03_Research       | 91_Staging/...-research-memanno.md  | MemAnno paper, ACL 2027 target
+   NOW.md            | 91_Staging/...-now.md               | Active: paper revision + eval runs
+   ```
+8. WAIT for approval, then apply approved files to their target paths
 
 **capture** — Process a conversation or document:
 1. Identify source and date
