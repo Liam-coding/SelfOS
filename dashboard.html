@@ -599,26 +599,9 @@ function openDim(card) {
   const score = card.dataset.score;
   const color = card.dataset.color;
   _currentDimKey = key;
-  document.getElementById('dim-modal-icon').textContent  = DIM_ICONS[key] || '📊';
-  document.getElementById('dim-modal-title').textContent = card.dataset[lang === 'zh' ? 'labelZh' : 'labelEn'];
-  const scoreEl = document.getElementById('dim-modal-score');
-  scoreEl.textContent  = score;
-  scoreEl.style.color  = color;
-  document.getElementById('dim-modal-status').textContent = card.dataset[lang === 'zh' ? 'statusZh' : 'statusEn'];
-  document.getElementById('dim-modal-status').style.color = color;
-  document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
-  document.getElementById('dim-modal').classList.add('open');
-}
-document.getElementById('dim-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
-});
-
-function chatAboutDim() {
-  document.getElementById('dim-modal').classList.remove('open');
-  // Open chat if collapsed
+  const label = card.dataset[lang === 'zh' ? 'labelZh' : 'labelEn'];
+  // Close modal immediately, open chat and send
   if (chatCollapsed) toggleChat();
-  // Pre-fill a message about this dimension
-  const label = document.getElementById('dim-modal-title').textContent;
   const inp = document.getElementById('chat-input');
   inp.value = lang === 'zh' ? `帮我分析一下「${label}」这个维度` : `Tell me about my ${label} dimension`;
   inp.dispatchEvent(new Event('input'));
