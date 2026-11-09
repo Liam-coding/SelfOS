@@ -1068,98 +1068,92 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   body{{
     font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased;
-    min-height:100vh;padding:2.5rem;color:#fff;
-    background:
-      radial-gradient(ellipse 80% 60% at 10% 0%, #1a1060 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 100%, #0a3d2e 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 80% 10%, #1a0a2e 0%, transparent 50%),
-      #090912;
+    min-height:100vh;padding:2.5rem;color:#1d1d1f;
+    background:#f5f5f7;
   }}
   /* ── Header ── */
   .header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}}
   .header-left{{display:flex;flex-direction:column;gap:.2rem}}
-  .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1}}
-  .slogan{{font-size:.8rem;color:rgba(255,255,255,.38);font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
-  .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:rgba(255,255,255,.82);margin-top:.75rem;line-height:1.15;text-align:right}}
+  .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#1d1d1f;line-height:1}}
+  .slogan{{font-size:.8rem;color:#86868b;font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
+  .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:#1d1d1f;margin-top:.75rem;line-height:1.15;text-align:right}}
   .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
   .header-btns{{display:flex;gap:.5rem;align-items:center}}
   .lang-btn,.harvest-btn{{
     border-radius:10px;padding:.4rem 1rem;
-    font-size:.8rem;font-weight:600;cursor:pointer;
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all .15s;
+    font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;
     white-space:nowrap
   }}
   .lang-btn{{
-    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-    color:rgba(255,255,255,.85)
+    background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.1);
+    color:#1d1d1f
   }}
-  .lang-btn:hover{{background:rgba(255,255,255,.18)}}
+  .lang-btn:hover{{background:rgba(0,0,0,.1)}}
   .harvest-btn{{
-    background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.45);
-    color:#a5b4fc
+    background:rgba(0,125,250,.1);border:1px solid rgba(0,125,250,.25);
+    color:#0071e3
   }}
-  .harvest-btn:hover{{background:rgba(99,102,241,.4)}}
-  /* ── Hero: greeting left + ring right ── */
+  .harvest-btn:hover{{background:rgba(0,125,250,.18)}}
+  /* ── Hero ── */
   .hero{{display:flex;align-items:center;margin-bottom:1.75rem;gap:0}}
   .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2.5rem}}
   .hero-overall{{flex:1;display:flex;justify-content:flex-start;padding-left:2.5rem}}
-  /* ── Overall ring (right side) ── */
+  /* ── Overall ring ── */
   .overall{{display:flex;flex-direction:column;align-items:center;gap:.75rem;flex-shrink:0}}
   .overall-ring-wrap{{position:relative;width:160px;height:160px}}
   .overall-ring{{transform:rotate(-90deg)}}
-  .overall-ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:8}}
+  .overall-ring-bg{{fill:none;stroke:rgba(0,0,0,.07);stroke-width:8}}
   .overall-ring-fill{{fill:none;stroke-width:8;stroke-linecap:round}}
   .overall-ring-score{{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center
   }}
   .overall-ring-num{{font-size:2.25rem;font-weight:300;line-height:1;
-    color:rgba(255,255,255,.75);letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
+    color:rgba(0,0,0,.55);letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
   .overall-ring-label{{display:none}}
   .overall-info{{text-align:center}}
-  .overall-info h2{{font-size:.75rem;font-weight:500;color:rgba(255,255,255,.3);margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.08em}}
-  .overall-status{{font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);margin-bottom:.15rem}}
-  .overall-count{{font-size:.7rem;color:rgba(255,255,255,.3)}}
-  .overall-date{{font-size:.65rem;color:rgba(255,255,255,.18);margin-top:.3rem}}
+  .overall-info h2{{font-size:.75rem;font-weight:500;color:#86868b;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.08em}}
+  .overall-status{{font-size:.85rem;font-weight:500;color:#515154;margin-bottom:.15rem}}
+  .overall-count{{font-size:.7rem;color:#86868b}}
+  .overall-date{{font-size:.65rem;color:#aeaeb2;margin-top:.3rem}}
   /* ── Cards ── */
   .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
-    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-    backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:16px;padding:1.25rem 1.25rem 1rem;
-    box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 8px 32px rgba(0,0,0,.25);
-    transition:background .2s,transform .2s
+    background:#fff;border:1px solid rgba(0,0,0,.08);
+    border-radius:18px;padding:1.25rem 1.25rem 1rem;
+    box-shadow:0 2px 12px rgba(0,0,0,.06);
+    transition:box-shadow .2s,transform .2s
   }}
-  .card:hover{{background:rgba(255,255,255,.09);transform:translateY(-1px)}}
+  .card:hover{{box-shadow:0 4px 20px rgba(0,0,0,.1);transform:translateY(-1px)}}
   .card-header{{margin-bottom:.75rem}}
-  .dim-label{{font-size:.68rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}}
+  .dim-label{{font-size:.68rem;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:.08em}}
   /* Ring (cards) */
   .ring-wrap{{position:relative;width:72px;height:72px;margin:0 auto .75rem}}
   .ring{{transform:rotate(-90deg)}}
-  .ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:5}}
+  .ring-bg{{fill:none;stroke:rgba(0,0,0,.07);stroke-width:5}}
   .ring-fill{{fill:none;stroke-width:5;stroke-linecap:round}}
   .ring-score{{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-size:1.25rem;font-weight:700;color:#fff;letter-spacing:-.03em
+    font-size:1.25rem;font-weight:600;color:#1d1d1f;letter-spacing:-.03em
   }}
   .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.4rem;text-align:center}}
-  .dim-suggestion{{font-size:.7rem;color:rgba(255,255,255,.38);line-height:1.5;text-align:center}}
-  .sparkline{{display:block;margin-top:.625rem;opacity:.55}}
+  .dim-suggestion{{font-size:.7rem;color:#86868b;line-height:1.5;text-align:center}}
+  .sparkline{{display:block;margin-top:.625rem;opacity:.6}}
   /* Legend */
   .legend{{
-    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    background:#fff;border:1px solid rgba(0,0,0,.08);
     border-radius:14px;padding:1.125rem 1.5rem;margin-top:1.25rem;
-    display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap
+    display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;
+    box-shadow:0 1px 6px rgba(0,0,0,.04)
   }}
-  .legend-title{{font-size:.7rem;font-weight:600;color:rgba(255,255,255,.35);
+  .legend-title{{font-size:.7rem;font-weight:600;color:#86868b;
     text-transform:uppercase;letter-spacing:.08em;margin-right:.25rem}}
   .legend-item{{display:flex;align-items:center;gap:.45rem}}
   .legend-dot{{width:10px;height:10px;border-radius:50%;flex-shrink:0}}
-  .legend-text{{font-size:.75rem;color:rgba(255,255,255,.7);font-weight:500}}
-  .legend-range{{font-size:.68rem;color:rgba(255,255,255,.3);margin-left:.1rem}}
-  footer{{margin-top:1.5rem;color:rgba(255,255,255,.2);font-size:.7rem;text-align:center}}
-  a{{color:inherit;text-decoration:none}}
+  .legend-text{{font-size:.75rem;color:#1d1d1f;font-weight:500}}
+  .legend-range{{font-size:.68rem;color:#86868b;margin-left:.1rem}}
+  footer{{margin-top:1.5rem;color:#aeaeb2;font-size:.7rem;text-align:center}}
+  a{{color:#0071e3;text-decoration:none}}
 </style>
 </head>
 <body>
