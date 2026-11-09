@@ -16,10 +16,14 @@ SelfOS is an open framework for building a personal knowledge and memory system 
 
 Most AI assistants forget you the moment the session ends. SelfOS fixes that by giving your AI a structured, version-controlled knowledge base about your life — your goals, career, health, research, decisions, and context.
 
+Think of it as a **second brain** built for the AI era: a personal knowledge management (PKM) system that your AI can actually read, update, and reason over — not just a note-taking app that sits idle.
+
 - **Git-native**: everything is Markdown + Git. Your life has version history.
 - **AI-agnostic**: works with Claude Code, Codex, or any agent that can read files.
 - **Privacy-first**: runs entirely on your local machine. No cloud, no database.
 - **Structured but flexible**: opinionated enough to be useful out of the box, open enough to adapt to your life.
+
+> Built for developers who use AI daily and want their assistant to actually know them.
 
 ---
 
@@ -242,10 +246,14 @@ SelfOS 是一个开源框架，用于构建 AI 可读、可更新、可推理的
 
 大多数 AI 助手在会话结束后就忘记了你。SelfOS 通过给 AI 一个结构化、版本控制的知识库来解决这个问题——包含你的目标、职业、健康、研究、决策和上下文。
 
+把它理解为 AI 时代的**第二大脑**：一个 AI 真正能读取、更新、推理的个人知识管理（PKM）系统——而不是一个闲置的笔记 app。
+
 - **Git 原生**：一切都是 Markdown + Git，你的人生有版本历史。
 - **AI 无关**：支持 Claude Code、Codex 或任何能读文件的 Agent。
 - **隐私优先**：完全运行在本地，无云端，无数据库。
 - **结构化但灵活**：开箱即用，也可以完全按你的方式定制。
+
+> 专为每天使用 AI 的开发者设计——让你的 AI 助手真正了解你。
 
 ---
 
