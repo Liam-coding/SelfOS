@@ -602,13 +602,35 @@ class TestScoreVault:
         assert len(rows) == 2
 
     def test_infer_score_positive_signals(self):
-        text = "I trained at the gym today, had a great workout, feeling healthy and strong"
+        text = "\n".join([
+            "I trained at the gym today, had a great workout, feeling healthy and strong.",
+            "Ran 5km in the morning without stopping, personal best this month.",
+            "Energy levels are high and sleep has been consistent all week.",
+            "No injuries, feeling fully recovered from last week's session.",
+            "Planning another workout tomorrow with the team after work.",
+            "Nutrition has been on track, eating well and staying hydrated.",
+            "Mental health is also good, no stress or anxiety lately.",
+            "Doctor gave a clean bill of health at the last checkup.",
+            "Hit my weekly step goal for the third week in a row.",
+            "Overall feeling the best I have in months, very positive.",
+        ])
         score = bs._infer_score(text, "health")
         assert score is not None
         assert score >= 6
 
     def test_infer_score_negative_signals(self):
-        text = "I am sick, injured, in pain, too fatigued to do anything, skipped everything"
+        text = "\n".join([
+            "I am sick, injured, in pain, too fatigued to do anything at all.",
+            "Skipped training again for the third day in a row this week.",
+            "Feeling exhausted and completely unmotivated to exercise or move.",
+            "Back pain has been getting progressively worse every single day.",
+            "Doctor said to rest but it is very hard to stay positive right now.",
+            "Sleep has been terrible, waking up multiple times each night.",
+            "Energy is at an all-time low, struggling to get through the day.",
+            "Missed my weekly exercise goals again, feeling behind on everything.",
+            "The fatigue is making it hard to concentrate or get any work done.",
+            "Really struggling to maintain any kind of healthy routine this week.",
+        ])
         score = bs._infer_score(text, "health")
         assert score is not None
         assert score <= 4
@@ -617,8 +639,31 @@ class TestScoreVault:
         assert bs._infer_score("hi", "career") is None
         assert bs._infer_score("", "work") is None
 
+    def test_infer_score_null_on_template(self):
+        text = (
+            "# Career Profile\n\n"
+            "> Fill this in after /digest.\n\n"
+            "## Current Role\n"
+            "- Title:\n"
+            "- Company:\n\n"
+            "## Technical Skills\n"
+            "- \n"
+        )
+        assert bs._infer_score(text, "career") is None
+
     def test_infer_score_range(self):
-        text = "shipped the feature, deployed to production, merged PR, completed sprint goals"
+        text = "\n".join([
+            "Shipped the new feature to production today, everything went smoothly.",
+            "Merged the PR after code review, all tests passed on the first try.",
+            "Completed the sprint goals ahead of schedule this week.",
+            "Deployed to staging and got very positive feedback from stakeholders.",
+            "Team velocity has been exceptionally strong this entire sprint.",
+            "Fixed two critical bugs that had been blocking users for weeks.",
+            "Documentation is up to date and the codebase is in great shape.",
+            "Unblocked two teammates who were stuck on dependency issues.",
+            "Reviewed three PRs and left thorough, helpful comments on each.",
+            "Overall a very productive and satisfying week of solid engineering work.",
+        ])
         score = bs._infer_score(text, "work")
         assert score is not None
         assert 1 <= score <= 10

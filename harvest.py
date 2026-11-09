@@ -711,10 +711,30 @@ def _read_vault_text(vault: Path, subdir: str | None) -> str:
 def _infer_score(text: str, dimension: str) -> int | None:
     """
     Infer a 1-10 score for a life dimension from vault text.
-    Returns None when there is not enough content to score.
+    Returns None when there is not enough *real* content to score.
     Heuristic rules — no external API calls.
     """
-    if not text or len(text.strip()) < 30:
+    stripped = text.strip() if text else ""
+    if len(stripped) < 30:
+        return None
+
+    # Detect unfilled templates: skip headers, frontmatter, and placeholder lines.
+    # A placeholder line is: bare "-", "- Key:" (nothing after colon),
+    # "(description text)", or a line ending with ":"
+    content_lines = []
+    for l in stripped.splitlines():
+        s = l.strip()
+        if not s or s.startswith("#") or s.startswith("---") or s.startswith(">"):
+            continue
+        if s == "-" or s.endswith(":"):
+            continue
+        if s.startswith("(") and s.endswith(")"):
+            continue
+        if s.startswith("-") and ":" in s and s.split(":", 1)[-1].strip() == "":
+            continue
+        content_lines.append(s)
+
+    if len(content_lines) < 10:
         return None
 
     lower = text.lower()
@@ -761,26 +781,23 @@ def score_vault(vault: Path, skip: list[str] | None = None) -> dict:
         if key in skip:
             scores[key] = None
             continue
-        # Family has no dedicated subdir — check root vault files
+        # Family has no dedicated subdir — extract family-relevant lines from root files
         if subdir is None:
-            text = ""
+            family_kw = {"family", "parent", "child", "children", "partner", "spouse",
+                         "relationship", "home", "父母", "孩子", "伴侣", "家人", "家庭"}
+            lines = []
             for root_file in ["PROFILE.md", "NOW.md", "GOALS.md"]:
                 fp = vault / root_file
                 if fp.exists():
                     try:
-                        text += fp.read_text(encoding="utf-8", errors="replace")[:500]
+                        for line in fp.read_text(encoding="utf-8", errors="replace").splitlines():
+                            if any(kw in line.lower() for kw in family_kw):
+                                lines.append(line)
                     except OSError:
                         pass
+            text = "\n".join(lines)
         else:
             text = _read_vault_text(vault, subdir)
-            # Also include root files for richer context
-            for root_file in ["NOW.md", "GOALS.md"]:
-                fp = vault / root_file
-                if fp.exists():
-                    try:
-                        text += fp.read_text(encoding="utf-8", errors="replace")[:300]
-                    except OSError:
-                        pass
 
         scores[key] = _infer_score(text, key)
 
