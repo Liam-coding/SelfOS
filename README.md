@@ -23,7 +23,7 @@ Think of it as a **second brain** built for the AI era: a personal knowledge man
 - **Privacy-first**: runs entirely on your local machine. No cloud, no database.
 - **Structured but flexible**: opinionated enough to be useful out of the box, open enough to adapt to your life.
 
-> Built for developers who use AI daily and want their assistant to actually know them.
+> Built for anyone who uses AI daily and wants their assistant to actually know them. Git is optional — your AI agent can manage the vault for you.
 
 ---
 
@@ -200,7 +200,7 @@ SelfOS 是一个开源框架，用于构建 AI 可读、可更新、可推理的
 - **隐私优先**：完全运行在本地，无云端，无数据库。
 - **结构化但灵活**：开箱即用，也可以完全按你的方式定制。
 
-> 专为每天使用 AI 的开发者设计——让你的 AI 助手真正了解你。
+> 适合所有每天使用 AI 的人——让你的 AI 助手真正了解你。Git 是可选的，AI agent 可以直接帮你管理 vault。
 
 ---
 
