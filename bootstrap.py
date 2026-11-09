@@ -5,6 +5,9 @@ SelfOS Bootstrap — Build a self-portrait from your AI conversation history.
 Usage:
     python bootstrap.py           # extract all sessions, write to ./vault
     python bootstrap.py --days 30 # last 30 days only
+    python bootstrap.py --stats   # show per-project statistics
+    python bootstrap.py --dry-run # preview without writing
+    python bootstrap.py --full    # re-extract everything
 
 The script reads Claude Code and Codex session files, extracts your messages,
 filters sensitive data, and writes a digest to vault/90_Inbox/.
@@ -12,6 +15,8 @@ filters sensitive data, and writes a digest to vault/90_Inbox/.
 Your AI agent then reads the digest and distributes insights across vault modules.
 Nothing is written to canonical vault files without your approval.
 """
+
+__version__ = "0.4.0"
 
 import os
 import re
@@ -597,9 +602,32 @@ VAULT_DIRS = [
 
 VAULT_FILES = ["PROFILE.md", "NOW.md", "GOALS.md", "DECISIONS.md", "CLAUDE.md"]
 
+# Minimal placeholder content for module directories (created on first run)
+_MODULE_PLACEHOLDERS = {
+    "01_Career": ("profile.md", "# Career Profile\n\n"
+                  "> Fill this in or let your AI update it after `/digest`.\n\n"
+                  "## Current Role\n- Title:\n- Company:\n\n"
+                  "## Technical Skills\n- \n\n## Career History\n- \n"),
+    "02_Work": ("README.md", "# Work\n\n"
+                "One file per active project. Example: `myproject.md`\n\n"
+                "Let your AI create project files after `/digest`.\n"),
+    "03_Research": ("README.md", "# Research\n\n"
+                    "One file per research project or paper.\n\n"
+                    "Let your AI create research files after `/digest`.\n"),
+    "04_Health_Fitness": ("log.md", "# Health & Fitness Log\n\n"
+                          "> Append-only. Add dated entries below.\n\n"
+                          "## Template\n### YYYY-MM-DD\n- Weight:\n- Training:\n- Notes:\n"),
+    "05_Life": ("learning.md", "# Learning\n\n"
+                "## Active\n- (course or book — why / by when)\n\n"
+                "## Completed\n- YYYY-MM-DD: (what + one-line takeaway)\n"),
+    "06_Reviews": ("README.md", "# Reviews\n\n"
+                   "Weekly and monthly review files.\n"
+                   "Naming: `YYYY-Wnn-weekly.md` or `YYYY-MM-monthly.md`\n"),
+}
+
 
 def ensure_vault_structure(vault: Path) -> list[str]:
-    """Create missing vault dirs and files. Returns list of items created."""
+    """Create missing vault dirs, root files, and module placeholder files. Returns list of items created."""
     created = []
     for d in VAULT_DIRS:
         p = vault / d
@@ -618,6 +646,13 @@ def ensure_vault_structure(vault: Path) -> list[str]:
             else:
                 dest.write_text(f"# {fname.replace('.md', '')}\n\n", encoding="utf-8")
             created.append(f"  + {fname}")
+
+    # Create module placeholder files
+    for module_dir, (fname, content) in _MODULE_PLACEHOLDERS.items():
+        dest = vault / module_dir / fname
+        if not dest.exists():
+            dest.write_text(content, encoding="utf-8")
+            created.append(f"  + {module_dir}/{fname}")
 
     return created
 
@@ -673,6 +708,36 @@ def run_extraction(vault: Path, since: datetime | None, verbose: bool = True) ->
     return all_msgs, claude_raw + codex_raw
 
 
+def build_stats_report(messages: list[dict]) -> str:
+    """Build a per-project statistics table from extracted messages."""
+    from collections import defaultdict
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for msg in messages:
+        key = msg["cwd"] or msg["project"]
+        groups[key].append(msg)
+
+    sorted_groups = sorted(
+        groups.items(),
+        key=lambda kv: max(m["ts"] for m in kv[1]),
+        reverse=True,
+    )
+
+    lines = [
+        f"{'Context':<55} {'Msgs':>5}  {'First':>10}  {'Last':>10}  {'Source':<10}",
+        "-" * 95,
+    ]
+    for key, msgs in sorted_groups:
+        first = min(m["ts"] for m in msgs).strftime("%Y-%m-%d")
+        last = max(m["ts"] for m in msgs).strftime("%Y-%m-%d")
+        sources = "/".join(sorted({m["source"] for m in msgs}))
+        label = key[-52:] if len(key) > 52 else key
+        lines.append(f"{label:<55} {len(msgs):>5}  {first:>10}  {last:>10}  {sources:<10}")
+
+    lines.append("-" * 95)
+    lines.append(f"Total: {len(messages)} messages across {len(sorted_groups)} contexts")
+    return "\n".join(lines)
+
+
 def main():
     import sys
     if hasattr(sys.stdout, "reconfigure"):
@@ -687,6 +752,9 @@ def main():
                         help="Force full re-extraction (ignore last-run state)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Preview extraction without writing any files")
+    parser.add_argument("--stats", action="store_true",
+                        help="Show per-project statistics without writing any files")
+    parser.add_argument("--version", action="version", version=f"bootstrap {__version__}")
     args = parser.parse_args()
 
     vault = Path("./vault").resolve()
@@ -735,6 +803,11 @@ def main():
         print(f"  Contexts : {contexts}")
         print(f"  Date range: {oldest} → {newest}")
         print("  (no files written)")
+        return
+
+    if args.stats:
+        print()
+        print(build_stats_report(all_msgs))
         return
 
     digest = build_session_digest(all_msgs, raw_line_count=raw_count)

@@ -397,6 +397,47 @@ class TestEnsureVaultStructure:
         created_second = bs.ensure_vault_structure(vault)
         assert created_second == []
 
+    def test_creates_module_placeholders(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.ensure_vault_structure(vault)
+        # Check that at least some module placeholder files were created
+        assert (vault / "01_Career" / "profile.md").exists()
+        assert (vault / "04_Health_Fitness" / "log.md").exists()
+        assert (vault / "05_Life" / "learning.md").exists()
+
+    def test_module_placeholder_content_is_meaningful(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.ensure_vault_structure(vault)
+        content = (vault / "01_Career" / "profile.md").read_text(encoding="utf-8")
+        assert "Career Profile" in content
+        assert len(content) > 30
+
+    def test_does_not_overwrite_existing_module_files(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / "01_Career").mkdir(parents=True)
+        existing = vault / "01_Career" / "profile.md"
+        existing.write_text("# My Custom Career\n", encoding="utf-8")
+        bs.ensure_vault_structure(vault)
+        assert existing.read_text(encoding="utf-8") == "# My Custom Career\n"
+
+
+# ── __version__ ───────────────────────────────────────────────────────────────
+
+class TestVersion:
+    def test_version_attribute_exists(self):
+        assert hasattr(bs, "__version__")
+
+    def test_version_is_string(self):
+        assert isinstance(bs.__version__, str)
+
+    def test_version_format(self):
+        parts = bs.__version__.split(".")
+        assert len(parts) == 3
+        assert all(p.isdigit() for p in parts)
+
 
 # ── compute_signal_quality ────────────────────────────────────────────────────
 
@@ -441,3 +482,53 @@ class TestComputeSignalQuality:
         ]
         digest = bs.build_session_digest(msgs, raw_line_count=0)
         assert "Signal quality" not in digest
+
+
+# ── build_stats_report ────────────────────────────────────────────────────────
+
+class TestBuildStatsReport:
+    def _make_msg(self, text, cwd, source="claude", day=1):
+        return {
+            "ts": datetime(2026, 6, day, tzinfo=timezone.utc),
+            "source": source,
+            "project": Path(cwd).name if cwd else "unknown",
+            "cwd": cwd,
+            "text": text,
+        }
+
+    def test_contains_header_row(self):
+        msgs = [self._make_msg("building something useful", "/proj/alpha")]
+        report = bs.build_stats_report(msgs)
+        assert "Context" in report
+        assert "Msgs" in report
+
+    def test_contains_project_name(self):
+        msgs = [self._make_msg("working on alpha project", "/proj/alpha")]
+        report = bs.build_stats_report(msgs)
+        assert "alpha" in report
+
+    def test_shows_message_count(self):
+        msgs = [
+            self._make_msg("first message about the project", "/proj/alpha", day=1),
+            self._make_msg("second message about the project", "/proj/alpha", day=2),
+            self._make_msg("third message about the project", "/proj/alpha", day=3),
+        ]
+        report = bs.build_stats_report(msgs)
+        assert "3" in report
+
+    def test_shows_total_line(self):
+        msgs = [
+            self._make_msg("alpha work message here", "/proj/alpha"),
+            self._make_msg("beta work message here", "/proj/beta"),
+        ]
+        report = bs.build_stats_report(msgs)
+        assert "Total" in report
+        assert "2" in report
+
+    def test_multiple_sources(self):
+        msgs = [
+            self._make_msg("claude session message", "/proj/x", source="claude"),
+            self._make_msg("codex session message", "/proj/x", source="codex"),
+        ]
+        report = bs.build_stats_report(msgs)
+        assert "claude" in report or "codex" in report
