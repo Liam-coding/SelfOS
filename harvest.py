@@ -1048,8 +1048,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     updated = date.today().isoformat()
     scored_count = len([v for v in (scores or {}).values() if isinstance(v, int)])
 
-    # Overall ring
-    r_big = 54
+    # Overall ring (160×160, r=68)
+    r_big = 68
     circ_big = round(3.14159 * 2 * r_big, 2)
     overall_int = int(overall) if overall and overall >= 1 else 0
     arc_big = round((overall_int / 10) * circ_big, 2) if overall_int else 0
@@ -1093,26 +1093,27 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .overall{{
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
     backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:24px;padding:2rem 2.5rem;margin-bottom:1.25rem;
-    display:flex;align-items:center;gap:2.5rem;
+    border-radius:24px;padding:2.5rem 2rem;margin-bottom:1.25rem;
+    display:flex;flex-direction:column;align-items:center;gap:1.25rem;
     box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 20px 60px rgba(0,0,0,.4)
   }}
-  .overall-ring-wrap{{position:relative;width:128px;height:128px;flex-shrink:0}}
+  .overall-ring-wrap{{position:relative;width:160px;height:160px;flex-shrink:0}}
   .overall-ring{{transform:rotate(-90deg)}}
-  .overall-ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7}}
-  .overall-ring-fill{{fill:none;stroke-width:7;stroke-linecap:round}}
+  .overall-ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:8}}
+  .overall-ring-fill{{fill:none;stroke-width:8;stroke-linecap:round}}
   .overall-ring-score{{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:0
   }}
-  .overall-ring-num{{font-size:2.5rem;font-weight:800;line-height:1;
+  .overall-ring-num{{font-size:3rem;font-weight:800;line-height:1;
     color:{overall_color};letter-spacing:-.04em;font-variant-numeric:tabular-nums}}
   .overall-ring-label{{font-size:.65rem;color:rgba(255,255,255,.35);font-weight:500;
-    text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem}}
+    text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}}
+  .overall-info{{text-align:center}}
   .overall-info h2{{font-size:1.125rem;font-weight:700;color:#fff;margin-bottom:.35rem}}
   .overall-status{{font-size:.9rem;font-weight:600;color:{overall_color};margin-bottom:.25rem}}
   .overall-count{{font-size:.8rem;color:rgba(255,255,255,.4)}}
-  .overall-date{{font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.5rem}}
+  .overall-date{{font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.4rem}}
   /* ── Cards ── */
   .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
@@ -1169,9 +1170,9 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 
 <div class="overall">
   <div class="overall-ring-wrap">
-    <svg class="overall-ring" viewBox="0 0 128 128" width="128" height="128">
-      <circle class="overall-ring-bg" cx="64" cy="64" r="{r_big}"/>
-      <circle class="overall-ring-fill" cx="64" cy="64" r="{r_big}"
+    <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
+      <circle class="overall-ring-bg" cx="80" cy="80" r="{r_big}"/>
+      <circle class="overall-ring-fill" cx="80" cy="80" r="{r_big}"
         stroke="{overall_color}"
         stroke-dasharray="{arc_big} {circ_big}"
         stroke-dashoffset="0"/>
