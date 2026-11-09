@@ -121,35 +121,37 @@ The AI reads the digest and writes one staging file per vault module — career,
 
 ### Step 3 — Fill in the blanks
 
-Open `vault/PROFILE.md` and `vault/NOW.md`. These are the two files your AI reads most. Fill in what the bootstrap script couldn't infer — your goals, current priorities, role.
+Open `vault/PROFILE.md` and `vault/NOW.md`. These are the two files your AI reads most. Fill in what bootstrap couldn't infer — your goals, current priorities, role.
 
-### Step 4 — Connect your AI agent
+### Step 4 — Install the `/digest` skill (Claude Code only)
 
-**Claude Code:**
-The `vault/CLAUDE.md` file is auto-loaded as instructions when you open Claude Code in the vault directory. No extra config needed.
+Copy the skill into your Claude Code skills directory:
 
 ```bash
-cd vault/
-claude  # Claude Code reads CLAUDE.md automatically
+# macOS / Linux
+cp -r .claude/skills/digest ~/.claude/skills/
+
+# Windows
+xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
 ```
 
-**OpenAI Codex / other agents:**
-Add this to your system prompt:
-
-```
-At the start of every session:
-1. Read vault/PROFILE.md and vault/NOW.md
-2. Read all files listed in memory/MEMORY.md
-3. Never write directly to canonical vault files — always propose changes to vault/91_Staging/ first
-```
+From now on, after running `python bootstrap.py`, just type `/digest` in Claude Code — it will read your latest digest and distribute insights to the vault automatically.
 
 ### Step 5 — Start your first session
 
-Tell your AI:
+```bash
+cd SelfOS/
+python bootstrap.py    # extract your AI conversation history
+claude                 # open Claude Code
+```
 
-> "Read my vault and memory files, then help me fill in my current goals."
+Then type:
 
-The AI will read your context, propose changes to `91_Staging/`, and wait for your approval before writing anything.
+```
+/digest
+```
+
+Claude reads your sessions, proposes updates to each vault module, and waits for your approval before writing anything.
 
 ---
 
@@ -291,35 +293,37 @@ AI 会读取摘要，按模块（职业、工作、研究、目标、决策）�
 
 ### 第三步 — 补全空白
 
-打开 `vault/PROFILE.md` 和 `vault/NOW.md`，这是 AI 最常读取的两个文件。填入 bootstrap 无法推断的内容——你的目标、当前优先级、职位。
+打开 `vault/PROFILE.md` 和 `vault/NOW.md`，填入 bootstrap 无法推断的内容——你的目标、当前优先级、职位。
 
-### 第四步 — 连接你的 AI Agent
+### 第四步 — 安装 `/digest` skill（仅 Claude Code）
 
-**Claude Code：**
-在 vault 目录下打开 Claude Code，`vault/CLAUDE.md` 会被自动加载为指令，无需额外配置。
+将 skill 复制到 Claude Code 的 skills 目录：
 
 ```bash
-cd vault/
-claude
+# macOS / Linux
+cp -r .claude/skills/digest ~/.claude/skills/
+
+# Windows
+xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
 ```
 
-**OpenAI Codex / 其他 Agent：**
-在系统提示中加入：
-
-```
-每次会话开始时：
-1. 读取 vault/PROFILE.md 和 vault/NOW.md
-2. 读取 memory/MEMORY.md 中列出的所有文件
-3. 不要直接写入正式 vault 文件——始终先将变更提议写入 vault/91_Staging/
-```
+之后每次运行 `python bootstrap.py`，只需在 Claude Code 里输入 `/digest`，它会自动读取最新 digest 并将信息分散到 vault 各模块。
 
 ### 第五步 — 开始第一次会话
 
-告诉你的 AI：
+```bash
+cd SelfOS/
+python bootstrap.py    # 提取 AI 会话历史
+claude                 # 打开 Claude Code
+```
 
-> "读取我的 vault 和 memory 文件，然后帮我填写当前目标。"
+然后输入：
 
-AI 会读取你的上下文，将变更提议写入 `91_Staging/`，并在写入任何内容前等待你的审批。
+```
+/digest
+```
+
+Claude 读取你的会话记录，为每个 vault 模块提出更新建议，等待你审批后再写入。
 
 ---
 
