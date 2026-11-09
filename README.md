@@ -97,16 +97,12 @@ metadata:
 # 1. Clone
 git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
-# 2. Install the /digest skill
-cp -r .claude/skills/digest ~/.claude/skills/          # macOS / Linux
-# xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest  # Windows
-
-# 3. Extract your AI history and open Claude Code
+# 2. Extract your AI history (installs /digest skill automatically)
 python bootstrap.py
+
+# 3. Open Claude Code and type /digest
 claude
 ```
-
-In Claude Code, type `/digest` — it reads your sessions and fills your vault.
 
 That's it.
 
@@ -228,16 +224,12 @@ vault 是一组按生活领域组织的 Markdown 文件。AI 在每次会话开�
 # 1. 克隆
 git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
-# 2. 安装 /digest skill
-cp -r .claude/skills/digest ~/.claude/skills/          # macOS / Linux
-# xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest  # Windows
-
-# 3. 提取 AI 会话历史，打开 Claude Code
+# 2. 提取 AI 会话历史（自动安装 /digest skill）
 python bootstrap.py
+
+# 3. 打开 Claude Code，输入 /digest
 claude
 ```
-
-在 Claude Code 里输入 `/digest`，它会读取你的会话记录，填充你的 vault。
 
 就这些。
 

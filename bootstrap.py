@@ -521,6 +521,21 @@ source: bootstrap-{date.today()}
 """
 
 
+# ── Skill installation ────────────────────────────────────────────────────────
+
+def install_skill() -> bool:
+    """Copy .claude/skills/digest to ~/.claude/skills/. Returns True if installed."""
+    src = Path(__file__).parent / ".claude" / "skills" / "digest"
+    dst = Path.home() / ".claude" / "skills" / "digest"
+    if not src.exists():
+        return False
+    if dst.exists():
+        return True  # already installed
+    import shutil
+    shutil.copytree(src, dst)
+    return True
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -540,6 +555,12 @@ def main():
     inbox.mkdir(parents=True, exist_ok=True)
 
     print("SelfOS Bootstrap")
+
+    # Auto-install /digest skill
+    if install_skill():
+        print("  /digest skill: ready")
+    else:
+        print("  /digest skill: not found (skill file missing)")
 
     since = None
     if args.days > 0:
