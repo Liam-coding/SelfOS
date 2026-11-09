@@ -92,7 +92,24 @@ git clone https://github.com/Liam-coding/SelfOS.git
 cd SelfOS
 ```
 
-### 2. Fill in your profile
+### 2. Bootstrap from your workspace (optional)
+
+Run the bootstrap script to auto-fill your vault templates from your existing workspace:
+
+```bash
+python bootstrap.py --workspace /path/to/your/projects --vault ./vault
+```
+
+The script will:
+- Read your git config (name, email, repos)
+- Detect your tech stack from project files
+- Extract project descriptions from READMEs
+- Filter out sensitive data (tokens, passwords, emails)
+- Write draft files to `vault/91_Staging/` — nothing is written directly
+
+Then tell your AI: *"Apply the bootstrap staging files to my vault."*
+
+### 3. Fill in your profile
 
 Edit `vault/PROFILE.md` and `vault/NOW.md` with your own information. These are the two files your AI will read most often.
 
@@ -159,6 +176,14 @@ It's not a product. It's a pattern. Fork it, adapt it, make it yours.
 ## Contributing
 
 PRs welcome. If you adapt SelfOS to a new AI agent or workflow, open a PR to add it to the supported agents table.
+
+---
+
+## Author
+
+**Liam (Jialei Liu)**
+- GitHub: [@Liam-coding](https://github.com/Liam-coding)
+- Email: jialei.liu.sh@gmail.com
 
 ---
 
