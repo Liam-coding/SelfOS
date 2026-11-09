@@ -101,6 +101,8 @@ def extract_claude_messages(since: datetime | None = None) -> tuple[list[dict], 
         project_name = _decode_claude_project_name(proj_dir.name)
 
         for session_file in proj_dir.glob("*.jsonl"):
+            if not _file_mtime_ok(session_file, since):
+                continue
             try:
                 with open(session_file, encoding="utf-8", errors="replace") as f:
                     for line in f:
@@ -142,6 +144,8 @@ def extract_codex_messages(since: datetime | None = None) -> tuple[list[dict], i
     messages = []
     raw_count = 0
     for session_file in sessions_dir.rglob("*.jsonl"):
+        if not _file_mtime_ok(session_file, since):
+            continue
         cwd = ""
         try:
             with open(session_file, encoding="utf-8", errors="replace") as f:
@@ -211,6 +215,21 @@ def _parse_ts(ts_str: str) -> datetime | None:
         return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
     except Exception:
         return None
+
+
+def _file_mtime_ok(path: Path, since: datetime | None) -> bool:
+    """Return True if the file might contain messages newer than `since`.
+
+    Uses file mtime as a cheap pre-filter. A file modified before `since`
+    cannot contain new messages. Always returns True when since is None.
+    """
+    if since is None:
+        return True
+    try:
+        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        return mtime >= since
+    except OSError:
+        return True  # can't stat → assume relevant
 
 
 # ── Group and format digest ───────────────────────────────────────────────────
@@ -761,6 +780,9 @@ def main():
     inbox = vault / "90_Inbox"
     inbox.mkdir(parents=True, exist_ok=True)
 
+    import time as _time
+    _start = _time.monotonic()
+
     print("SelfOS Bootstrap")
 
     # Ensure vault structure is complete
@@ -824,8 +846,10 @@ def main():
     if deleted:
         print(f"  Cleaned up {deleted} old digest(s).")
 
-    print(f"\nDone. {len(all_msgs)} messages across {len(set(m['cwd'] or m['project'] for m in all_msgs))} contexts.")
-    print(f"Digest: vault/90_Inbox/{out_path.name}")
+    contexts = len(set(m["cwd"] or m["project"] for m in all_msgs))
+    elapsed = _time.monotonic() - _start
+    print(f"\nDone in {elapsed:.1f}s: {len(all_msgs)} msgs from {contexts} contexts "
+          f"→ vault/90_Inbox/{out_path.name}")
     print()
     print("Next — open Claude Code in this directory and say:")
     print(f'  "Read vault/90_Inbox/{out_path.name} and distribute insights to vault modules."')

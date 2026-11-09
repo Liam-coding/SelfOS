@@ -439,6 +439,32 @@ class TestVersion:
         assert all(p.isdigit() for p in parts)
 
 
+# ── _file_mtime_ok ────────────────────────────────────────────────────────────
+
+class TestFileMtimeOk:
+    def test_no_since_always_true(self, tmp_path):
+        f = tmp_path / "test.jsonl"
+        f.write_text("x")
+        assert bs._file_mtime_ok(f, since=None) is True
+
+    def test_recent_file_is_ok(self, tmp_path):
+        f = tmp_path / "test.jsonl"
+        f.write_text("x")
+        since = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert bs._file_mtime_ok(f, since) is True
+
+    def test_future_since_filters_old_file(self, tmp_path):
+        f = tmp_path / "test.jsonl"
+        f.write_text("x")
+        since = datetime(2099, 1, 1, tzinfo=timezone.utc)
+        assert bs._file_mtime_ok(f, since) is False
+
+    def test_missing_file_returns_true(self, tmp_path):
+        f = tmp_path / "nonexistent.jsonl"
+        since = datetime(2099, 1, 1, tzinfo=timezone.utc)
+        assert bs._file_mtime_ok(f, since) is True
+
+
 # ── compute_signal_quality ────────────────────────────────────────────────────
 
 class TestComputeSignalQuality:
