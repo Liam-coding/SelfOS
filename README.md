@@ -6,6 +6,8 @@ SelfOS is an open framework for building a personal knowledge and memory system 
 
 > "An AI that remembers nothing about you is a stranger. SelfOS turns it into a collaborator."
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **[中文文档 →](#chinese)**
 
 ---
@@ -226,6 +228,10 @@ PRs welcome. If you adapt SelfOS to a new AI agent or workflow, open a PR to add
 
 **你的个人操作系统 — 结构化记忆 + AI 协作，支持任意大模型。**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**[English ↑](#selfos)**
+
 SelfOS 是一个开源框架，用于构建 AI 可读、可更新、可推理的个人知识与记忆系统。把它理解为你和 AI 助手之间的 OS 层——一个跨会话持久存在的第二大脑。
 
 > "对你一无所知的 AI 是陌生人。SelfOS 让它成为真正的协作者。"
@@ -378,4 +384,4 @@ vault 中的每条信息都有标签，让你始终清楚其可信度：
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
