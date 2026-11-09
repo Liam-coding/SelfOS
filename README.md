@@ -1,6 +1,6 @@
 # SelfOS
 
-**Your personal operating system — structured memory + AI collaboration, works with any LLM.**
+**Your life, version controlled.**
 
 SelfOS is an open framework for building a personal knowledge and memory system that AI agents can read, update, and reason over. Think of it as the OS layer between you and your AI assistant — your second brain that persists across every conversation.
 
@@ -226,7 +226,7 @@ PRs welcome. If you adapt SelfOS to a new AI agent or workflow, open a PR to add
 
 # SelfOS — 中文文档
 
-**你的个人操作系统 — 结构化记忆 + AI 协作，支持任意大模型。**
+**用最简单的方式，管理你的人生。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
