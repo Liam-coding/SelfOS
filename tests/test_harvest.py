@@ -704,3 +704,39 @@ class TestGenerateDashboard:
         bs.generate_dashboard(vault, scores)
         html = (vault / "dashboard.html").read_text(encoding="utf-8")
         assert "家庭" not in html
+
+    def test_bilingual_toggle_button_present(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "toggleLang" in html
+        assert "EN" in html
+
+    def test_english_strings_embedded(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
+        bs.generate_dashboard(vault, scores)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "Career" in html
+        assert "Health" in html
+        assert "Overall" in html
+
+    def test_suggestion_text_present(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
+        bs.generate_dashboard(vault, scores)
+        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        assert "dim-suggestion" in html
+
+    def test_suggestion_returns_both_langs(self):
+        s = bs._suggestion("health", 8)
+        assert "zh" in s and "en" in s
+        assert len(s["zh"]) > 5
+        assert len(s["en"]) > 5
+
+    def test_suggestion_nodata_when_none(self):
+        s = bs._suggestion("career", None)
+        assert "vault" in s["zh"] or "vault" in s["en"]

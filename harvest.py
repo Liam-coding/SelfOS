@@ -858,84 +858,168 @@ def load_scores(vault: Path) -> list[dict]:
     return list(reversed(entries))
 
 
+# ── Dashboard i18n strings ────────────────────────────────────────────────────
+
+_I18N = {
+    "career":   {"zh": "职业发展", "en": "Career"},
+    "work":     {"zh": "工作/项目", "en": "Work"},
+    "health":   {"zh": "健康体能", "en": "Health"},
+    "learning": {"zh": "学习成长", "en": "Learning"},
+    "research": {"zh": "研究",     "en": "Research"},
+    "life":     {"zh": "生活",     "en": "Life"},
+    "family":   {"zh": "家庭",     "en": "Family"},
+}
+
+_STATUS_I18N = {
+    "great":    {"zh": "良好",   "en": "Great"},
+    "ok":       {"zh": "一般",   "en": "OK"},
+    "watch":    {"zh": "需关注", "en": "Watch"},
+    "poor":     {"zh": "较差",   "en": "Poor"},
+    "nodata":   {"zh": "暂无数据","en": "No data"},
+}
+
+# Suggestions per dimension per score band (high/mid/low)
+_SUGGESTIONS = {
+    "career": {
+        "high": {"zh": "势头很好，可以开始准备下一步晋升或跳槽计划",
+                 "en": "Momentum is strong — consider mapping out your next move"},
+        "mid":  {"zh": "明确一个短期职业目标，写进 GOALS.md",
+                 "en": "Define one near-term career goal and add it to GOALS.md"},
+        "low":  {"zh": "花 30 分钟梳理卡点，写下来，交给 AI 分析",
+                 "en": "Spend 30 min mapping blockers — write them down for AI review"},
+    },
+    "work": {
+        "high": {"zh": "项目进展顺利，注意避免范围蔓延",
+                 "en": "Projects are flowing — watch for scope creep"},
+        "mid":  {"zh": "挑出最重要的一个任务，今天先完成它",
+                 "en": "Pick the single most important task and finish it today"},
+        "low":  {"zh": "有阻塞项需要清理，更新 NOW.md 的 Blockers 部分",
+                 "en": "Clear blockers first — update the Blockers section in NOW.md"},
+    },
+    "health": {
+        "high": {"zh": "保持节奏，记录训练数据有助于发现规律",
+                 "en": "Keep the rhythm — logging workouts helps spot patterns"},
+        "mid":  {"zh": "增加一次每周训练，睡眠和饮食是基础",
+                 "en": "Add one more weekly session; sleep and nutrition are the base"},
+        "low":  {"zh": "先从最小行动开始：每天走路 20 分钟",
+                 "en": "Start small: 20 min walk every day is a real baseline"},
+    },
+    "learning": {
+        "high": {"zh": "学习节奏好，考虑输出一篇总结巩固理解",
+                 "en": "Good pace — write a short summary to solidify understanding"},
+        "mid":  {"zh": "设定每周固定学习时间块，保护它不被会议占用",
+                 "en": "Block weekly learning time — protect it from meetings"},
+        "low":  {"zh": "把当前在学的东西更新进 05_Life/learning.md",
+                 "en": "Update what you're learning in 05_Life/learning.md"},
+    },
+    "research": {
+        "high": {"zh": "进展好，及时记录假设和结果，防止遗忘",
+                 "en": "Good progress — log hypotheses and results before they fade"},
+        "mid":  {"zh": "确定下一个最小可验证的实验，写进 03_Research/",
+                 "en": "Define the next smallest verifiable experiment in 03_Research/"},
+        "low":  {"zh": "研究停滞时，先整理文献笔记，重新找到节奏",
+                 "en": "When stuck, organize reading notes — it restores momentum"},
+    },
+    "life": {
+        "high": {"zh": "生活状态好，记录让你开心的事，以后参考",
+                 "en": "Life feels good — note what's working for future reference"},
+        "mid":  {"zh": "找一件小事改善生活质量：睡前仪式、户外时间",
+                 "en": "Find one small upgrade: a bedtime ritual, outdoor time"},
+        "low":  {"zh": "减少一件让你压力大的事，哪怕只是暂停",
+                 "en": "Remove one stressor — even pausing something counts"},
+    },
+    "family": {
+        "high": {"zh": "家庭关系稳健，保持主动联系的习惯",
+                 "en": "Family bonds are strong — keep the habit of reaching out"},
+        "mid":  {"zh": "安排一次和家人的专属时间，不谈工作",
+                 "en": "Schedule dedicated family time — no work talk"},
+        "low":  {"zh": "发一条消息给重要的人，今天就发",
+                 "en": "Send a message to someone important — do it today"},
+    },
+}
+
+
+def _suggestion(key: str, v: int | None) -> dict:
+    """Return {zh, en} suggestion string for a dimension and score."""
+    if v is None or key not in _SUGGESTIONS:
+        return {"zh": "填充 vault 内容后自动生成建议", "en": "Add vault content to get suggestions"}
+    band = "high" if v >= 7 else ("mid" if v >= 4 else "low")
+    return _SUGGESTIONS[key][band]
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     """
-    Generate vault/dashboard.html from current scores and SCORES.md history.
-    Returns the path written.
+    Generate vault/dashboard.html — bilingual (zh/en toggle), with per-dimension
+    suggestions. Returns the path written.
     """
     history = load_scores(vault)
     if scores is None and history:
-        # Use most recent entry
         latest = history[0]
         scores = {k: v for k, v in latest.items() if k != "date"}
 
-    dim_meta = {key: label for key, label, _ in SCORE_DIMENSIONS}
-
-    # Compute overall score (average of non-null, non-skip dims)
+    # Compute overall score
     if scores:
         vals = [v for v in scores.values() if isinstance(v, int)]
         overall = round(sum(vals) / len(vals), 1) if vals else None
     else:
         overall = None
 
-    # Build chart data for sparklines (last 14 entries, oldest→newest)
+    # Sparkline data: last 14 entries oldest→newest
     chart_entries = list(reversed(history[:14]))
-    chart_dates = [e["date"] for e in chart_entries]
 
     def dim_history(key):
         return [e.get(key) if isinstance(e.get(key), int) else None for e in chart_entries]
 
-    # Color per score
     def score_color(v):
         if v is None:
             return "#6b7280"
-        if v >= 8:
-            return "#22c55e"
-        if v >= 6:
-            return "#eab308"
-        if v >= 4:
-            return "#f97316"
+        if v >= 8: return "#22c55e"
+        if v >= 6: return "#eab308"
+        if v >= 4: return "#f97316"
         return "#ef4444"
 
-    def score_label(v):
-        if v is None:
-            return "暂无数据"
-        if v >= 8:
-            return "良好"
-        if v >= 6:
-            return "一般"
-        if v >= 4:
-            return "需关注"
-        return "较差"
+    def status_key(v):
+        if v is None: return "nodata"
+        if v >= 8: return "great"
+        if v >= 6: return "ok"
+        if v >= 4: return "watch"
+        return "poor"
 
-    # Build dimension cards HTML
+    # Build dimension cards — embed both zh and en strings as data attributes
     cards_html = ""
-    for key, label, _ in SCORE_DIMENSIONS:
+    for key, _label_zh, _ in SCORE_DIMENSIONS:
         v = scores.get(key) if scores else None
         if v == "skip":
             continue
         color = score_color(v if isinstance(v, int) else None)
         display = str(v) if isinstance(v, int) else "—"
-        slabel = score_label(v if isinstance(v, int) else None)
+        skey = status_key(v if isinstance(v, int) else None)
+        status_zh = _STATUS_I18N[skey]["zh"]
+        status_en = _STATUS_I18N[skey]["en"]
+        label_zh = _I18N[key]["zh"]
+        label_en = _I18N[key]["en"]
+        sugg = _suggestion(key, v if isinstance(v, int) else None)
         pct = (v * 10) if isinstance(v, int) else 0
-        hist_data = dim_history(key)
-        hist_json = json.dumps(hist_data)
+        hist_json = json.dumps(dim_history(key))
         cards_html += f"""
         <div class="card">
           <div class="card-header">
-            <span class="dim-label">{label}</span>
+            <span class="dim-label" data-zh="{label_zh}" data-en="{label_en}">{label_zh}</span>
             <span class="dim-score" style="color:{color}">{display}</span>
           </div>
           <div class="bar-bg"><div class="bar-fill" style="width:{pct}%;background:{color}"></div></div>
-          <div class="dim-status" style="color:{color}">{slabel}</div>
+          <div class="dim-status" style="color:{color}" data-zh="{status_zh}" data-en="{status_en}">{status_zh}</div>
+          <div class="dim-suggestion" data-zh="{sugg['zh']}" data-en="{sugg['en']}">{sugg['zh']}</div>
           <canvas class="sparkline" data-values='{hist_json}' data-color='{color}' width="200" height="40"></canvas>
         </div>"""
 
     overall_color = score_color(int(overall) if overall and overall >= 1 else None)
     overall_display = str(overall) if overall is not None else "—"
-    overall_label = score_label(int(overall) if overall and overall >= 1 else None)
+    overall_skey = status_key(int(overall) if overall and overall >= 1 else None)
+    overall_status_zh = _STATUS_I18N[overall_skey]["zh"]
+    overall_status_en = _STATUS_I18N[overall_skey]["en"]
     updated = date.today().isoformat()
     scored_count = len([v for v in (scores or {}).values() if isinstance(v, int)])
 
@@ -948,44 +1032,75 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:2rem}}
+  .topbar{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem}}
   h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}}
-  .subtitle{{color:#64748b;font-size:.875rem;margin-bottom:2rem}}
+  .subtitle{{color:#64748b;font-size:.875rem}}
+  .lang-btn{{background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:.5rem;padding:.4rem .9rem;font-size:.8rem;cursor:pointer;transition:all .2s}}
+  .lang-btn:hover{{background:#334155;color:#e2e8f0}}
   .overall{{background:#1e293b;border-radius:1rem;padding:1.5rem 2rem;margin-bottom:2rem;display:flex;align-items:center;gap:2rem}}
   .overall-score{{font-size:4rem;font-weight:800;line-height:1;color:{overall_color}}}
   .overall-info h2{{font-size:1.125rem;font-weight:600;margin-bottom:.25rem}}
   .overall-info p{{color:#64748b;font-size:.875rem}}
   .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color}}}
-  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}}
+  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem}}
   .card{{background:#1e293b;border-radius:.75rem;padding:1.25rem}}
   .card-header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}}
   .dim-label{{font-size:.875rem;font-weight:600;color:#94a3b8}}
   .dim-score{{font-size:1.75rem;font-weight:800}}
   .bar-bg{{background:#334155;border-radius:9999px;height:6px;margin-bottom:.5rem}}
   .bar-fill{{height:6px;border-radius:9999px;transition:width .5s}}
-  .dim-status{{font-size:.75rem;font-weight:500;margin-bottom:.5rem}}
+  .dim-status{{font-size:.75rem;font-weight:600;margin-bottom:.4rem}}
+  .dim-suggestion{{font-size:.75rem;color:#64748b;line-height:1.4;margin-bottom:.25rem}}
   .sparkline{{display:block;margin-top:.5rem;opacity:.7}}
   footer{{margin-top:2rem;color:#475569;font-size:.75rem;text-align:center}}
+  a{{color:inherit}}
 </style>
 </head>
 <body>
-<h1>SelfOS — Life Dashboard</h1>
-<p class="subtitle">更新于 {updated} · 基于 vault 内容自动推断 · 仅供参考</p>
+<div class="topbar">
+  <div>
+    <h1>SelfOS — Life Dashboard</h1>
+    <p class="subtitle" id="subtitle-text">更新于 {updated} · 基于 vault 内容自动推断 · 仅供参考</p>
+  </div>
+  <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
+</div>
 
 <div class="overall">
   <div class="overall-score">{overall_display}</div>
   <div class="overall-info">
-    <h2>综合状态</h2>
-    <p class="overall-status">{overall_label}</p>
-    <p>{scored_count} 个维度有数据</p>
+    <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
+    <p class="overall-status" id="overall-status"
+       data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
+    <p id="overall-count"
+       data-zh="{scored_count} 个维度有数据"
+       data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
   </div>
 </div>
 
 <div class="grid">{cards_html}
 </div>
 
-<footer>SelfOS Dashboard · 数据来源: vault/ · <a href="90_Inbox/" style="color:#475569">查看原始摘要</a></footer>
+<footer>SelfOS Dashboard · <span data-zh="数据来源" data-en="Source" class="i18n">数据来源</span>: vault/ ·
+<a href="90_Inbox/" style="color:#475569"><span class="i18n" data-zh="查看原始摘要" data-en="View raw digest">查看原始摘要</span></a></footer>
 
 <script>
+let lang = 'zh';
+
+function toggleLang() {{
+  lang = lang === 'zh' ? 'en' : 'zh';
+  document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
+  document.documentElement.lang = lang;
+
+  const updated = '{updated}';
+  document.getElementById('subtitle-text').textContent = lang === 'zh'
+    ? '更新于 ' + updated + ' · 基于 vault 内容自动推断 · 仅供参考'
+    : 'Updated ' + updated + ' · Auto-inferred from vault content · For reference only';
+
+  document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
+    el.textContent = el.dataset[lang];
+  }});
+}}
+
 document.querySelectorAll('.sparkline').forEach(canvas => {{
   const values = JSON.parse(canvas.dataset.values);
   const color = canvas.dataset.color;

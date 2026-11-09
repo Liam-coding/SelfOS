@@ -108,6 +108,30 @@ That's it.
 
 ---
 
+## Life Dashboard
+
+Every time you run `python harvest.py`, SelfOS automatically generates a `vault/dashboard.html` — a visual snapshot of your life across 7 dimensions:
+
+| Dimension | What it tracks |
+|-----------|---------------|
+| Career | Job opportunities, momentum, clarity |
+| Work | Active projects, delivery, blockers |
+| Health | Training, energy, physical state |
+| Learning | Courses, books, skill growth |
+| Research | Experiments, progress, publications |
+| Life | Balance, wellbeing, side projects |
+| Family | Relationships, connection, presence |
+
+Each dimension gets a score (1–10) inferred from your vault content, a color-coded status, and a concrete suggestion for improvement. The dashboard supports **Chinese / English toggle** and shows a 14-day sparkline trend per dimension.
+
+Open it in any browser — no server needed:
+```bash
+open vault/dashboard.html   # macOS
+start vault/dashboard.html  # Windows
+```
+
+---
+
 ## The staging workflow
 
 SelfOS enforces a strict **propose → approve → apply → commit** cycle. Your AI never writes directly to canonical vault files.
@@ -232,6 +256,30 @@ claude
 ```
 
 就这些。
+
+---
+
+## 人生仪表盘
+
+每次运行 `python harvest.py`，SelfOS 自动生成 `vault/dashboard.html`——7 个维度的人生状态可视化快照：
+
+| 维度 | 追踪内容 |
+|------|---------|
+| 职业发展 | 职业机会、发展势头、方向清晰度 |
+| 工作/项目 | 活跃项目、交付进度、阻塞项 |
+| 健康体能 | 训练、精力、身体状态 |
+| 学习成长 | 课程、书籍、技能进展 |
+| 研究 | 实验、进展、论文发表 |
+| 生活 | 平衡感、幸福感、副业项目 |
+| 家庭 | 家庭关系、联系频率、存在感 |
+
+每个维度根据 vault 内容自动推断 1-10 分，带颜色状态和具体改进建议。仪表盘支持**中英文切换**，每个维度显示 14 天趋势折线。
+
+用浏览器直接打开，不需要任何服务器：
+```bash
+start vault/dashboard.html  # Windows
+open vault/dashboard.html   # macOS
+```
 
 ---
 
