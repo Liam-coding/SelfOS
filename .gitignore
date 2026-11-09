@@ -1,0 +1,7 @@
+vault/90_Inbox/
+*.aux
+*.log
+*.out
+*.toc
+.DS_Store
+Thumbs.db
