@@ -1585,6 +1585,7 @@ function openDim(card) {{
   document.getElementById('dim-modal-status').style.color = color;
   document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
   document.getElementById('dim-modal').classList.add('open');
+  setTimeout(() => document.getElementById('dim-modal').classList.remove('open'), 2500);
 
   // Simultaneously send chat in background
   if (chatCollapsed) toggleChat();
