@@ -611,12 +611,11 @@ function openDim(card) {
   document.getElementById('dim-modal-status').style.color = color;
   document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
   document.getElementById('dim-modal').classList.add('open');
-  setTimeout(() => document.getElementById('dim-modal').classList.remove('open'), 2500);
 
   // Simultaneously send chat in background
   if (chatCollapsed) toggleChat();
   const msg = lang === 'zh' ? `帮我分析一下「${label}」这个维度` : `Tell me about my ${label} dimension`;
-  _sendChatSilent(msg);
+  _sendChatSilent(msg);  // closes modal once request is sent
 }
 document.getElementById('dim-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
@@ -629,11 +628,14 @@ async function _sendChatSilent(text) {
   const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
   thinking.classList.add('thinking');
   try {
-    const res = await fetch('/chat', {
+    const fetchPromise = fetch('/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({messages: chatHistory})
     });
+    // Close modal as soon as request is sent (not waiting for response)
+    document.getElementById('dim-modal').classList.remove('open');
+    const res = await fetchPromise;
     const data = await res.json();
     thinking.remove();
     const reply = data.reply || data.error || 'Error';
