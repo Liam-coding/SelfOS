@@ -1080,7 +1080,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .header-left{{display:flex;flex-direction:column;gap:.2rem}}
   .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1}}
   .slogan{{font-size:.8rem;color:rgba(255,255,255,.38);font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
-  .greeting{{font-size:1.75rem;font-weight:700;letter-spacing:-.03em;color:#fff;margin-top:.6rem;line-height:1.1}}
+  .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:rgba(255,255,255,.82);margin-top:.75rem;line-height:1.15}}
   .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
   .header-btns{{display:flex;gap:.5rem;align-items:center}}
   .lang-btn,.harvest-btn{{
@@ -1111,15 +1111,14 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center
   }}
-  .overall-ring-num{{font-size:3rem;font-weight:800;line-height:1;
-    color:{overall_color};letter-spacing:-.04em;font-variant-numeric:tabular-nums}}
-  .overall-ring-label{{font-size:.65rem;color:rgba(255,255,255,.35);font-weight:500;
-    text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}}
+  .overall-ring-num{{font-size:2.25rem;font-weight:300;line-height:1;
+    color:rgba(255,255,255,.75);letter-spacing:-.02em;font-variant-numeric:tabular-nums}}
+  .overall-ring-label{{display:none}}
   .overall-info{{text-align:center}}
-  .overall-info h2{{font-size:.85rem;font-weight:600;color:#fff;margin-bottom:.2rem}}
-  .overall-status{{font-size:.8rem;font-weight:600;color:{overall_color};margin-bottom:.15rem}}
-  .overall-count{{font-size:.72rem;color:rgba(255,255,255,.4)}}
-  .overall-date{{font-size:.65rem;color:rgba(255,255,255,.22);margin-top:.3rem}}
+  .overall-info h2{{font-size:.75rem;font-weight:500;color:rgba(255,255,255,.3);margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.08em}}
+  .overall-status{{font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);margin-bottom:.15rem}}
+  .overall-count{{font-size:.7rem;color:rgba(255,255,255,.3)}}
+  .overall-date{{font-size:.65rem;color:rgba(255,255,255,.18);margin-top:.3rem}}
   /* ── Cards ── */
   .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
