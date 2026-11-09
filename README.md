@@ -93,73 +93,22 @@ metadata:
 
 ## Getting started
 
-### Step 1 — Clone
-
 ```bash
-git clone https://github.com/Liam-coding/SelfOS.git
-cd SelfOS
-```
+# 1. Clone
+git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
-### Step 2 — Bootstrap from your AI conversation history
+# 2. Install the /digest skill
+cp -r .claude/skills/digest ~/.claude/skills/          # macOS / Linux
+# xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest  # Windows
 
-```bash
+# 3. Extract your AI history and open Claude Code
 python bootstrap.py
+claude
 ```
 
-That's it. The script finds your Claude Code and Codex sessions automatically, extracts your messages, filters sensitive data, and writes a digest to `vault/90_Inbox/`.
+In Claude Code, type `/digest` — it reads your sessions and fills your vault.
 
-**Limit to recent sessions:**
-```bash
-python bootstrap.py --days 90
-```
-
-Then tell your AI agent:
-
-> "Read vault/90_Inbox/YYYY-MM-DD-sessions-digest.md and distribute insights to vault modules."
-
-The AI reads the digest and writes one staging file per vault module — career, work, research, goals, decisions — for your review before anything is committed.
-
-**What gets extracted:** your messages across all Claude Code and Codex sessions, grouped by project, sorted by recency.
-
-**What gets filtered:** AI replies, API keys, tokens, passwords, emails, system notifications, one-word acks.
-
-**Privacy:** `vault/90_Inbox/` is git-ignored. Session content never leaves your machine.
-
-### Step 3 — Fill in the blanks
-
-Open `vault/PROFILE.md` and `vault/NOW.md`. These are the two files your AI reads most. Fill in what bootstrap couldn't infer — your goals, current priorities, role.
-
-### Step 4 — Install the `/digest` skill (Claude Code only)
-
-Copy the skill into your Claude Code skills directory:
-
-**macOS / Linux:**
-```bash
-cp -r .claude/skills/digest ~/.claude/skills/
-```
-
-**Windows:**
-```bat
-xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
-```
-
-From now on, after running `python bootstrap.py`, just type `/digest` in Claude Code.
-
-### Step 5 — Start your first session
-
-```bash
-cd SelfOS/
-python bootstrap.py    # extract your AI conversation history
-claude                 # open Claude Code
-```
-
-Then type:
-
-```
-/digest
-```
-
-Claude reads your sessions, proposes updates to each vault module, and waits for your approval before writing anything.
+That's it.
 
 ---
 
@@ -275,73 +224,22 @@ vault 是一组按生活领域组织的 Markdown 文件。AI 在每次会话开�
 
 ## 快速开始
 
-### 第一步 — 克隆仓库
-
 ```bash
-git clone https://github.com/Liam-coding/SelfOS.git
-cd SelfOS
-```
+# 1. 克隆
+git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
-### 第二步 — 从 AI 会话历史 Bootstrap
+# 2. 安装 /digest skill
+cp -r .claude/skills/digest ~/.claude/skills/          # macOS / Linux
+# xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest  # Windows
 
-```bash
+# 3. 提取 AI 会话历史，打开 Claude Code
 python bootstrap.py
+claude
 ```
 
-就这一行。脚本自动找到你的 Claude Code 和 Codex 会话，提取你的消息，过滤敏感信息，将摘要写入 `vault/90_Inbox/`。
+在 Claude Code 里输入 `/digest`，它会读取你的会话记录，填充你的 vault。
 
-**只提取最近一段时间：**
-```bash
-python bootstrap.py --days 90
-```
-
-然后告诉你的 AI：
-
-> "读取 vault/90_Inbox/YYYY-MM-DD-sessions-digest.md，将信息分散到 vault 各模块。"
-
-AI 会读取摘要，按模块（职业、工作、研究、目标、决策）分别写入 staging 文件，等待你审批后再提交。
-
-**会提取什么：** 你在所有 Claude Code 和 Codex 会话中发送的消息，按项目分组，按时间排序。
-
-**会过滤什么：** AI 的回复、API key、token、密码、邮箱、系统通知、单字确认。
-
-**隐私：** `vault/90_Inbox/` 已 git-ignored，会话内容永远不离开你的本地机器。
-
-### 第三步 — 补全空白
-
-打开 `vault/PROFILE.md` 和 `vault/NOW.md`，填入 bootstrap 无法推断的内容——你的目标、当前优先级、职位。
-
-### 第四步 — 安装 `/digest` skill（仅 Claude Code）
-
-将 skill 复制到 Claude Code 的 skills 目录：
-
-**macOS / Linux：**
-```bash
-cp -r .claude/skills/digest ~/.claude/skills/
-```
-
-**Windows：**
-```bat
-xcopy /E /I .claude\skills\digest %USERPROFILE%\.claude\skills\digest
-```
-
-之后每次运行 `python bootstrap.py`，只需在 Claude Code 里输入 `/digest`。
-
-### 第五步 — 开始第一次会话
-
-```bash
-cd SelfOS/
-python bootstrap.py    # 提取 AI 会话历史
-claude                 # 打开 Claude Code
-```
-
-然后输入：
-
-```
-/digest
-```
-
-Claude 读取你的会话记录，为每个 vault 模块提出更新建议，等待你审批后再写入。
+就这些。
 
 ---
 
