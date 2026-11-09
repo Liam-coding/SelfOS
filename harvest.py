@@ -1074,7 +1074,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   /* ── Header ── */
   .header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}}
   .header-left{{display:flex;flex-direction:column;gap:.2rem}}
-  .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#1d1d1f;line-height:1}}
+  .brand{{font-size:3.5rem;font-weight:800;letter-spacing:-.04em;color:#1d1d1f;line-height:1}}
   .slogan{{font-size:.8rem;color:#86868b;font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
   .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:#1d1d1f;margin-top:.75rem;line-height:1.15;text-align:right}}
   .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
