@@ -1086,7 +1086,11 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
         arc = round((v / 10) * circ, 2) if isinstance(v, int) else 0
         hist_json = json.dumps(dim_history(key))
         cards_html += f"""
-        <div class="card">
+        <div class="card" onclick="openDim(this)" data-key="{key}"
+             data-label-zh="{label_zh}" data-label-en="{label_en}"
+             data-score="{display}" data-color="{color}"
+             data-status-zh="{status_zh}" data-status-en="{status_en}"
+             data-sugg-zh="{sugg['zh']}" data-sugg-en="{sugg['en']}">
           <div class="card-header">
             <span class="dim-label" data-zh="{label_zh}" data-en="{label_en}">{label_zh}</span>
           </div>
@@ -1241,6 +1245,25 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   body.dark .modal-steps{{background:#1c1c1e}}
   body.dark .modal-steps li{{color:#f5f5f7}}
   body.dark .modal-cancel{{border-color:rgba(255,255,255,.15);color:#aeaeb2}}
+  /* ── Dim detail modal ── */
+  .dim-modal{{max-width:320px}}
+  .dim-modal-score{{
+    font-size:3.5rem;font-weight:200;letter-spacing:-.04em;line-height:1;
+    margin:.25rem 0 .125rem;text-align:center
+  }}
+  .dim-modal-status{{font-size:.8rem;font-weight:600;text-align:center;margin-bottom:1rem}}
+  .dim-modal-sugg{{
+    font-size:.82rem;color:#515154;line-height:1.65;
+    background:#f5f5f7;border-radius:12px;padding:.875rem 1rem;margin-bottom:1rem
+  }}
+  body.dark .dim-modal-sugg{{background:#1c1c1e;color:#aeaeb2}}
+  .dim-modal-chat{{
+    width:100%;padding:.55rem 1rem;border-radius:10px;border:none;
+    background:#0071e3;color:#fff;font-size:.8rem;font-weight:600;
+    cursor:pointer;transition:background .15s
+  }}
+  .dim-modal-chat:hover{{background:#0077ed}}
+  .card{{cursor:pointer}}
   /* ── Hero ── */
   .hero{{display:flex;align-items:center;margin-bottom:1.75rem;gap:0}}
   .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2.5rem}}
@@ -1412,6 +1435,19 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   </div>
 </div>
 
+<!-- Dimension detail modal -->
+<div class="modal-backdrop" id="dim-modal">
+  <div class="modal dim-modal">
+    <div class="modal-icon" id="dim-modal-icon">📊</div>
+    <div class="modal-title" id="dim-modal-title">—</div>
+    <div class="dim-modal-score" id="dim-modal-score">—</div>
+    <div class="dim-modal-status" id="dim-modal-status">—</div>
+    <div class="dim-modal-sugg" id="dim-modal-sugg">—</div>
+    <button class="dim-modal-chat" onclick="chatAboutDim()"
+            data-zh="和 AI 聊这个维度" data-en="Chat about this">和 AI 聊这个维度</button>
+  </div>
+</div>
+
 <div class="hero">
   <div class="hero-greeting">
     <div class="greeting" id="greeting-text"
@@ -1523,6 +1559,44 @@ function toggleLang() {{
   }});
   const inp = document.getElementById('chat-input');
   inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
+}}
+
+// ── Dim icons ──
+const DIM_ICONS = {{
+  career:'💼', work:'🛠', health:'💪', learning:'📚',
+  research:'🔬', life:'🌿', family:'🏠'
+}};
+let _currentDimKey = '';
+
+function openDim(card) {{
+  const key   = card.dataset.key;
+  const score = card.dataset.score;
+  const color = card.dataset.color;
+  _currentDimKey = key;
+  document.getElementById('dim-modal-icon').textContent  = DIM_ICONS[key] || '📊';
+  document.getElementById('dim-modal-title').textContent = card.dataset[lang === 'zh' ? 'labelZh' : 'labelEn'];
+  const scoreEl = document.getElementById('dim-modal-score');
+  scoreEl.textContent  = score;
+  scoreEl.style.color  = color;
+  document.getElementById('dim-modal-status').textContent = card.dataset[lang === 'zh' ? 'statusZh' : 'statusEn'];
+  document.getElementById('dim-modal-status').style.color = color;
+  document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
+  document.getElementById('dim-modal').classList.add('open');
+}}
+document.getElementById('dim-modal').addEventListener('click', e => {{
+  if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
+}});
+
+function chatAboutDim() {{
+  document.getElementById('dim-modal').classList.remove('open');
+  // Open chat if collapsed
+  if (chatCollapsed) toggleChat();
+  // Pre-fill a message about this dimension
+  const label = document.getElementById('dim-modal-title').textContent;
+  const inp = document.getElementById('chat-input');
+  inp.value = lang === 'zh' ? `帮我分析一下「${{label}}」这个维度` : `Tell me about my ${{label}} dimension`;
+  inp.dispatchEvent(new Event('input'));
+  inp.focus();
 }}
 
 // ── Harvest modal ──
