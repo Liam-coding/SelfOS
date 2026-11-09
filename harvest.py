@@ -1007,7 +1007,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
         <div class="card">
           <div class="card-header">
             <span class="dim-label" data-zh="{label_zh}" data-en="{label_en}">{label_zh}</span>
-            <span class="dim-score" style="color:{color}">{display}</span>
+            <span class="dim-score">{display}</span>
           </div>
           <div class="bar-bg"><div class="bar-fill" style="width:{pct}%;background:{color}"></div></div>
           <div class="dim-status" style="color:{color}" data-zh="{status_zh}" data-en="{status_en}">{status_zh}</div>
@@ -1032,65 +1032,69 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
     min-height:100vh;
-    padding:2rem;
-    color:#e2e8f0;
+    padding:2.5rem;
+    color:#fff;
     background:
-      radial-gradient(ellipse at 20% 20%, rgba(99,102,241,.18) 0%, transparent 55%),
-      radial-gradient(ellipse at 80% 80%, rgba(16,185,129,.12) 0%, transparent 55%),
-      radial-gradient(ellipse at 60% 10%, rgba(245,158,11,.10) 0%, transparent 45%),
-      #070d1a;
+      radial-gradient(ellipse 80% 60% at 10% 0%, #1a1060 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 100%, #0a3d2e 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 10%, #1a0a2e 0%, transparent 50%),
+      #090912;
   }}
-  .topbar{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem}}
-  h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem;
-      background:linear-gradient(90deg,#a5b4fc,#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
-  .subtitle{{color:#475569;font-size:.8rem}}
+  .topbar{{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}}
+  h1{{font-size:1.375rem;font-weight:700;letter-spacing:-.03em;color:#fff}}
+  .subtitle{{color:rgba(255,255,255,.4);font-size:.8rem;margin-top:.2rem;font-weight:400}}
   .lang-btn{{
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.1);
-    color:#94a3b8;border-radius:.5rem;padding:.4rem .9rem;
-    font-size:.8rem;cursor:pointer;
-    backdrop-filter:blur(8px);
-    transition:all .2s
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.15);
+    color:rgba(255,255,255,.85);
+    border-radius:8px;padding:.375rem .875rem;
+    font-size:.8rem;font-weight:500;cursor:pointer;
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    transition:background .15s
   }}
-  .lang-btn:hover{{background:rgba(255,255,255,.12);color:#e2e8f0}}
+  .lang-btn:hover{{background:rgba(255,255,255,.18)}}
   .overall{{
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
-    backdrop-filter:blur(20px);
-    border-radius:1.25rem;
-    padding:1.75rem 2rem;
-    margin-bottom:1.5rem;
-    display:flex;align-items:center;gap:2rem;
-    box-shadow:0 8px 32px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.06)
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.12);
+    backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+    border-radius:20px;
+    padding:2rem 2.25rem;
+    margin-bottom:1.25rem;
+    display:flex;align-items:center;gap:2.5rem;
+    box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 20px 60px rgba(0,0,0,.4)
   }}
-  .overall-score{{font-size:4.5rem;font-weight:900;line-height:1;color:{overall_color};
-    text-shadow:0 0 40px {overall_color}66}}
-  .overall-info h2{{font-size:1.125rem;font-weight:600;margin-bottom:.25rem}}
-  .overall-info p{{color:#64748b;font-size:.875rem}}
-  .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color}}}
-  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.875rem}}
+  .overall-score{{
+    font-size:5rem;font-weight:800;line-height:1;
+    color:{overall_color};
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.04em
+  }}
+  .overall-info h2{{font-size:1rem;font-weight:600;color:#fff;margin-bottom:.3rem}}
+  .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color};margin-bottom:.2rem}}
+  .overall-count{{font-size:.8rem;color:rgba(255,255,255,.4)}}
+  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}}
   .card{{
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.07);
-    backdrop-filter:blur(16px);
-    border-radius:1rem;padding:1.25rem;
-    transition:transform .2s,box-shadow .2s;
-    box-shadow:0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.05)
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+    backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+    border-radius:16px;padding:1.25rem 1.375rem;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 8px 32px rgba(0,0,0,.25);
+    transition:background .2s,transform .2s
   }}
-  .card:hover{{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07)}}
-  .card-header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}}
-  .dim-label{{font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}}
-  .dim-score{{font-size:1.875rem;font-weight:800}}
-  .bar-bg{{background:rgba(255,255,255,.07);border-radius:9999px;height:5px;margin-bottom:.6rem}}
-  .bar-fill{{height:5px;border-radius:9999px;transition:width .6s cubic-bezier(.4,0,.2,1)}}
-  .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.35rem;letter-spacing:.03em}}
-  .dim-suggestion{{font-size:.72rem;color:#475569;line-height:1.5;margin-bottom:.25rem}}
-  .sparkline{{display:block;margin-top:.5rem;opacity:.6}}
-  footer{{margin-top:2rem;color:#334155;font-size:.72rem;text-align:center}}
+  .card:hover{{background:rgba(255,255,255,.09);transform:translateY(-1px)}}
+  .card-header{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.875rem}}
+  .dim-label{{font-size:.7rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem}}
+  .dim-score{{font-size:2rem;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1}}
+  .bar-bg{{background:rgba(255,255,255,.1);border-radius:9999px;height:4px;margin-bottom:.6rem}}
+  .bar-fill{{height:4px;border-radius:9999px;transition:width .6s cubic-bezier(.4,0,.2,1)}}
+  .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.4rem}}
+  .dim-suggestion{{font-size:.72rem;color:rgba(255,255,255,.38);line-height:1.5}}
+  .sparkline{{display:block;margin-top:.625rem;opacity:.55}}
+  footer{{margin-top:2rem;color:rgba(255,255,255,.2);font-size:.7rem;text-align:center}}
   a{{color:inherit;text-decoration:none}}
-  a:hover{{color:#64748b}}
 </style>
 </head>
 <body>
@@ -1108,7 +1112,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
     <p class="overall-status" id="overall-status"
        data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
-    <p id="overall-count"
+    <p class="overall-count" id="overall-count"
        data-zh="{scored_count} 个维度有数据"
        data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
   </div>
@@ -1117,43 +1121,36 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <div class="grid">{cards_html}
 </div>
 
-<footer>SelfOS Dashboard · <span data-zh="数据来源" data-en="Source" class="i18n">数据来源</span>: vault/ ·
-<a href="90_Inbox/"><span class="i18n" data-zh="查看原始摘要" data-en="View raw digest">查看原始摘要</span></a></footer>
+<footer>SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
+<a href="90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
 
 <script>
 let lang = 'zh';
-
 function toggleLang() {{
   lang = lang === 'zh' ? 'en' : 'zh';
   document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
   document.documentElement.lang = lang;
-  const updated = '{updated}';
+  const d = '{updated}';
   document.getElementById('subtitle-text').textContent = lang === 'zh'
-    ? '更新于 ' + updated + ' · 基于 vault 内容自动推断 · 仅供参考'
-    : 'Updated ' + updated + ' · Auto-inferred from vault content · For reference only';
+    ? '更新于 ' + d + ' · 基于 vault 内容自动推断 · 仅供参考'
+    : 'Updated ' + d + ' · Auto-inferred from vault · For reference only';
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
 }}
-
 document.querySelectorAll('.sparkline').forEach(canvas => {{
   const values = JSON.parse(canvas.dataset.values);
   const color = canvas.dataset.color;
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
-  const valid = values.filter(v => v !== null);
-  if (valid.length < 2) return;
-  const min = 1, max = 10;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
+  if (values.filter(v => v !== null).length < 2) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
   let first = true;
   values.forEach((v, i) => {{
     if (v === null) {{ first = true; return; }}
     const x = (i / (values.length - 1)) * w;
-    const y = h - ((v - min) / (max - min)) * h;
-    if (first) {{ ctx.moveTo(x, y); first = false; }}
-    else ctx.lineTo(x, y);
+    const y = h - ((v - 1) / 9) * (h - 4) - 2;
+    if (first) {{ ctx.moveTo(x, y); first = false; }} else ctx.lineTo(x, y);
   }});
   ctx.stroke();
 }});
