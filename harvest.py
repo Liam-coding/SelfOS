@@ -1097,7 +1097,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:#1d1d1f;margin-top:.75rem;line-height:1.15;text-align:right}}
   .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
   .header-btns{{display:flex;gap:.5rem;align-items:center}}
-  .lang-btn,.harvest-btn{{
+  .lang-btn,.harvest-btn,.theme-btn{{
     border-radius:10px;padding:.4rem 1rem;
     font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;
     white-space:nowrap
@@ -1107,11 +1107,92 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     color:#1d1d1f
   }}
   .lang-btn:hover{{background:rgba(0,0,0,.1)}}
+  .theme-btn{{
+    background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.1);
+    color:#1d1d1f;font-size:.85rem;padding:.4rem .7rem
+  }}
+  .theme-btn:hover{{background:rgba(0,0,0,.1)}}
   .harvest-btn{{
     background:rgba(0,125,250,.1);border:1px solid rgba(0,125,250,.25);
     color:#0071e3
   }}
   .harvest-btn:hover{{background:rgba(0,125,250,.18)}}
+  /* ── Modal ── */
+  .modal-backdrop{{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);
+    z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)
+  }}
+  .modal-backdrop.open{{display:flex}}
+  .modal{{
+    background:#fff;border-radius:22px;padding:2rem 1.75rem 1.5rem;
+    max-width:360px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,.2);
+    animation:modal-in .2s ease
+  }}
+  @keyframes modal-in{{from{{transform:scale(.94);opacity:0}}to{{transform:scale(1);opacity:1}}}}
+  .modal-icon{{font-size:2rem;margin-bottom:.75rem;text-align:center}}
+  .modal-title{{font-size:1.1rem;font-weight:700;color:#1d1d1f;margin-bottom:.5rem;text-align:center}}
+  .modal-body{{font-size:.8rem;color:#515154;line-height:1.65;margin-bottom:1.25rem;text-align:center}}
+  .modal-steps{{
+    background:#f5f5f7;border-radius:12px;padding:.875rem 1rem;
+    margin-bottom:1.25rem;list-style:none;display:flex;flex-direction:column;gap:.45rem
+  }}
+  .modal-steps li{{font-size:.78rem;color:#1d1d1f;display:flex;align-items:flex-start;gap:.5rem}}
+  .modal-steps li::before{{content:"";width:6px;height:6px;border-radius:50%;
+    background:#0071e3;flex-shrink:0;margin-top:.35rem}}
+  .modal-actions{{display:flex;gap:.625rem;justify-content:flex-end}}
+  .modal-cancel{{
+    padding:.5rem 1rem;border-radius:10px;border:1px solid rgba(0,0,0,.15);
+    background:transparent;color:#515154;font-size:.8rem;font-weight:600;cursor:pointer
+  }}
+  .modal-confirm{{
+    padding:.5rem 1.25rem;border-radius:10px;border:none;
+    background:#0071e3;color:#fff;font-size:.8rem;font-weight:600;cursor:pointer;
+    transition:background .15s
+  }}
+  .modal-confirm:hover{{background:#0077ed}}
+  /* ── Dark theme ── */
+  body.dark{{background:#1c1c1e;color:#f5f5f7}}
+  body.dark .brand{{color:#f5f5f7}}
+  body.dark .slogan{{color:#8e8e93}}
+  body.dark .greeting{{color:#f5f5f7}}
+  body.dark .lang-btn,.dark .theme-btn{{
+    background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#f5f5f7
+  }}
+  body.dark .lang-btn:hover,.dark .theme-btn:hover{{background:rgba(255,255,255,.14)}}
+  body.dark .harvest-btn{{background:rgba(0,125,250,.2);border-color:rgba(0,125,250,.4)}}
+  body.dark .card{{background:#2c2c2e;border-color:rgba(255,255,255,.08);
+    box-shadow:0 2px 12px rgba(0,0,0,.35)}}
+  body.dark .card:hover{{box-shadow:0 4px 20px rgba(0,0,0,.5)}}
+  body.dark .dim-label{{color:#8e8e93}}
+  body.dark .ring-bg{{stroke:rgba(255,255,255,.1)}}
+  body.dark .ring-score{{color:#f5f5f7}}
+  body.dark .dim-suggestion{{color:#8e8e93}}
+  body.dark .legend{{background:#2c2c2e;border-color:rgba(255,255,255,.08)}}
+  body.dark .legend-title{{color:#8e8e93}}
+  body.dark .legend-text{{color:#f5f5f7}}
+  body.dark .overall-ring-bg{{stroke:rgba(255,255,255,.1)}}
+  body.dark .overall-ring-num{{color:rgba(255,255,255,.6)}}
+  body.dark .overall-info h2{{color:#8e8e93}}
+  body.dark .overall-status{{color:#ebebf0}}
+  body.dark .overall-count{{color:#8e8e93}}
+  body.dark .overall-date{{color:#636366}}
+  body.dark footer{{color:#636366}}
+  body.dark .chat-panel{{background:#2c2c2e;border-color:rgba(255,255,255,.1)}}
+  body.dark .chat-header{{border-bottom-color:rgba(255,255,255,.08)}}
+  body.dark .chat-header-title{{color:#f5f5f7}}
+  body.dark .chat-header-sub{{color:#8e8e93}}
+  body.dark .chat-messages{{scrollbar-color:rgba(255,255,255,.1) transparent}}
+  body.dark .msg-ai{{background:rgba(255,255,255,.07);color:#ebebf0}}
+  body.dark .msg-user{{background:#0071e3}}
+  body.dark .chat-input{{background:#1c1c1e;border-color:rgba(255,255,255,.12);color:#f5f5f7}}
+  body.dark .chat-input:focus{{border-color:#0071e3;background:#1c1c1e}}
+  body.dark .chat-input-row{{border-top-color:rgba(255,255,255,.08)}}
+  body.dark .modal{{background:#2c2c2e}}
+  body.dark .modal-title{{color:#f5f5f7}}
+  body.dark .modal-body{{color:#aeaeb2}}
+  body.dark .modal-steps{{background:#1c1c1e}}
+  body.dark .modal-steps li{{color:#f5f5f7}}
+  body.dark .modal-cancel{{border-color:rgba(255,255,255,.15);color:#aeaeb2}}
   /* ── Hero ── */
   .hero{{display:flex;align-items:center;margin-bottom:1.75rem;gap:0}}
   .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2.5rem}}
@@ -1242,14 +1323,40 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <div class="header">
   <div class="header-left">
     <div class="brand">SelfOS</div>
-    <div class="slogan" data-zh="你的第二大脑，为 AI 时代而生"
-         data-en="Your second brain, built for the AI era">你的第二大脑，为 AI 时代而生</div>
+    <div class="slogan" data-zh="用简单的方式，管理你的人生"
+         data-en="A simpler way to manage your life">用简单的方式，管理你的人生</div>
   </div>
   <div class="header-right">
     <div class="header-btns">
-      <button class="harvest-btn" onclick="runHarvest()" id="harvest-btn"
-              data-zh="⟳ 更新数据" data-en="⟳ Harvest">⟳ 更新数据</button>
+      <button class="harvest-btn" onclick="openHarvestModal()" id="harvest-btn"
+              data-zh="⟳ 采集数据" data-en="⟳ Harvest">⟳ 采集数据</button>
+      <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="切换主题">☀</button>
       <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Harvest modal -->
+<div class="modal-backdrop" id="harvest-modal">
+  <div class="modal">
+    <div class="modal-icon">🔍</div>
+    <div class="modal-title" data-zh="采集数据" data-en="Harvest Data">采集数据</div>
+    <div class="modal-body"
+         data-zh="将扫描你的所有 Claude Code 和 Codex 历史，通过 AI 自动分类整理，更新你的评分与 vault 内容。"
+         data-en="Scan all your Claude Code and Codex history, classify it with AI, and update your scores and vault.">
+      将扫描你的所有 Claude Code 和 Codex 历史，通过 AI 自动分类整理，更新你的评分与 vault 内容。
+    </div>
+    <ul class="modal-steps">
+      <li data-zh="扫描 Claude Code 会话记录" data-en="Scan Claude Code session files">扫描 Claude Code 会话记录</li>
+      <li data-zh="扫描 Codex 工作区历史" data-en="Scan Codex workspace history">扫描 Codex 工作区历史</li>
+      <li data-zh="AI 分类并评估 7 个维度" data-en="AI classifies and scores 7 dimensions">AI 分类并评估 7 个维度</li>
+      <li data-zh="生成最新 dashboard" data-en="Generate updated dashboard">生成最新 dashboard</li>
+    </ul>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeHarvestModal()"
+              data-zh="取消" data-en="Cancel">取消</button>
+      <button class="modal-confirm" onclick="confirmHarvest()"
+              data-zh="开始采集" data-en="Start Harvest">开始采集</button>
     </div>
   </div>
 </div>
@@ -1322,8 +1429,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <div class="chat-panel" id="chat-panel">
   <div class="chat-header">
     <div class="chat-header-dot"></div>
-    <span class="chat-header-title" data-zh="问问我的 AI" data-en="Ask My AI">问问我的 AI</span>
-    <span class="chat-header-sub" data-zh="了解你的 vault" data-en="knows your vault">了解你的 vault</span>
+    <span class="chat-header-title" data-zh="和我聊聊" data-en="Let's talk">和我聊聊</span>
+    <span class="chat-header-sub" data-zh="了解你的一切" data-en="knows your story">了解你的一切</span>
   </div>
   <div class="chat-messages" id="chat-messages">
     <div class="msg msg-ai" data-zh="你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？"
@@ -1337,6 +1444,23 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 </div>
 
 <script>
+// ── Theme ──
+let isDark = localStorage.getItem('selfos-theme') === 'dark';
+(function() {{
+  if (isDark) document.body.classList.add('dark');
+  updateThemeBtn();
+}})();
+function updateThemeBtn() {{
+  document.getElementById('theme-toggle').textContent = isDark ? '🌙' : '☀';
+}}
+function toggleTheme() {{
+  isDark = !isDark;
+  document.body.classList.toggle('dark', isDark);
+  localStorage.setItem('selfos-theme', isDark ? 'dark' : 'light');
+  updateThemeBtn();
+}}
+
+// ── Language ──
 let lang = 'zh';
 function toggleLang() {{
   lang = lang === 'zh' ? 'en' : 'zh';
@@ -1348,14 +1472,26 @@ function toggleLang() {{
   const inp = document.getElementById('chat-input');
   inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
 }}
-function runHarvest() {{
+
+// ── Harvest modal ──
+function openHarvestModal() {{
+  document.getElementById('harvest-modal').classList.add('open');
+}}
+function closeHarvestModal() {{
+  document.getElementById('harvest-modal').classList.remove('open');
+}}
+function confirmHarvest() {{
+  closeHarvestModal();
   const btn = document.getElementById('harvest-btn');
   btn.disabled = true;
-  btn.textContent = lang === 'zh' ? '运行中…' : 'Running…';
+  btn.textContent = lang === 'zh' ? '采集中…' : 'Running…';
   fetch('/__harvest__', {{method:'POST'}})
     .catch(() => {{}})
     .finally(() => {{ setTimeout(() => location.reload(), 2500); }});
 }}
+document.getElementById('harvest-modal').addEventListener('click', e => {{
+  if (e.target === e.currentTarget) closeHarvestModal();
+}});
 
 // ── Chat ──
 const chatHistory = [];
