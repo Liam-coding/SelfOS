@@ -209,13 +209,24 @@ def main():
     parser.add_argument("--port", type=int, default=7070)
     args = parser.parse_args()
 
+    # Auto-run harvest on startup
+    print("Running harvest.py...")
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "harvest.py")],
+        capture_output=True, text=True, timeout=60, cwd=str(ROOT)
+    )
+    if result.returncode == 0:
+        print("  Done.")
+    else:
+        print("  Warning:", result.stderr[-200:].strip())
+
     server = HTTPServer(("localhost", args.port), Handler)
     url = f"http://localhost:{args.port}"
-    print(f"SelfOS server running at {url}")
-    print(f"  Dashboard : {url}/")
-    print(f"  Chat API  : POST {url}/chat")
-    print(f"  Harvest   : POST {url}/__harvest__")
-    print("  Ctrl+C to stop\n")
+    print(f"\nSelfOS running at {url}")
+
+    import webbrowser
+    webbrowser.open(url)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
