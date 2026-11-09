@@ -61,20 +61,22 @@ Vault context:
 
 # ── API call ───────────────────────────────────────────────────────────────────
 
-def _get_api_key() -> str:
+def _get_config() -> tuple[str, str]:
+    """Return (api_key, base_url) from env or .env file."""
     key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not key:
-        env_file = ROOT / ".env"
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if line.startswith("ANTHROPIC_API_KEY="):
-                    key = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    break
-    return key
+    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+    env_file = ROOT / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("ANTHROPIC_API_KEY=") and not key:
+                key = line.split("=", 1)[1].strip().strip('"').strip("'")
+            elif line.startswith("ANTHROPIC_BASE_URL="):
+                base_url = line.split("=", 1)[1].strip().strip('"').strip("'")
+    return key, base_url.rstrip("/")
 
 
-def _call_claude(messages: list[dict], api_key: str) -> str:
+def _call_claude(messages: list[dict], api_key: str, base_url: str) -> str:
     context = _load_vault_context()
     system = SYSTEM_PROMPT.format(context=context)
 
@@ -86,7 +88,7 @@ def _call_claude(messages: list[dict], api_key: str) -> str:
     }).encode()
 
     req = Request(
-        "https://api.anthropic.com/v1/messages",
+        f"{base_url}/v1/messages",
         data=payload,
         headers={
             "x-api-key": api_key,
@@ -161,13 +163,13 @@ class Handler(BaseHTTPRequestHandler):
                 if not messages:
                     return self._send_json(400, {"error": "messages required"})
 
-                api_key = _get_api_key()
+                api_key, base_url = _get_config()
                 if not api_key:
                     return self._send_json(500, {
                         "error": "ANTHROPIC_API_KEY not set. Add it to .env or export it."
                     })
 
-                reply = _call_claude(messages, api_key)
+                reply = _call_claude(messages, api_key, base_url)
                 self._send_json(200, {"reply": reply})
 
             except URLError as e:
