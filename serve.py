@@ -15,6 +15,7 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from socketserver import ThreadingMixIn
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -154,15 +155,79 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, body, "text/html; charset=utf-8")
             else:
                 self._send_json(404, {"error": "dashboard.html not found — run harvest.py first"})
+        elif self.path == "/__staging__":
+            staging_dir = VAULT / "91_Staging"
+            files = []
+            if staging_dir.exists():
+                for f in sorted(staging_dir.glob("*.md")):
+                    text = f.read_text(encoding="utf-8", errors="replace")
+                    # parse frontmatter target
+                    target = ""
+                    for line in text.splitlines():
+                        if line.startswith("target:"):
+                            target = line.split(":", 1)[1].strip()
+                            break
+                    files.append({
+                        "name": f.name,
+                        "target": target,
+                        "content": text,
+                    })
+            self._send_json(200, {"files": files})
+        elif self.path.startswith("/__harvest_stream__"):
+            # SSE endpoint: stream harvest.py stdout line by line
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            full = qs.get("full", ["0"])[0] == "1"
+            cmd = [sys.executable, str(ROOT / "harvest.py")]
+            if full:
+                cmd.append("--full")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            try:
+                proc = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding="utf-8", errors="replace", cwd=str(ROOT),
+                    bufsize=1
+                )
+                while True:
+                    line = proc.stdout.readline()
+                    if line == "" and proc.poll() is not None:
+                        break
+                    if line:
+                        data = json.dumps({"line": line.rstrip("\n")})
+                        self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                ok = proc.returncode == 0
+                self.wfile.write(f"data: {json.dumps({'done': True, 'ok': ok})}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except Exception as e:
+                try:
+                    self.wfile.write(f"data: {json.dumps({'done': True, 'ok': False, 'error': str(e)})}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                except Exception:
+                    pass
         else:
             self._send_json(404, {"error": "not found"})
 
     def do_POST(self):
         if self.path == "/__harvest__":
             try:
+                body = self._read_body()
+                full = False
+                if body:
+                    try:
+                        full = json.loads(body).get("full", False)
+                    except Exception:
+                        pass
+                cmd = [sys.executable, str(ROOT / "harvest.py")]
+                if full:
+                    cmd.append("--full")
                 result = subprocess.run(
-                    [sys.executable, str(ROOT / "harvest.py")],
-                    capture_output=True, text=True, timeout=60, cwd=str(ROOT)
+                    cmd,
+                    capture_output=True, text=True, timeout=120, cwd=str(ROOT)
                 )
                 ok = result.returncode == 0
                 self._send_json(200 if ok else 500, {
@@ -170,6 +235,44 @@ class Handler(BaseHTTPRequestHandler):
                     "stdout": result.stdout[-2000:],
                     "stderr": result.stderr[-500:],
                 })
+            except Exception as e:
+                self._send_json(500, {"ok": False, "error": str(e)})
+
+        elif self.path == "/__staging__/apply":
+            try:
+                body = json.loads(self._read_body())
+                filenames = body.get("files", [])  # list of staging filenames to apply
+                staging_dir = VAULT / "91_Staging"
+                applied = []
+                errors = []
+                for fname in filenames:
+                    staging_path = staging_dir / fname
+                    if not staging_path.exists():
+                        errors.append(f"{fname}: not found")
+                        continue
+                    text = staging_path.read_text(encoding="utf-8", errors="replace")
+                    # parse frontmatter to find target
+                    target = ""
+                    content_start = 0
+                    lines = text.splitlines(keepends=True)
+                    if lines and lines[0].strip() == "---":
+                        for i, line in enumerate(lines[1:], 1):
+                            if line.strip() == "---":
+                                content_start = i + 1
+                                break
+                            if line.startswith("target:"):
+                                target = line.split(":", 1)[1].strip()
+                    if not target:
+                        errors.append(f"{fname}: no target in frontmatter")
+                        continue
+                    target_path = ROOT / target
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    # write content after frontmatter
+                    content = "".join(lines[content_start:]).lstrip("\n")
+                    target_path.write_text(content, encoding="utf-8")
+                    staging_path.unlink()
+                    applied.append(fname)
+                self._send_json(200, {"ok": True, "applied": applied, "errors": errors})
             except Exception as e:
                 self._send_json(500, {"ok": False, "error": str(e)})
 
@@ -205,18 +308,24 @@ def main():
     parser.add_argument("--port", type=int, default=7070)
     args = parser.parse_args()
 
-    # Auto-run harvest on startup
-    print("Running harvest.py...")
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "harvest.py")],
-        capture_output=True, text=True, timeout=60, cwd=str(ROOT)
-    )
-    if result.returncode == 0:
-        print("  Done.")
+    # Only run harvest on startup if dashboard.html doesn't exist yet
+    if not DASHBOARD.exists():
+        print("dashboard.html not found — running harvest.py to build it...")
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "harvest.py")],
+            capture_output=True, text=True, timeout=120, cwd=str(ROOT)
+        )
+        if result.returncode == 0:
+            print("  Done.")
+        else:
+            print("  Warning:", result.stderr[-200:].strip())
     else:
-        print("  Warning:", result.stderr[-200:].strip())
+        print("dashboard.html found — skipping startup harvest (use ⟳ to refresh)")
 
-    server = HTTPServer(("localhost", args.port), Handler)
+    class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+
+    server = ThreadedHTTPServer(("localhost", args.port), Handler)
     url = f"http://localhost:{args.port}"
     print(f"\nSelfOS running at {url}")
 

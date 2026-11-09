@@ -26,6 +26,8 @@ import subprocess
 from pathlib import Path
 from datetime import date, datetime, timezone, timedelta
 from collections import defaultdict
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
 # ── Sensitive data patterns ───────────────────────────────────────────────────
 SENSITIVE_PATTERNS = [
@@ -1202,6 +1204,63 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     transition:background .15s
   }}
   .modal-confirm:hover{{background:#0077ed}}
+  .modal-confirm-full{{background:#636366;}}
+  .modal-confirm-full:hover{{background:#48484a}}
+  .staging-btn{{
+    border-radius:10px;padding:.4rem 1rem;
+    font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;
+    white-space:nowrap;
+    background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);
+    color:#c47800;display:none
+  }}
+  .staging-btn:hover{{background:rgba(255,149,0,.22)}}
+  body.dark .staging-btn{{background:rgba(255,149,0,.2);border-color:rgba(255,149,0,.4);color:#ffcc00}}
+  /* ── Staging modal ── */
+  .staging-modal{{max-width:520px;padding:1.75rem 1.75rem 1.5rem;max-height:85vh;overflow-y:auto}}
+  .staging-file-list{{display:flex;flex-direction:column;gap:.625rem;margin:1rem 0}}
+  .staging-file-item{{
+    background:#f5f5f7;border-radius:12px;padding:.875rem 1rem;
+    border:1px solid rgba(0,0,0,.06);cursor:pointer;transition:background .15s
+  }}
+  .staging-file-item:hover{{background:#ebebeb}}
+  .staging-file-item.selected{{background:rgba(0,113,227,.08);border-color:rgba(0,113,227,.25)}}
+  .staging-file-name{{font-size:.8rem;font-weight:700;color:#1d1d1f;margin-bottom:.2rem}}
+  .staging-file-target{{font-size:.72rem;color:#86868b;font-family:ui-monospace,monospace}}
+  .staging-actions{{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap}}
+  .staging-apply-all{{
+    padding:.55rem 1.25rem;border-radius:10px;border:none;
+    background:#0071e3;color:#fff;font-size:.8rem;font-weight:600;cursor:pointer
+  }}
+  .staging-apply-all:hover{{background:#0077ed}}
+  .staging-skip{{
+    padding:.55rem 1rem;border-radius:10px;border:1px solid rgba(0,0,0,.15);
+    background:transparent;color:#515154;font-size:.8rem;font-weight:600;cursor:pointer
+  }}
+  body.dark .staging-file-item{{background:#2c2c2e;border-color:rgba(255,255,255,.08)}}
+  body.dark .staging-file-item:hover{{background:#3a3a3c}}
+  body.dark .staging-file-item.selected{{background:rgba(0,113,227,.18)}}
+  body.dark .staging-file-name{{color:#f5f5f7}}
+  body.dark .staging-skip{{border-color:rgba(255,255,255,.15);color:#aeaeb2}}
+  /* ── Progress modal ── */
+  .progress-modal{{max-width:420px;padding:1.75rem 1.75rem 1.5rem}}
+  .progress-modal .modal-icon{{font-size:1.75rem}}
+  .progress-title{{font-size:1rem;font-weight:700;color:#1d1d1f;margin-bottom:1rem;text-align:center}}
+  .progress-bar-wrap{{background:#f0f0f0;border-radius:999px;height:6px;overflow:hidden;margin-bottom:.875rem}}
+  .progress-bar-fill{{height:100%;border-radius:999px;background:#0071e3;width:0%;transition:width .4s ease}}
+  .progress-log{{
+    height:120px;overflow-y:auto;font-size:.72rem;font-family:ui-monospace,monospace;
+    color:#515154;background:#f5f5f7;border-radius:10px;padding:.625rem .75rem;
+    line-height:1.55;white-space:pre-wrap;word-break:break-all
+  }}
+  .progress-done-btn{{
+    margin-top:1rem;width:100%;padding:.55rem 1rem;border-radius:10px;border:none;
+    background:#0071e3;color:#fff;font-size:.8rem;font-weight:600;cursor:pointer;
+    display:none;transition:background .15s
+  }}
+  .progress-done-btn:hover{{background:#0077ed}}
+  body.dark .progress-title{{color:#f5f5f7}}
+  body.dark .progress-bar-wrap{{background:rgba(255,255,255,.1)}}
+  body.dark .progress-log{{background:#1c1c1e;color:#8e8e93}}
   /* ── Dark theme ── */
   body.dark{{background:#1c1c1e;color:#f5f5f7}}
   body.dark .brand{{color:#f5f5f7}}
@@ -1402,6 +1461,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   </div>
   <div class="header-right">
     <div class="header-btns">
+      <button class="staging-btn" onclick="openStagingModal()" id="staging-btn"
+              data-zh="● 待审核" data-en="● Pending"></button>
       <button class="harvest-btn" onclick="openHarvestModal()" id="harvest-btn"
               data-zh="⟳ 采集数据" data-en="⟳ Harvest">⟳ 采集数据</button>
       <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="切换主题">☀</button>
@@ -1429,9 +1490,44 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeHarvestModal()"
               data-zh="取消" data-en="Cancel">取消</button>
-      <button class="modal-confirm" onclick="confirmHarvest()"
-              data-zh="开始采集" data-en="Start Harvest">开始采集</button>
+      <button class="modal-confirm modal-confirm-incr" onclick="confirmHarvest(false)"
+              data-zh="增量采集" data-en="Incremental">增量采集</button>
+      <button class="modal-confirm modal-confirm-full" onclick="confirmHarvest(true)"
+              data-zh="全量重新采集" data-en="Full Re-scan">全量重新采集</button>
     </div>
+  </div>
+</div>
+
+<!-- Staging review modal -->
+<div class="modal-backdrop" id="staging-modal">
+  <div class="modal staging-modal">
+    <div class="modal-icon">📋</div>
+    <div class="modal-title" id="staging-modal-title"
+         data-zh="待审核更新" data-en="Pending Updates">待审核更新</div>
+    <div class="modal-body" id="staging-modal-body"
+         data-zh="以下 vault 文件更新由 AI 自动生成，请确认后应用。"
+         data-en="The following vault updates were auto-generated by AI. Review and apply.">
+      以下 vault 文件更新由 AI 自动生成，请确认后应用。</div>
+    <div class="staging-file-list" id="staging-file-list"></div>
+    <div class="staging-actions">
+      <button class="staging-skip" onclick="closeStagingModal()"
+              data-zh="稍后再说" data-en="Later">稍后再说</button>
+      <button class="staging-apply-all" onclick="applySelectedStaging()"
+              id="staging-apply-btn"
+              data-zh="应用选中" data-en="Apply Selected">应用选中</button>
+    </div>
+  </div>
+</div>
+
+<!-- Progress modal -->
+<div class="modal-backdrop" id="progress-modal">
+  <div class="modal progress-modal">
+    <div class="modal-icon" id="progress-icon">⏳</div>
+    <div class="progress-title" id="progress-title" data-zh="采集中…" data-en="Harvesting…">采集中…</div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+    <div class="progress-log" id="progress-log"></div>
+    <button class="progress-done-btn" id="progress-done-btn" onclick="location.reload()"
+            data-zh="完成，刷新页面" data-en="Done, Refresh">完成，刷新页面</button>
   </div>
 </div>
 
@@ -1630,14 +1726,71 @@ function openHarvestModal() {{
 function closeHarvestModal() {{
   document.getElementById('harvest-modal').classList.remove('open');
 }}
-function confirmHarvest() {{
+function confirmHarvest(full) {{
   closeHarvestModal();
-  const btn = document.getElementById('harvest-btn');
-  btn.disabled = true;
-  btn.textContent = lang === 'zh' ? '采集中…' : 'Running…';
-  fetch('/__harvest__', {{method:'POST'}})
-    .catch(() => {{}})
-    .finally(() => {{ setTimeout(() => location.reload(), 2500); }});
+  // show progress modal
+  const pm = document.getElementById('progress-modal');
+  const bar = document.getElementById('progress-bar');
+  const log = document.getElementById('progress-log');
+  const icon = document.getElementById('progress-icon');
+  const title = document.getElementById('progress-title');
+  const doneBtn = document.getElementById('progress-done-btn');
+  bar.style.width = '0%';
+  log.textContent = '';
+  icon.textContent = '⏳';
+  title.textContent = lang === 'zh' ? '采集中…' : 'Harvesting…';
+  doneBtn.style.display = 'none';
+  pm.classList.add('open');
+
+  // progress steps map keywords → approximate % complete
+  const STEPS = [
+    ['SelfOS Harvest', 5],
+    ['Extracting', 20],
+    ['extraction', 30],
+    ['build_session', 50],
+    ['digest', 60],
+    ['Scoring', 75],
+    ['Dashboard', 88],
+    ['Done', 100],
+  ];
+  let pct = 0;
+  function advanceTo(n) {{
+    if (n > pct) {{ pct = n; bar.style.width = pct + '%'; }}
+  }}
+
+  const url = '/__harvest_stream__?full=' + (full ? '1' : '0');
+  const es = new EventSource(url);
+  es.onmessage = function(e) {{
+    let msg;
+    try {{ msg = JSON.parse(e.data); }} catch {{ return; }}
+    if (msg.done) {{
+      es.close();
+      advanceTo(100);
+      icon.textContent = msg.ok ? '✅' : '⚠️';
+      title.textContent = msg.ok
+        ? (lang === 'zh' ? '采集完成' : 'Done')
+        : (lang === 'zh' ? '采集出错' : 'Error');
+      if (msg.ok) checkStaging();
+      doneBtn.style.display = 'block';
+      doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
+      return;
+    }}
+    const line = msg.line || '';
+    if (line.trim()) {{
+      log.textContent += (log.textContent ? '\\n' : '') + line;
+      log.scrollTop = log.scrollHeight;
+      for (const [kw, p] of STEPS) {{
+        if (line.toLowerCase().includes(kw.toLowerCase())) {{ advanceTo(p); break; }}
+      }}
+    }}
+  }};
+  es.onerror = function() {{
+    es.close();
+    advanceTo(100);
+    icon.textContent = '⚠️';
+    title.textContent = lang === 'zh' ? '连接中断' : 'Connection lost';
+    doneBtn.style.display = 'block';
+  }};
 }}
 document.getElementById('harvest-modal').addEventListener('click', e => {{
   if (e.target === e.currentTarget) closeHarvestModal();
@@ -1719,6 +1872,65 @@ document.querySelectorAll('.sparkline').forEach(canvas => {{
   }});
   ctx.stroke();
 }});
+// ── Staging review ──
+let _stagingFiles = [];
+function checkStaging() {{
+  fetch('/__staging__').then(r => r.json()).then(data => {{
+    _stagingFiles = data.files || [];
+    const btn = document.getElementById('staging-btn');
+    if (_stagingFiles.length > 0) {{
+      btn.style.display = '';
+      btn.textContent = lang === 'zh'
+        ? `● ${{_stagingFiles.length}} 待审核`
+        : `● ${{_stagingFiles.length}} Pending`;
+    }} else {{
+      btn.style.display = 'none';
+    }}
+  }}).catch(() => {{}});
+}}
+function openStagingModal() {{
+  const list = document.getElementById('staging-file-list');
+  list.innerHTML = '';
+  _stagingFiles.forEach((f, i) => {{
+    const item = document.createElement('div');
+    item.className = 'staging-file-item selected';
+    item.dataset.idx = i;
+    item.innerHTML = `<div class="staging-file-name">${{f.name}}</div>`
+      + `<div class="staging-file-target">→ ${{f.target || '(unknown target)'}}</div>`;
+    item.onclick = () => item.classList.toggle('selected');
+    list.appendChild(item);
+  }});
+  document.getElementById('staging-modal').classList.add('open');
+}}
+function closeStagingModal() {{
+  document.getElementById('staging-modal').classList.remove('open');
+}}
+function applySelectedStaging() {{
+  const items = document.querySelectorAll('.staging-file-item.selected');
+  const filenames = Array.from(items).map(el => _stagingFiles[+el.dataset.idx].name);
+  if (!filenames.length) {{ closeStagingModal(); return; }}
+  const btn = document.getElementById('staging-apply-btn');
+  btn.disabled = true;
+  btn.textContent = lang === 'zh' ? '应用中…' : 'Applying…';
+  fetch('/__staging__/apply', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{files: filenames}})
+  }}).then(r => r.json()).then(data => {{
+    closeStagingModal();
+    checkStaging();
+    btn.disabled = false;
+    btn.textContent = lang === 'zh' ? '应用选中' : 'Apply Selected';
+  }}).catch(() => {{
+    btn.disabled = false;
+    btn.textContent = lang === 'zh' ? '应用选中' : 'Apply Selected';
+  }});
+}}
+document.getElementById('staging-modal').addEventListener('click', e => {{
+  if (e.target === e.currentTarget) closeStagingModal();
+}});
+checkStaging();
+
 </script>
 </body>
 </html>"""
@@ -1910,9 +2122,176 @@ def main():
     print(f"  Dashboard: {dash.relative_to(vault.parent)} "
           f"({len(scored)} dimensions scored)")
 
+    # Auto-generate staging files via AI
+    print("  Generating vault updates (AI)…", end=" ", flush=True)
+    staged = auto_generate_staging(vault, out_path)
+    if staged:
+        print(f"{len(staged)} staging file(s) ready")
+        for p in staged:
+            print(f"    → {p.relative_to(vault.parent)}")
+    else:
+        print("none generated")
+
     print()
     print("Next — open Claude Code in this directory and say:")
     print(f'  "Read vault/90_Inbox/{out_path.name} and distribute insights to vault modules."')
+
+
+# ── AI auto-staging ────────────────────────────────────────────────────────────
+
+_STAGING_SYSTEM = """You are a vault assistant for SelfOS. Your job is to read a session digest and extract structured updates for each vault module.
+
+Output ONLY a JSON array. Each element is one staging file to write:
+{
+  "target": "vault/NOW.md",          // canonical file path (relative to project root)
+  "type": "now",                     // one of: now, career, work, research, health, learning, goals, decisions
+  "content": "---\\ntype: now\\n...\\n---\\n\\n# Now\\n..."  // full file content to write
+}
+
+Rules:
+- Label every inference with [ai-inference]
+- Only write what is clearly supported by the digest text
+- Preserve existing confirmed facts from the current vault content provided
+- For decisions: append-only — include existing decisions plus any new ones
+- For NOW.md: replace with current state, keep confirmed facts, add new [ai-inference] items
+- Skip a module entirely if there is nothing new to add
+- Output valid JSON only, no markdown fences, no explanation"""
+
+_STAGING_PROMPT = """Here is the session digest:
+
+{digest}
+
+---
+
+Here is the current state of key vault files:
+
+{vault_context}
+
+---
+
+Generate staging updates for these modules (only include modules with new information):
+- vault/NOW.md (current priorities, active work)
+- vault/GOALS.md (explicit goals stated)
+- vault/02_Work/selfos.md (SelfOS project state)
+- vault/03_Research/mem_anno.md (MemAnno research state)
+- vault/04_Health_Fitness/log.md (health, fitness, training)
+- vault/05_Life/learning.md (learning goals, IELTS, courses)
+
+Output a JSON array as specified."""
+
+
+def _get_api_config(root: Path) -> tuple[str, str]:
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("ANTHROPIC_API_KEY=") and not key:
+                key = line.split("=", 1)[1].strip().strip('"').strip("'")
+            elif line.startswith("ANTHROPIC_BASE_URL="):
+                base_url = line.split("=", 1)[1].strip().strip('"').strip("'")
+    return key, base_url.rstrip("/")
+
+
+def _read_vault_file(path: Path, max_chars: int = 1500) -> str:
+    if not path.exists():
+        return "(file does not exist yet)"
+    text = path.read_text(encoding="utf-8", errors="replace").strip()
+    return text[:max_chars] if len(text) > max_chars else text
+
+
+def auto_generate_staging(vault: Path, digest_path: Path) -> list[Path]:
+    """Call Claude API to generate staging files from the latest digest.
+    Returns list of written staging file paths."""
+    root = vault.parent
+    api_key, base_url = _get_api_config(root)
+    if not api_key:
+        print("  [auto-staging] Skipped — ANTHROPIC_API_KEY not set")
+        return []
+
+    digest_text = digest_path.read_text(encoding="utf-8", errors="replace")
+    # trim digest to avoid token overrun
+    if len(digest_text) > 8000:
+        digest_text = digest_text[:8000] + "\n...[truncated]"
+
+    vault_context_parts = [
+        f"=== vault/NOW.md ===\n{_read_vault_file(vault / 'NOW.md')}",
+        f"=== vault/GOALS.md ===\n{_read_vault_file(vault / 'GOALS.md')}",
+        f"=== vault/02_Work/selfos.md ===\n{_read_vault_file(vault / '02_Work' / 'selfos.md')}",
+        f"=== vault/03_Research/mem_anno.md ===\n{_read_vault_file(vault / '03_Research' / 'mem_anno.md')}",
+    ]
+    vault_context = "\n\n".join(vault_context_parts)
+
+    payload = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 4096,
+        "system": _STAGING_SYSTEM,
+        "messages": [{"role": "user", "content": _STAGING_PROMPT.format(
+            digest=digest_text,
+            vault_context=vault_context,
+        )}],
+    }).encode()
+
+    try:
+        req = Request(
+            f"{base_url}/v1/messages",
+            data=payload,
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            method="POST",
+        )
+        with urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+        raw = data["content"][0]["text"].strip()
+    except URLError as e:
+        print(f"  [auto-staging] API error: {e}")
+        return []
+    except Exception as e:
+        print(f"  [auto-staging] Failed: {e}")
+        return []
+
+    try:
+        updates = json.loads(raw)
+    except json.JSONDecodeError:
+        # try to extract JSON array from response
+        m = re.search(r'\[.*\]', raw, re.DOTALL)
+        if not m:
+            print("  [auto-staging] Could not parse AI response as JSON")
+            return []
+        try:
+            updates = json.loads(m.group())
+        except json.JSONDecodeError:
+            print("  [auto-staging] Could not parse AI response as JSON")
+            return []
+
+    staging_dir = vault / "91_Staging"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    today = date.today().isoformat()
+    written = []
+
+    for item in updates:
+        if not isinstance(item, dict):
+            continue
+        target = item.get("target", "")
+        module_type = item.get("type", "misc")
+        content = item.get("content", "")
+        if not target or not content:
+            continue
+
+        # derive a short name from the target path
+        slug = Path(target).stem.replace("_", "-").lower()
+        staging_path = staging_dir / f"{today}-auto-{slug}.md"
+
+        # write staging file with frontmatter
+        frontmatter = f"---\ntype: {module_type}\nupdated: {today}\nsource: auto-harvest\ntarget: {target}\n---\n\n"
+        staging_path.write_text(frontmatter + content, encoding="utf-8")
+        written.append(staging_path)
+
+    return written
 
 
 if __name__ == "__main__":

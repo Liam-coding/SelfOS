@@ -777,6 +777,336 @@ class TestGenerateDashboard:
         html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "dim-suggestion" in html
 
+
+# ── _get_api_config ───────────────────────────────────────────────────────────
+
+class TestGetApiConfig:
+    def test_reads_from_env_file(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+        env = tmp_path / ".env"
+        env.write_text("ANTHROPIC_API_KEY=test-key-123\nANTHROPIC_BASE_URL=http://proxy/anthropic\n", encoding="utf-8")
+        key, base_url = bs._get_api_config(tmp_path)
+        assert key == "test-key-123"
+        assert base_url == "http://proxy/anthropic"
+
+    def test_missing_env_file_returns_empty_key(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+        key, base_url = bs._get_api_config(tmp_path)
+        assert key == ""
+        assert base_url == "https://api.anthropic.com"
+
+    def test_env_var_takes_precedence_over_file(self, tmp_path, monkeypatch):
+        env = tmp_path / ".env"
+        env.write_text("ANTHROPIC_API_KEY=file-key\n", encoding="utf-8")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "env-key")
+        key, _ = bs._get_api_config(tmp_path)
+        assert key == "env-key"
+
+    def test_strips_trailing_slash_from_base_url(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+        env = tmp_path / ".env"
+        env.write_text("ANTHROPIC_API_KEY=k\nANTHROPIC_BASE_URL=http://proxy/\n", encoding="utf-8")
+        _, base_url = bs._get_api_config(tmp_path)
+        assert not base_url.endswith("/")
+
+    def test_quoted_key_stripped(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+        env = tmp_path / ".env"
+        env.write_text('ANTHROPIC_API_KEY="quoted-key"\n', encoding="utf-8")
+        key, _ = bs._get_api_config(tmp_path)
+        assert key == "quoted-key"
+
+
+# ── auto_generate_staging ─────────────────────────────────────────────────────
+
+class TestAutoGenerateStaging:
+    def _make_vault(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / "90_Inbox").mkdir()
+        (vault / "91_Staging").mkdir()
+        return vault
+
+    def test_skips_when_no_api_key(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# SelfOS Session Digest\nsome content", encoding="utf-8")
+        result = bs.auto_generate_staging(vault, digest)
+        assert result == []
+
+    def test_writes_staging_files_on_success(self, tmp_path, monkeypatch):
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# SelfOS Session Digest\nsome content", encoding="utf-8")
+
+        fake_response = json.dumps([
+            {"target": "vault/NOW.md", "type": "now", "content": "# Now\nActive: SelfOS development"},
+            {"target": "vault/GOALS.md", "type": "goals", "content": "# Goals\n- Ship SelfOS"},
+        ])
+        import unittest.mock as mock
+
+        class FakeResp:
+            def read(self): return json.dumps({"content": [{"text": fake_response}]}).encode()
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+
+        result = bs.auto_generate_staging(vault, digest)
+        assert len(result) == 2
+        for p in result:
+            assert p.exists()
+            assert p.suffix == ".md"
+            text = p.read_text(encoding="utf-8")
+            assert "target:" in text
+            assert "source: auto-harvest" in text
+
+    def test_staging_file_frontmatter_has_target(self, tmp_path, monkeypatch):
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# digest", encoding="utf-8")
+
+        fake_response = json.dumps([
+            {"target": "vault/NOW.md", "type": "now", "content": "# Now\nfoo"},
+        ])
+        import unittest.mock as mock
+
+        class FakeResp:
+            def read(self): return json.dumps({"content": [{"text": fake_response}]}).encode()
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+
+        result = bs.auto_generate_staging(vault, digest)
+        assert len(result) == 1
+        text = result[0].read_text(encoding="utf-8")
+        assert "target: vault/NOW.md" in text
+
+    def test_handles_malformed_json_response(self, tmp_path, monkeypatch):
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# digest", encoding="utf-8")
+
+        class FakeResp:
+            def read(self): return json.dumps({"content": [{"text": "not json at all"}]}).encode()
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+
+        result = bs.auto_generate_staging(vault, digest)
+        assert result == []
+
+    def test_handles_api_error_gracefully(self, tmp_path, monkeypatch):
+        from urllib.error import URLError
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# digest", encoding="utf-8")
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: (_ for _ in ()).throw(URLError("timeout")))
+
+        result = bs.auto_generate_staging(vault, digest)
+        assert result == []
+
+    def test_skips_items_with_missing_fields(self, tmp_path, monkeypatch):
+        vault = self._make_vault(tmp_path)
+        digest = vault / "90_Inbox" / "2026-01-01-sessions-digest.md"
+        digest.write_text("# digest", encoding="utf-8")
+
+        fake_response = json.dumps([
+            {"target": "", "type": "now", "content": "# Now"},        # empty target
+            {"target": "vault/NOW.md", "type": "now", "content": ""},  # empty content
+            {"target": "vault/GOALS.md", "type": "goals", "content": "# Goals\nreal content here"},
+        ])
+
+        class FakeResp:
+            def read(self): return json.dumps({"content": [{"text": fake_response}]}).encode()
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+
+        result = bs.auto_generate_staging(vault, digest)
+        assert len(result) == 1  # only GOALS.md with real content
+
+
+# ── serve.py staging endpoints ────────────────────────────────────────────────
+
+class TestServeStagingLogic:
+    """Test staging apply logic directly without HTTP handler plumbing."""
+
+    def _write_staging(self, staging_dir, fname, target, content_body):
+        f = staging_dir / fname
+        f.write_text(
+            f"---\ntype: now\ntarget: {target}\n---\n\n{content_body}",
+            encoding="utf-8"
+        )
+        return f
+
+    def _apply(self, root, filenames):
+        """Replicate serve.py /__staging__/apply logic for unit testing."""
+        vault = root / "vault"
+        staging_dir = vault / "91_Staging"
+        applied, errors = [], []
+        for fname in filenames:
+            staging_path = staging_dir / fname
+            if not staging_path.exists():
+                errors.append(f"{fname}: not found")
+                continue
+            text = staging_path.read_text(encoding="utf-8", errors="replace")
+            target = ""
+            content_start = 0
+            lines = text.splitlines(keepends=True)
+            if lines and lines[0].strip() == "---":
+                for i, line in enumerate(lines[1:], 1):
+                    if line.strip() == "---":
+                        content_start = i + 1
+                        break
+                    if line.startswith("target:"):
+                        target = line.split(":", 1)[1].strip()
+            if not target:
+                errors.append(f"{fname}: no target")
+                continue
+            target_path = root / target
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            content = "".join(lines[content_start:]).lstrip("\n")
+            target_path.write_text(content, encoding="utf-8")
+            staging_path.unlink()
+            applied.append(fname)
+        return {"ok": True, "applied": applied, "errors": errors}
+
+    def test_apply_writes_target_file(self, tmp_path):
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+        self._write_staging(staging, "2026-01-01-auto-now.md", "vault/NOW.md", "# Now\nActive: testing\n")
+
+        result = self._apply(tmp_path, ["2026-01-01-auto-now.md"])
+
+        assert result["ok"] is True
+        assert "2026-01-01-auto-now.md" in result["applied"]
+        target = tmp_path / "vault" / "NOW.md"
+        assert target.exists()
+        assert "Active: testing" in target.read_text(encoding="utf-8")
+
+    def test_apply_removes_staging_file(self, tmp_path):
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+        f = self._write_staging(staging, "2026-01-01-auto-now.md", "vault/NOW.md", "# Now\n")
+
+        self._apply(tmp_path, ["2026-01-01-auto-now.md"])
+        assert not f.exists()
+
+    def test_apply_missing_file_reported_as_error(self, tmp_path):
+        vault = tmp_path / "vault"
+        (vault / "91_Staging").mkdir(parents=True)
+        result = self._apply(tmp_path, ["nonexistent.md"])
+        assert result["ok"] is True
+        assert len(result["errors"]) == 1
+        assert result["applied"] == []
+
+    def test_apply_strips_frontmatter(self, tmp_path):
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+        self._write_staging(staging, "2026-01-01-auto-goals.md", "vault/GOALS.md", "# Goals\n- Ship it\n")
+
+        self._apply(tmp_path, ["2026-01-01-auto-goals.md"])
+        content = (tmp_path / "vault" / "GOALS.md").read_text(encoding="utf-8")
+        assert "---" not in content
+        assert "# Goals" in content
+        assert "Ship it" in content
+
+    def test_apply_creates_parent_dirs(self, tmp_path):
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+        self._write_staging(staging, "2026-01-01-auto-research.md",
+                            "vault/03_Research/new_project.md", "# Research\nExperiment 1\n")
+
+        self._apply(tmp_path, ["2026-01-01-auto-research.md"])
+        target = tmp_path / "vault" / "03_Research" / "new_project.md"
+        assert target.exists()
+
+    def test_get_staging_lists_files(self, tmp_path):
+        """Test the /__staging__ GET response structure."""
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+        f = staging / "2026-01-01-auto-now.md"
+        f.write_text("---\ntype: now\ntarget: vault/NOW.md\n---\n\n# Now\n", encoding="utf-8")
+
+        # replicate GET logic
+        files = []
+        for fp in sorted(staging.glob("*.md")):
+            text = fp.read_text(encoding="utf-8", errors="replace")
+            target = ""
+            for line in text.splitlines():
+                if line.startswith("target:"):
+                    target = line.split(":", 1)[1].strip()
+                    break
+            files.append({"name": fp.name, "target": target, "content": text})
+
+        assert len(files) == 1
+        assert files[0]["name"] == "2026-01-01-auto-now.md"
+        assert files[0]["target"] == "vault/NOW.md"
+
+    def test_get_staging_empty_when_no_files(self, tmp_path):
+        vault = tmp_path / "vault"
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True)
+
+        files = list(staging.glob("*.md"))
+        assert files == []
+
+
+# ── dashboard staging UI ──────────────────────────────────────────────────────
+
+class TestDashboardStagingUI:
+    def test_staging_btn_in_html(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault)
+        html = (tmp_path / "dashboard.html").read_text(encoding="utf-8")
+        assert "staging-btn" in html
+        assert "openStagingModal" in html
+
+    def test_staging_modal_in_html(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault)
+        html = (tmp_path / "dashboard.html").read_text(encoding="utf-8")
+        assert "staging-modal" in html
+        assert "applySelectedStaging" in html
+
+    def test_check_staging_js_present(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault)
+        html = (tmp_path / "dashboard.html").read_text(encoding="utf-8")
+        assert "checkStaging" in html
+        assert "__staging__" in html
+
+    def test_progress_bar_in_html(self, tmp_path):
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        bs.generate_dashboard(vault)
+        html = (tmp_path / "dashboard.html").read_text(encoding="utf-8")
+        assert "progress-bar" in html
+        assert "EventSource" in html
+
     def test_suggestion_returns_both_langs(self):
         s = bs._suggestion("health", 8)
         assert "zh" in s and "en" in s
