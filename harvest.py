@@ -1076,41 +1076,50 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
       #090912;
   }}
   /* ── Header ── */
-  .header{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.25rem}}
-  .header-left{{display:flex;flex-direction:column;gap:.25rem}}
+  .header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}}
+  .header-left{{display:flex;flex-direction:column;gap:.2rem}}
   .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1}}
   .slogan{{font-size:.8rem;color:rgba(255,255,255,.38);font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
-  .greeting{{font-size:.95rem;font-weight:500;color:rgba(255,255,255,.65);margin-top:.5rem}}
+  .greeting{{font-size:1.75rem;font-weight:700;letter-spacing:-.03em;color:#fff;margin-top:.6rem;line-height:1.1}}
+  .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
+  .header-btns{{display:flex;gap:.5rem;align-items:center}}
+  .lang-btn,.harvest-btn{{
+    border-radius:10px;padding:.4rem 1rem;
+    font-size:.8rem;font-weight:600;cursor:pointer;
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all .15s;
+    white-space:nowrap
+  }}
   .lang-btn{{
     background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-    color:rgba(255,255,255,.85);border-radius:8px;padding:.375rem .875rem;
-    font-size:.8rem;font-weight:500;cursor:pointer;
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:background .15s;
-    flex-shrink:0;margin-top:.25rem
+    color:rgba(255,255,255,.85)
   }}
   .lang-btn:hover{{background:rgba(255,255,255,.18)}}
-  /* ── Overall panel ── */
-  .overall{{
-    padding:2rem 2rem 1.5rem;margin-bottom:1.25rem;
-    display:flex;flex-direction:column;align-items:center;gap:1.25rem;
+  .harvest-btn{{
+    background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.45);
+    color:#a5b4fc
   }}
-  .overall-ring-wrap{{position:relative;width:160px;height:160px;flex-shrink:0}}
+  .harvest-btn:hover{{background:rgba(99,102,241,.4)}}
+  /* ── Hero: greeting left + ring right ── */
+  .hero{{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem;gap:2rem}}
+  /* ── Overall ring (right side) ── */
+  .overall{{display:flex;flex-direction:column;align-items:center;gap:.75rem;flex-shrink:0}}
+  .overall-ring-wrap{{position:relative;width:160px;height:160px}}
   .overall-ring{{transform:rotate(-90deg)}}
   .overall-ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:8}}
   .overall-ring-fill{{fill:none;stroke-width:8;stroke-linecap:round}}
   .overall-ring-score{{
     position:absolute;inset:0;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:0
+    align-items:center;justify-content:center
   }}
   .overall-ring-num{{font-size:3rem;font-weight:800;line-height:1;
     color:{overall_color};letter-spacing:-.04em;font-variant-numeric:tabular-nums}}
   .overall-ring-label{{font-size:.65rem;color:rgba(255,255,255,.35);font-weight:500;
     text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}}
   .overall-info{{text-align:center}}
-  .overall-info h2{{font-size:1.125rem;font-weight:700;color:#fff;margin-bottom:.35rem}}
-  .overall-status{{font-size:.9rem;font-weight:600;color:{overall_color};margin-bottom:.25rem}}
-  .overall-count{{font-size:.8rem;color:rgba(255,255,255,.4)}}
-  .overall-date{{font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.4rem}}
+  .overall-info h2{{font-size:.85rem;font-weight:600;color:#fff;margin-bottom:.2rem}}
+  .overall-status{{font-size:.8rem;font-weight:600;color:{overall_color};margin-bottom:.15rem}}
+  .overall-count{{font-size:.72rem;color:rgba(255,255,255,.4)}}
+  .overall-date{{font-size:.65rem;color:rgba(255,255,255,.22);margin-top:.3rem}}
   /* ── Cards ── */
   .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
@@ -1156,38 +1165,45 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <div class="header">
   <div class="header-left">
     <div class="brand">SelfOS</div>
-    <div class="slogan" id="slogan-text"
-         data-zh="你的第二大脑，为 AI 时代而生"
+    <div class="slogan" data-zh="你的第二大脑，为 AI 时代而生"
          data-en="Your second brain, built for the AI era">你的第二大脑，为 AI 时代而生</div>
-    <div class="greeting" id="greeting-text"
-         data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
   </div>
-  <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
-</div>
-
-<div class="overall">
-  <div class="overall-ring-wrap">
-    <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
-      <circle class="overall-ring-bg" cx="80" cy="80" r="{r_big}"/>
-      <circle class="overall-ring-fill" cx="80" cy="80" r="{r_big}"
-        stroke="{overall_color}"
-        stroke-dasharray="{arc_big} {circ_big}"
-        stroke-dashoffset="0"/>
-    </svg>
-    <div class="overall-ring-score">
-      <span class="overall-ring-num">{overall_display}</span>
-      <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+  <div class="header-right">
+    <div class="header-btns">
+      <button class="harvest-btn" onclick="runHarvest()" id="harvest-btn"
+              data-zh="⟳ 更新数据" data-en="⟳ Harvest">⟳ 更新数据</button>
+      <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
     </div>
   </div>
-  <div class="overall-info">
-    <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
-    <p class="overall-status" id="overall-status"
-       data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
-    <p class="overall-count" id="overall-count"
-       data-zh="{scored_count} 个维度有数据"
-       data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
-    <p class="overall-date" id="overall-date"
-       data-zh="更新于 {updated}" data-en="Updated {updated}">更新于 {updated}</p>
+</div>
+
+<div class="hero">
+  <div class="greeting" id="greeting-text"
+       data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
+  <div class="overall">
+    <div class="overall-ring-wrap">
+      <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
+        <circle class="overall-ring-bg" cx="80" cy="80" r="{r_big}"/>
+        <circle class="overall-ring-fill" cx="80" cy="80" r="{r_big}"
+          stroke="{overall_color}"
+          stroke-dasharray="{arc_big} {circ_big}"
+          stroke-dashoffset="0"/>
+      </svg>
+      <div class="overall-ring-score">
+        <span class="overall-ring-num">{overall_display}</span>
+        <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+      </div>
+    </div>
+    <div class="overall-info">
+      <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
+      <p class="overall-status" id="overall-status"
+         data-zh="{overall_status_zh}" data-en="{overall_status_en}">{overall_status_zh}</p>
+      <p class="overall-count" id="overall-count"
+         data-zh="{scored_count} 个维度有数据"
+         data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
+      <p class="overall-date" id="overall-date"
+         data-zh="更新于 {updated}" data-en="Updated {updated}">更新于 {updated}</p>
+    </div>
   </div>
 </div>
 
@@ -1230,6 +1246,16 @@ function toggleLang() {{
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
+}}
+function runHarvest() {{
+  const btn = document.getElementById('harvest-btn');
+  btn.disabled = true;
+  btn.textContent = lang === 'zh' ? '运行中…' : 'Running…';
+  fetch('/__harvest__', {{method:'POST'}})
+    .catch(() => {{}})
+    .finally(() => {{
+      setTimeout(() => location.reload(), 2000);
+    }});
 }}
 document.querySelectorAll('.sparkline').forEach(canvas => {{
   const values = JSON.parse(canvas.dataset.values);
