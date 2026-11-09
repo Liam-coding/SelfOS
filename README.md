@@ -96,17 +96,15 @@ cd SelfOS
 
 ### Step 2 — Bootstrap from your AI conversation history
 
-Run the bootstrap script to extract your messages from Claude Code and Codex sessions, and build a digest your AI can read to understand who you are.
-
 ```bash
-python bootstrap.py --sessions --vault ./vault
+python bootstrap.py
 ```
 
-This reads `~/.claude/projects/` and `~/.codex/sessions/`, extracts your messages (not the AI's), filters sensitive data, and writes a structured digest to `vault/90_Inbox/` (git-ignored — never committed).
+That's it. The script finds your Claude Code and Codex sessions automatically, extracts your messages, filters sensitive data, and writes a digest to `vault/90_Inbox/`.
 
 **Limit to recent sessions:**
 ```bash
-python bootstrap.py --sessions --days 90 --vault ./vault
+python bootstrap.py --days 90
 ```
 
 Then tell your AI agent:
@@ -115,15 +113,9 @@ Then tell your AI agent:
 
 The AI reads the digest and writes one staging file per vault module — career, work, research, goals, decisions — for your review before anything is committed.
 
-**What gets extracted:**
-- Your messages across all Claude Code and Codex sessions
-- Grouped by project/workspace, sorted by recency
+**What gets extracted:** your messages across all Claude Code and Codex sessions, grouped by project, sorted by recency.
 
-**What gets filtered:**
-- AI replies (you only need your own words)
-- API keys, tokens, passwords, emails
-- System notifications and loop-monitoring prompts
-- One-word acks and short noise
+**What gets filtered:** AI replies, API keys, tokens, passwords, emails, system notifications, one-word acks.
 
 **Privacy:** `vault/90_Inbox/` is git-ignored. Session content never leaves your machine.
 
@@ -274,17 +266,15 @@ cd SelfOS
 
 ### 第二步 — 从 AI 会话历史 Bootstrap
 
-运行 bootstrap 脚本，从 Claude Code 和 Codex 的会话记录中提取你说过的话，生成 AI 可读的摘要。
-
 ```bash
-python bootstrap.py --sessions --vault ./vault
+python bootstrap.py
 ```
 
-脚本会读取 `~/.claude/projects/` 和 `~/.codex/sessions/`，提取你的消息（不含 AI 回复），过滤敏感信息，并将结构化摘要写入 `vault/90_Inbox/`（已 git-ignored，永不提交）。
+就这一行。脚本自动找到你的 Claude Code 和 Codex 会话，提取你的消息，过滤敏感信息，将摘要写入 `vault/90_Inbox/`。
 
 **只提取最近一段时间：**
 ```bash
-python bootstrap.py --sessions --days 90 --vault ./vault
+python bootstrap.py --days 90
 ```
 
 然后告诉你的 AI：
@@ -293,15 +283,9 @@ python bootstrap.py --sessions --days 90 --vault ./vault
 
 AI 会读取摘要，按模块（职业、工作、研究、目标、决策）分别写入 staging 文件，等待你审批后再提交。
 
-**会提取什么：**
-- 你在所有 Claude Code 和 Codex 会话中发送的消息
-- 按项目/工作区分组，按时间排序
+**会提取什么：** 你在所有 Claude Code 和 Codex 会话中发送的消息，按项目分组，按时间排序。
 
-**会过滤什么：**
-- AI 的回复（只需要你自己说的话）
-- API key、token、密码、邮箱
-- 系统通知和循环监控指令
-- 单字确认和噪音消息
+**会过滤什么：** AI 的回复、API key、token、密码、邮箱、系统通知、单字确认。
 
 **隐私：** `vault/90_Inbox/` 已 git-ignored，会话内容永远不离开你的本地机器。
 

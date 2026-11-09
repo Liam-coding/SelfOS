@@ -2,20 +2,15 @@
 """
 SelfOS Bootstrap — Build a self-portrait from your AI conversation history.
 
-Reads Claude Code and Codex session files, extracts your messages, and writes
-a structured raw digest to vault/90_Inbox/ (git-ignored). Your AI agent then
-reads that digest and distributes insights across vault modules.
-
 Usage:
-    python bootstrap.py --sessions                 # extract from all sessions
-    python bootstrap.py --sessions --days 30       # last 30 days only
-    python bootstrap.py --sessions --vault ./vault # write to specific vault
+    python bootstrap.py           # extract all sessions, write to ./vault
+    python bootstrap.py --days 30 # last 30 days only
 
-    python bootstrap.py --discover                 # list workspaces (old mode)
-    python bootstrap.py --workspace /path          # scan code files (old mode)
+The script reads Claude Code and Codex session files, extracts your messages,
+filters sensitive data, and writes a digest to vault/90_Inbox/.
 
-The script NEVER writes directly to canonical vault files.
-Session digests go to vault/90_Inbox/ (git-ignored, treated as sensitive).
+Your AI agent then reads the digest and distributes insights across vault modules.
+Nothing is written to canonical vault files without your approval.
 """
 
 import os
@@ -514,95 +509,47 @@ def main():
     parser = argparse.ArgumentParser(
         description="SelfOS Bootstrap — build a self-portrait from AI conversation history"
     )
-    parser.add_argument("--sessions", action="store_true",
-                        help="Extract from Claude Code + Codex session history (primary mode)")
     parser.add_argument("--days", type=int, default=0,
-                        help="Only include sessions from the last N days (0 = all time)")
-    parser.add_argument("--vault", default="./vault", help="SelfOS vault directory")
-    parser.add_argument("--discover", action="store_true",
-                        help="List all Claude Code + Codex workspaces")
-    parser.add_argument("--workspace", help="Scan a single workspace directory (code files)")
-    parser.add_argument("--workspaces", nargs="+", help="Scan multiple workspace directories")
+                        help="Only include sessions from the last N days (default: all)")
     args = parser.parse_args()
 
-    vault = Path(args.vault).resolve()
+    vault = Path("./vault").resolve()
+    inbox = vault / "90_Inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
 
     print("SelfOS Bootstrap")
-    print(f"Vault: {vault}")
 
-    # ── Session extraction mode ───────────────────────────────────────────────
-    if args.sessions:
-        since = None
-        if args.days > 0:
-            since = datetime.now(timezone.utc) - timedelta(days=args.days)
-            print(f"\nExtracting sessions from the last {args.days} days...")
-        else:
-            print("\nExtracting all sessions (use --days N to limit)...")
-
-        print("  Reading Claude Code sessions...", end=" ", flush=True)
-        claude_msgs = extract_claude_messages(since)
-        print(f"{len(claude_msgs)} messages")
-
-        print("  Reading Codex sessions...", end=" ", flush=True)
-        codex_msgs = extract_codex_messages(since)
-        print(f"{len(codex_msgs)} messages")
-
-        all_msgs = claude_msgs + codex_msgs
-        all_msgs.sort(key=lambda m: m["ts"])
-
-        if not all_msgs:
-            print("\nNo messages found. Try without --days to include all history.")
-            return
-
-        digest = build_session_digest(all_msgs)
-
-        # Write to 90_Inbox (git-ignored)
-        inbox = vault / "90_Inbox"
-        inbox.mkdir(parents=True, exist_ok=True)
-        out_path = inbox / f"{date.today()}-sessions-digest.md"
-        out_path.write_text(digest, encoding="utf-8")
-
-        print(f"\n  Digest written: vault/90_Inbox/{out_path.name}")
-        print(f"  {len(all_msgs)} messages across {len(set(m['cwd'] or m['project'] for m in all_msgs))} contexts")
-        print()
-        print("Next step — tell your AI agent:")
-        print('  "Read vault/90_Inbox/' + out_path.name + ' and distribute insights to vault modules."')
-        print()
-        print("The AI will write staging files to vault/91_Staging/ for your review.")
-        print("90_Inbox/ is git-ignored — session content never leaves your machine.")
-        return
-
-    # ── Discovery mode ────────────────────────────────────────────────────────
-    if args.discover:
-        print("\nDiscovering workspaces...")
-        discovered = discover_all_workspaces()
-        print(f"  Claude Code: {len(discovered['claude'])} workspace(s)")
-        print(f"  Codex:       {len(discovered['codex'])} workspace(s)")
-        staging = vault / "91_Staging"
-        staging.mkdir(parents=True, exist_ok=True)
-        report_path = staging / f"{date.today()}-discovery-report.md"
-        report_path.write_text(build_discovery_report(discovered), encoding="utf-8")
-        print(f"\n  Discovery report: {report_path.relative_to(vault)}")
-        return
-
-    # ── Workspace code scan mode ──────────────────────────────────────────────
-    workspaces = []
-    if args.workspaces:
-        workspaces = [Path(w).resolve() for w in args.workspaces]
-    elif args.workspace:
-        workspaces = [Path(args.workspace).resolve()]
+    since = None
+    if args.days > 0:
+        since = datetime.now(timezone.utc) - timedelta(days=args.days)
+        print(f"Extracting sessions from the last {args.days} days...")
     else:
-        workspaces = [Path(".").resolve()]
+        print("Extracting all sessions...")
 
-    for ws in workspaces:
-        if not ws.is_dir():
-            print(f"Warning: {ws} is not a directory, skipping.")
-            continue
-        scan_workspace(ws, vault)
+    print("  Reading Claude Code sessions...", end=" ", flush=True)
+    claude_msgs = extract_claude_messages(since)
+    print(f"{len(claude_msgs)} messages")
 
-    print(f"\n{'='*60}")
-    print(f"Done. {len(workspaces)} workspace(s) scanned.")
-    print('Tell your AI: "Apply the bootstrap staging files to my vault."')
+    print("  Reading Codex sessions...", end=" ", flush=True)
+    codex_msgs = extract_codex_messages(since)
+    print(f"{len(codex_msgs)} messages")
+
+    all_msgs = claude_msgs + codex_msgs
+    all_msgs.sort(key=lambda m: m["ts"])
+
+    if not all_msgs:
+        print("\nNo messages found.")
+        return
+
+    digest = build_session_digest(all_msgs)
+    out_path = inbox / f"{date.today()}-sessions-digest.md"
+    out_path.write_text(digest, encoding="utf-8")
+
+    print(f"\nDone. {len(all_msgs)} messages across {len(set(m['cwd'] or m['project'] for m in all_msgs))} contexts.")
+    print(f"Digest: vault/90_Inbox/{out_path.name}")
+    print()
+    print("Next — open Claude Code in this directory and say:")
+    print(f'  "Read vault/90_Inbox/{out_path.name} and distribute insights to vault modules."')
 
 
 if __name__ == "__main__":
