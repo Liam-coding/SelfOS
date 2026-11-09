@@ -1001,18 +1001,29 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
         label_zh = _I18N[key]["zh"]
         label_en = _I18N[key]["en"]
         sugg = _suggestion(key, v if isinstance(v, int) else None)
-        pct = (v * 10) if isinstance(v, int) else 0
+        # SVG ring: r=28, circumference=2π*28≈175.9
+        r = 28
+        circ = 3.14159 * 2 * r
+        arc = round((v / 10) * circ, 2) if isinstance(v, int) else 0
         hist_json = json.dumps(dim_history(key))
         cards_html += f"""
         <div class="card">
           <div class="card-header">
             <span class="dim-label" data-zh="{label_zh}" data-en="{label_en}">{label_zh}</span>
-            <span class="dim-score">{display}</span>
           </div>
-          <div class="bar-bg"><div class="bar-fill" style="width:{pct}%;background:{color}"></div></div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="{r}"/>
+              <circle class="ring-fill" cx="36" cy="36" r="{r}"
+                stroke="{color}"
+                stroke-dasharray="{arc} {circ}"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">{display}</span>
+          </div>
           <div class="dim-status" style="color:{color}" data-zh="{status_zh}" data-en="{status_en}">{status_zh}</div>
           <div class="dim-suggestion" data-zh="{sugg['zh']}" data-en="{sugg['en']}">{sugg['zh']}</div>
-          <canvas class="sparkline" data-values='{hist_json}' data-color='{color}' width="200" height="40"></canvas>
+          <canvas class="sparkline" data-values='{hist_json}' data-color='{color}' width="200" height="36"></canvas>
         </div>"""
 
     overall_color = score_color(int(overall) if overall and overall >= 1 else None)
@@ -1034,9 +1045,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   body{{
     font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased;
-    min-height:100vh;
-    padding:2.5rem;
-    color:#fff;
+    min-height:100vh;padding:2.5rem;color:#fff;
     background:
       radial-gradient(ellipse 80% 60% at 10% 0%, #1a1060 0%, transparent 60%),
       radial-gradient(ellipse 60% 50% at 90% 100%, #0a3d2e 0%, transparent 60%),
@@ -1047,53 +1056,63 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   h1{{font-size:1.375rem;font-weight:700;letter-spacing:-.03em;color:#fff}}
   .subtitle{{color:rgba(255,255,255,.4);font-size:.8rem;margin-top:.2rem;font-weight:400}}
   .lang-btn{{
-    background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.15);
-    color:rgba(255,255,255,.85);
-    border-radius:8px;padding:.375rem .875rem;
+    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+    color:rgba(255,255,255,.85);border-radius:8px;padding:.375rem .875rem;
     font-size:.8rem;font-weight:500;cursor:pointer;
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-    transition:background .15s
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:background .15s
   }}
   .lang-btn:hover{{background:rgba(255,255,255,.18)}}
+  /* Overall panel */
   .overall{{
-    background:rgba(255,255,255,.07);
-    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
     backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:20px;
-    padding:2rem 2.25rem;
-    margin-bottom:1.25rem;
+    border-radius:20px;padding:2rem 2.25rem;margin-bottom:1.25rem;
     display:flex;align-items:center;gap:2.5rem;
     box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 20px 60px rgba(0,0,0,.4)
   }}
-  .overall-score{{
-    font-size:5rem;font-weight:800;line-height:1;
-    color:{overall_color};
-    font-variant-numeric:tabular-nums;
-    letter-spacing:-.04em
-  }}
+  .overall-score{{font-size:5rem;font-weight:800;line-height:1;color:{overall_color};
+    font-variant-numeric:tabular-nums;letter-spacing:-.04em}}
   .overall-info h2{{font-size:1rem;font-weight:600;color:#fff;margin-bottom:.3rem}}
   .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color};margin-bottom:.2rem}}
   .overall-count{{font-size:.8rem;color:rgba(255,255,255,.4)}}
-  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}}
+  /* Cards */
+  .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
     backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:16px;padding:1.25rem 1.375rem;
+    border-radius:16px;padding:1.25rem 1.25rem 1rem;
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 8px 32px rgba(0,0,0,.25);
     transition:background .2s,transform .2s
   }}
   .card:hover{{background:rgba(255,255,255,.09);transform:translateY(-1px)}}
-  .card-header{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.875rem}}
-  .dim-label{{font-size:.7rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem}}
-  .dim-score{{font-size:2rem;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1}}
-  .bar-bg{{background:rgba(255,255,255,.1);border-radius:9999px;height:4px;margin-bottom:.6rem}}
-  .bar-fill{{height:4px;border-radius:9999px;transition:width .6s cubic-bezier(.4,0,.2,1)}}
-  .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.4rem}}
-  .dim-suggestion{{font-size:.72rem;color:rgba(255,255,255,.38);line-height:1.5}}
+  .card-header{{margin-bottom:.75rem}}
+  .dim-label{{font-size:.68rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}}
+  /* Ring */
+  .ring-wrap{{position:relative;width:72px;height:72px;margin:0 auto .75rem}}
+  .ring{{transform:rotate(-90deg)}}
+  .ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:5}}
+  .ring-fill{{fill:none;stroke-width:5;stroke-linecap:round}}
+  .ring-score{{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:1.25rem;font-weight:700;color:#fff;letter-spacing:-.03em
+  }}
+  .dim-status{{font-size:.72rem;font-weight:600;margin-bottom:.4rem;text-align:center}}
+  .dim-suggestion{{font-size:.7rem;color:rgba(255,255,255,.38);line-height:1.5;text-align:center}}
   .sparkline{{display:block;margin-top:.625rem;opacity:.55}}
-  footer{{margin-top:2rem;color:rgba(255,255,255,.2);font-size:.7rem;text-align:center}}
+  /* Legend */
+  .legend{{
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:14px;padding:1.125rem 1.5rem;margin-top:1.25rem;
+    display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap
+  }}
+  .legend-title{{font-size:.7rem;font-weight:600;color:rgba(255,255,255,.35);
+    text-transform:uppercase;letter-spacing:.08em;margin-right:.25rem}}
+  .legend-item{{display:flex;align-items:center;gap:.45rem}}
+  .legend-dot{{width:10px;height:10px;border-radius:50%;flex-shrink:0}}
+  .legend-text{{font-size:.75rem;color:rgba(255,255,255,.7);font-weight:500}}
+  .legend-range{{font-size:.68rem;color:rgba(255,255,255,.3);margin-left:.1rem}}
+  footer{{margin-top:1.5rem;color:rgba(255,255,255,.2);font-size:.7rem;text-align:center}}
   a{{color:inherit;text-decoration:none}}
 </style>
 </head>
@@ -1121,7 +1140,31 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <div class="grid">{cards_html}
 </div>
 
-<footer>SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
+<div class="legend">
+  <span class="legend-title" data-zh="评分说明" data-en="Scale">评分说明</span>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#ef4444"></div>
+    <span class="legend-text" data-zh="较差" data-en="Poor">较差</span>
+    <span class="legend-range">1–3</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#f97316"></div>
+    <span class="legend-text" data-zh="需关注" data-en="Watch">需关注</span>
+    <span class="legend-range">4–5</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#eab308"></div>
+    <span class="legend-text" data-zh="一般" data-en="OK">一般</span>
+    <span class="legend-range">6–7</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#22c55e"></div>
+    <span class="legend-text" data-zh="良好" data-en="Great">良好</span>
+    <span class="legend-range">8–10</span>
+  </div>
+</div>
+
+<footer style="margin-top:1.25rem">SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
 <a href="90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
 
 <script>
