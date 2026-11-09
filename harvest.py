@@ -1091,11 +1091,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .lang-btn:hover{{background:rgba(255,255,255,.18)}}
   /* ── Overall panel ── */
   .overall{{
-    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
-    backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:24px;padding:2.5rem 2rem;margin-bottom:1.25rem;
+    padding:2rem 2rem 1.5rem;margin-bottom:1.25rem;
     display:flex;flex-direction:column;align-items:center;gap:1.25rem;
-    box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 20px 60px rgba(0,0,0,.4)
   }}
   .overall-ring-wrap{{position:relative;width:160px;height:160px;flex-shrink:0}}
   .overall-ring{{transform:rotate(-90deg)}}
