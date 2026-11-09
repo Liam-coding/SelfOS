@@ -79,16 +79,17 @@ def _is_meaningful(text: str) -> bool:
     return True
 
 
-def extract_claude_messages(since: datetime | None = None) -> list[dict]:
+def extract_claude_messages(since: datetime | None = None) -> tuple[list[dict], int]:
     """
     Extract user messages from all Claude Code session files.
-    Returns list of {timestamp, project, cwd, text}.
+    Returns (messages, raw_user_line_count).
     """
     claude_dir = Path.home() / ".claude" / "projects"
     if not claude_dir.exists():
-        return []
+        return [], 0
 
     messages = []
+    raw_count = 0
     for proj_dir in claude_dir.iterdir():
         if not proj_dir.is_dir():
             continue
@@ -101,6 +102,7 @@ def extract_claude_messages(since: datetime | None = None) -> list[dict]:
                         obj = json.loads(line)
                         if obj.get("type") != "user":
                             continue
+                        raw_count += 1
                         ts_str = obj.get("timestamp", "")
                         ts = _parse_ts(ts_str)
                         if since and ts and ts < since:
@@ -120,19 +122,20 @@ def extract_claude_messages(since: datetime | None = None) -> list[dict]:
             except Exception:
                 continue
 
-    return messages
+    return messages, raw_count
 
 
-def extract_codex_messages(since: datetime | None = None) -> list[dict]:
+def extract_codex_messages(since: datetime | None = None) -> tuple[list[dict], int]:
     """
     Extract user messages from all Codex session files.
-    Returns list of {timestamp, project, cwd, text}.
+    Returns (messages, raw_user_line_count).
     """
     sessions_dir = Path.home() / ".codex" / "sessions"
     if not sessions_dir.exists():
-        return []
+        return [], 0
 
     messages = []
+    raw_count = 0
     for session_file in sessions_dir.rglob("*.jsonl"):
         cwd = ""
         try:
@@ -152,6 +155,7 @@ def extract_codex_messages(since: datetime | None = None) -> list[dict]:
                     if payload.get("role") != "user":
                         continue
 
+                    raw_count += 1
                     ts_str = obj.get("timestamp", "")
                     ts = _parse_ts(ts_str)
                     if since and ts and ts < since:
@@ -174,7 +178,7 @@ def extract_codex_messages(since: datetime | None = None) -> list[dict]:
         except Exception:
             continue
 
-    return messages
+    return messages, raw_count
 
 
 def _decode_claude_project_name(dir_name: str) -> str:
@@ -650,23 +654,23 @@ def resolve_since(args_days: int, args_full: bool, state: dict) -> datetime | No
     return datetime.fromisoformat(state["last_run"])
 
 
-def run_extraction(vault: Path, since: datetime | None, verbose: bool = True) -> list[dict]:
-    """Extract all messages and return sorted list. Side-effect: prints progress."""
+def run_extraction(vault: Path, since: datetime | None, verbose: bool = True) -> tuple[list[dict], int]:
+    """Extract all messages and return (sorted list, total raw user line count)."""
     if verbose:
         print("  Reading Claude Code sessions...", end=" ", flush=True)
-    claude_msgs = extract_claude_messages(since)
+    claude_msgs, claude_raw = extract_claude_messages(since)
     if verbose:
         print(f"{len(claude_msgs)} messages")
 
     if verbose:
         print("  Reading Codex sessions...", end=" ", flush=True)
-    codex_msgs = extract_codex_messages(since)
+    codex_msgs, codex_raw = extract_codex_messages(since)
     if verbose:
         print(f"{len(codex_msgs)} messages")
 
     all_msgs = claude_msgs + codex_msgs
     all_msgs.sort(key=lambda m: m["ts"])
-    return all_msgs
+    return all_msgs, claude_raw + codex_raw
 
 
 def main():
@@ -714,7 +718,7 @@ def main():
     else:
         print(f"Extracting sessions since last run ({since.strftime('%Y-%m-%d %H:%M UTC')})...")
 
-    all_msgs = run_extraction(vault, since)
+    all_msgs, raw_count = run_extraction(vault, since)
 
     if not all_msgs:
         print("\nNo new messages since last run.")
@@ -733,7 +737,7 @@ def main():
         print("  (no files written)")
         return
 
-    digest = build_session_digest(all_msgs)
+    digest = build_session_digest(all_msgs, raw_line_count=raw_count)
     out_path = inbox / f"{date.today()}-sessions-digest.md"
     out_path.write_text(digest, encoding="utf-8")
 

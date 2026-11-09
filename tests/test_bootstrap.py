@@ -330,9 +330,10 @@ class TestIntegrationExtractAndDigest:
         ])
         monkeypatch.setattr(bs.Path, "home", lambda: tmp_path)
 
-        msgs = bs.extract_claude_messages(since=None)
+        msgs, raw_count = bs.extract_claude_messages(since=None)
         # "done" is filtered; 2 meaningful messages remain
         assert len(msgs) == 2
+        assert raw_count == 3  # all 3 user lines counted before filtering
         texts = [m["text"] for m in msgs]
         assert any("machine learning" in t for t in texts)
         assert any("multilingual" in t for t in texts)
@@ -346,13 +347,15 @@ class TestIntegrationExtractAndDigest:
         ])
         monkeypatch.setattr(bs.Path, "home", lambda: tmp_path)
 
-        msgs = bs.extract_claude_messages(since=None)
+        msgs, raw_count = bs.extract_claude_messages(since=None)
         assert len(msgs) == 2
+        assert raw_count == 2
 
-        digest = bs.build_session_digest(msgs)
+        digest = bs.build_session_digest(msgs, raw_line_count=raw_count)
         assert "personal knowledge management" in digest
         assert "research papers" in digest
         assert "# SelfOS Session Digest" in digest
+        assert "Signal quality" in digest
 
 
 # ── ensure_vault_structure ────────────────────────────────────────────────────
