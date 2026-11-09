@@ -1255,20 +1255,32 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   a{{color:#0071e3;text-decoration:none}}
   /* ── Chat panel ── */
   .chat-panel{{
-    position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);
+    position:fixed;right:1.5rem;bottom:1.5rem;
     width:320px;height:520px;
     background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:20px;
     box-shadow:0 8px 40px rgba(0,0,0,.12);
     display:flex;flex-direction:column;overflow:hidden;
-    z-index:100
+    z-index:100;transition:height .25s cubic-bezier(.4,0,.2,1)
   }}
+  .chat-panel.collapsed{{height:52px}}
   .chat-header{{
     padding:.875rem 1.125rem;border-bottom:1px solid rgba(0,0,0,.07);
-    display:flex;align-items:center;gap:.625rem;flex-shrink:0
+    display:flex;align-items:center;gap:.625rem;flex-shrink:0;
+    cursor:pointer;user-select:none
   }}
+  .chat-panel.collapsed .chat-header{{border-bottom-color:transparent}}
   .chat-header-dot{{width:8px;height:8px;border-radius:50%;background:#0071e3;flex-shrink:0}}
   .chat-header-title{{font-size:.8rem;font-weight:600;color:#1d1d1f}}
   .chat-header-sub{{font-size:.68rem;color:#86868b;margin-left:auto}}
+  .chat-collapse-btn{{
+    width:18px;height:18px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.06);color:#86868b;
+    font-size:.65rem;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .2s,background .15s;line-height:1
+  }}
+  .chat-collapse-btn:hover{{background:rgba(0,0,0,.12)}}
+  .chat-panel.collapsed .chat-collapse-btn{{transform:rotate(180deg)}}
   .chat-messages{{
     flex:1;overflow-y:auto;padding:.875rem 1rem;
     display:flex;flex-direction:column;gap:.625rem;
@@ -1305,17 +1317,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   }}
   .chat-send:hover{{background:#0077ed}}
   .chat-send:disabled{{background:#aeaeb2;cursor:not-allowed}}
-  .chat-toggle{{
-    position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);
-    background:#0071e3;color:#fff;border:none;border-radius:14px;
-    padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;
-    box-shadow:0 4px 16px rgba(0,113,227,.35);z-index:100;
-    display:none;white-space:nowrap
-  }}
-  .chat-toggle:hover{{background:#0077ed}}
   @media(max-width:900px){{
-    .chat-panel{{left:.75rem;width:280px}}
-    body{{padding-left:1rem}}
+    .chat-panel{{right:.75rem;width:280px}}
   }}
 </style>
 </head>
@@ -1427,10 +1430,11 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 
 <!-- Chat panel -->
 <div class="chat-panel" id="chat-panel">
-  <div class="chat-header">
+  <div class="chat-header" onclick="toggleChat()">
     <div class="chat-header-dot"></div>
     <span class="chat-header-title" data-zh="和我聊聊" data-en="Let's talk">和我聊聊</span>
     <span class="chat-header-sub" data-zh="了解你的一切" data-en="knows your story">了解你的一切</span>
+    <button class="chat-collapse-btn" id="chat-collapse-btn" onclick="toggleChat(event)">▼</button>
   </div>
   <div class="chat-messages" id="chat-messages">
     <div class="msg msg-ai" data-zh="你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？"
@@ -1492,6 +1496,14 @@ function confirmHarvest() {{
 document.getElementById('harvest-modal').addEventListener('click', e => {{
   if (e.target === e.currentTarget) closeHarvestModal();
 }});
+
+// ── Chat collapse ──
+let chatCollapsed = false;
+function toggleChat(e) {{
+  if (e) e.stopPropagation();
+  chatCollapsed = !chatCollapsed;
+  document.getElementById('chat-panel').classList.toggle('collapsed', chatCollapsed);
+}}
 
 // ── Chat ──
 const chatHistory = [];
