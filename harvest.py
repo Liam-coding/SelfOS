@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-SelfOS Bootstrap — Build a self-portrait from your AI conversation history.
+SelfOS Harvest — Build a self-portrait from your AI conversation history.
 
 Usage:
-    python bootstrap.py           # extract all sessions, write to ./vault
-    python bootstrap.py --days 30 # last 30 days only
-    python bootstrap.py --stats   # show per-project statistics
-    python bootstrap.py --dry-run # preview without writing
-    python bootstrap.py --full    # re-extract everything
+    python harvest.py           # extract all sessions, write to ./vault
+    python harvest.py --days 30 # last 30 days only
+    python harvest.py --stats   # show per-project statistics
+    python harvest.py --dry-run # preview without writing
+    python harvest.py --full    # re-extract everything
 
 The script reads Claude Code and Codex session files, extracts your messages,
 filters sensitive data, and writes a digest to vault/90_Inbox/.
@@ -427,7 +427,7 @@ def build_discovery_report(discovered: dict) -> str:
     return f"""---
 type: discovery-report
 updated: {date.today()}
-source: bootstrap-discover-{date.today()}
+source: harvest-discover-{date.today()}
 ---
 
 # Workspace Discovery Report
@@ -442,7 +442,7 @@ source: bootstrap-discover-{date.today()}
 {chr(10).join(f'  - {p}' for p in discovered['all']) or '  (none found)'}
 
 ## Next step
-    python bootstrap.py --sessions --vault ./vault
+    python harvest.py --sessions --vault ./vault
 """
 
 
@@ -532,7 +532,7 @@ def _build_profile_draft(git_info, stack, description):
     return f"""---
 type: profile
 updated: {date.today()}
-source: bootstrap-{date.today()}
+source: harvest-{date.today()}
 ---
 
 # Profile
@@ -553,7 +553,7 @@ source: bootstrap-{date.today()}
 ## GitHub
 - {github}
 
-## Notes from bootstrap scan
+## Notes from harvest scan
 {('- Found repos: ' + ', '.join(repos)) if repos else '- No repos detected'}
 {('- Project description: ' + description) if description else ''}
 """
@@ -563,7 +563,7 @@ def _build_project_draft(workspace, stack, description):
     return f"""---
 type: project-context
 updated: {date.today()}
-source: bootstrap-{date.today()}
+source: harvest-{date.today()}
 ---
 
 # Project Context
@@ -763,7 +763,7 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     parser = argparse.ArgumentParser(
-        description="SelfOS Bootstrap — build a self-portrait from AI conversation history"
+        description="SelfOS Harvest — build a self-portrait from AI conversation history"
     )
     parser.add_argument("--days", type=int, default=0,
                         help="Only include sessions from the last N days (default: all)")
@@ -773,7 +773,7 @@ def main():
                         help="Preview extraction without writing any files")
     parser.add_argument("--stats", action="store_true",
                         help="Show per-project statistics without writing any files")
-    parser.add_argument("--version", action="version", version=f"bootstrap {__version__}")
+    parser.add_argument("--version", action="version", version=f"harvest {__version__}")
     args = parser.parse_args()
 
     vault = Path("./vault").resolve()
@@ -783,7 +783,7 @@ def main():
     import time as _time
     _start = _time.monotonic()
 
-    print("SelfOS Bootstrap")
+    print("SelfOS Harvest")
 
     # Ensure vault structure is complete
     created = ensure_vault_structure(vault)

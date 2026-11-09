@@ -12,7 +12,7 @@ allowed-tools: Read, Write, Bash, Glob
 
 ## What this does
 
-Reads your latest session digest (written by `bootstrap.py`) and distributes
+Reads your latest session digest (written by `harvest.py`) and distributes
 what it learns about you across the vault modules where it belongs:
 career, work, research, goals, decisions, and current priorities.
 
@@ -29,7 +29,7 @@ ls vault/90_Inbox/ | sort | tail -5
 Read the most recent `*-sessions-digest.md` file.
 
 If no digest exists, tell the user:
-> "No digest found. Run `python bootstrap.py` first, then come back."
+> "No digest found. Run `python harvest.py` first, then come back."
 > Stop here.
 
 ---
