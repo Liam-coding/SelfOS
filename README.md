@@ -94,41 +94,38 @@ git clone https://github.com/Liam-coding/SelfOS.git
 cd SelfOS
 ```
 
-### Step 2 — Bootstrap (auto-fill from your workspace)
+### Step 2 — Bootstrap from your AI conversation history
 
-Run the bootstrap script to scan your existing projects and pre-fill your vault templates. It reads your git config, detects your tech stack, and filters out all sensitive data before writing anything.
-
-**Option A — discover all Claude Code and Codex workspaces automatically:**
+Run the bootstrap script to extract your messages from Claude Code and Codex sessions, and build a digest your AI can read to understand who you are.
 
 ```bash
-python bootstrap.py --discover --vault ./vault
+python bootstrap.py --sessions --vault ./vault
 ```
 
-This scans `~/.claude/projects/` and `~/.codex/sessions/` to find every workspace you've used with Claude Code or Codex, and writes a discovery report to `vault/91_Staging/`. Review the report, then scan the projects you care about:
+This reads `~/.claude/projects/` and `~/.codex/sessions/`, extracts your messages (not the AI's), filters sensitive data, and writes a structured digest to `vault/90_Inbox/` (git-ignored — never committed).
 
+**Limit to recent sessions:**
 ```bash
-python bootstrap.py --workspaces /path/to/project1 /path/to/project2 --vault ./vault
+python bootstrap.py --sessions --days 90 --vault ./vault
 ```
 
-**Option B — scan a specific workspace directly:**
+Then tell your AI agent:
 
-```bash
-python bootstrap.py --workspace /path/to/your/project --vault ./vault
-```
+> "Read vault/90_Inbox/YYYY-MM-DD-sessions-digest.md and distribute insights to vault modules."
 
-All output goes to `vault/91_Staging/` only — nothing is written to canonical vault files. Review the drafts, then tell your AI agent:
+The AI reads the digest and writes one staging file per vault module — career, work, research, goals, decisions — for your review before anything is committed.
 
-> "Apply the bootstrap staging files to my vault."
+**What gets extracted:**
+- Your messages across all Claude Code and Codex sessions
+- Grouped by project/workspace, sorted by recency
 
-**What gets scanned:**
-- Git config (name, repos)
-- Project files (to detect stack: Python, Java, JS, Docker, etc.)
-- README files (for project descriptions)
+**What gets filtered:**
+- AI replies (you only need your own words)
+- API keys, tokens, passwords, emails
+- System notifications and loop-monitoring prompts
+- One-word acks and short noise
 
-**What gets filtered out:**
-- API keys, tokens, passwords
-- Email addresses and phone numbers
-- Any base64-like strings that look like secrets
+**Privacy:** `vault/90_Inbox/` is git-ignored. Session content never leaves your machine.
 
 ### Step 3 — Fill in the blanks
 
@@ -275,41 +272,38 @@ git clone https://github.com/Liam-coding/SelfOS.git
 cd SelfOS
 ```
 
-### 第二步 — Bootstrap（从工作区自动填充）
+### 第二步 — 从 AI 会话历史 Bootstrap
 
-运行 bootstrap 脚本，扫描你现有的项目，自动预填 vault 模板。脚本会读取你的 git 配置、检测技术栈，并在写入任何内容之前过滤所有敏感信息。
-
-**方式 A — 自动发现所有 Claude Code 和 Codex 工作区：**
+运行 bootstrap 脚本，从 Claude Code 和 Codex 的会话记录中提取你说过的话，生成 AI 可读的摘要。
 
 ```bash
-python bootstrap.py --discover --vault ./vault
+python bootstrap.py --sessions --vault ./vault
 ```
 
-脚本会扫描 `~/.claude/projects/` 和 `~/.codex/sessions/`，找出你曾经使用过的所有工作区，并将发现报告写入 `vault/91_Staging/`。查看报告后，选择你关心的项目进行扫描：
+脚本会读取 `~/.claude/projects/` 和 `~/.codex/sessions/`，提取你的消息（不含 AI 回复），过滤敏感信息，并将结构化摘要写入 `vault/90_Inbox/`（已 git-ignored，永不提交）。
 
+**只提取最近一段时间：**
 ```bash
-python bootstrap.py --workspaces /路径/项目1 /路径/项目2 --vault ./vault
+python bootstrap.py --sessions --days 90 --vault ./vault
 ```
 
-**方式 B — 直接扫描指定工作区：**
+然后告诉你的 AI：
 
-```bash
-python bootstrap.py --workspace /你的项目路径 --vault ./vault
-```
+> "读取 vault/90_Inbox/YYYY-MM-DD-sessions-digest.md，将信息分散到 vault 各模块。"
 
-脚本只会将草稿写入 `vault/91_Staging/`，不会直接修改任何正式文件。审阅草稿后，告诉你的 AI：
+AI 会读取摘要，按模块（职业、工作、研究、目标、决策）分别写入 staging 文件，等待你审批后再提交。
 
-> "把 bootstrap staging 文件应用到我的 vault。"
-
-**会扫描什么：**
-- Git 配置（姓名、仓库）
-- 项目文件（检测技术栈：Python、Java、JS、Docker 等）
-- README 文件（提取项目描述）
+**会提取什么：**
+- 你在所有 Claude Code 和 Codex 会话中发送的消息
+- 按项目/工作区分组，按时间排序
 
 **会过滤什么：**
-- API key、token、密码
-- 邮箱地址和电话号码
-- 任何看起来像密钥的 base64 字符串
+- AI 的回复（只需要你自己说的话）
+- API key、token、密码、邮箱
+- 系统通知和循环监控指令
+- 单字确认和噪音消息
+
+**隐私：** `vault/90_Inbox/` 已 git-ignored，会话内容永远不离开你的本地机器。
 
 ### 第三步 — 补全空白
 

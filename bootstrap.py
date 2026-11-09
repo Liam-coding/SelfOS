@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-SelfOS Bootstrap — Auto-fill vault templates from your workspace.
+SelfOS Bootstrap — Build a self-portrait from your AI conversation history.
 
-Scans your working directory for context clues (git config, project files,
-code patterns), filters out sensitive data, and pre-fills SelfOS vault
-templates so you don't start from scratch.
+Reads Claude Code and Codex session files, extracts your messages, and writes
+a structured raw digest to vault/90_Inbox/ (git-ignored). Your AI agent then
+reads that digest and distributes insights across vault modules.
 
 Usage:
-    python bootstrap.py                        # scan current directory
-    python bootstrap.py --workspace /path/to   # scan specific path
-    python bootstrap.py --vault /path/to/vault # write to specific vault
-    python bootstrap.py --discover             # auto-discover Claude Code + Codex workspaces
+    python bootstrap.py --sessions                 # extract from all sessions
+    python bootstrap.py --sessions --days 30       # last 30 days only
+    python bootstrap.py --sessions --vault ./vault # write to specific vault
+
+    python bootstrap.py --discover                 # list workspaces (old mode)
+    python bootstrap.py --workspace /path          # scan code files (old mode)
 
 The script NEVER writes directly to canonical vault files.
-All output goes to vault/91_Staging/ for your review first.
+Session digests go to vault/90_Inbox/ (git-ignored, treated as sensitive).
 """
 
 import os
@@ -22,43 +24,269 @@ import json
 import argparse
 import subprocess
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
+from collections import defaultdict
 
-# ── Sensitive data patterns to filter out ─────────────────────────────────────
+# ── Sensitive data patterns ───────────────────────────────────────────────────
 SENSITIVE_PATTERNS = [
     r"(?i)(password|passwd|pwd)\s*[=:]\s*\S+",
     r"(?i)(secret|token|api[_-]?key|access[_-]?key)\s*[=:]\s*\S+",
     r"(?i)(private[_-]?key|client[_-]?secret)\s*[=:]\s*\S+",
-    r"[A-Za-z0-9+/]{40,}={0,2}",          # base64-like tokens
-    r"sk-[A-Za-z0-9]{20,}",               # OpenAI keys
-    r"ghp_[A-Za-z0-9]{36}",               # GitHub PATs
-    r"xox[baprs]-[A-Za-z0-9-]+",          # Slack tokens
-    r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",     # phone numbers
-    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",  # emails
+    r"[A-Za-z0-9+/]{40,}={0,2}",
+    r"sk-[A-Za-z0-9]{20,}",
+    r"ghp_[A-Za-z0-9]{36}",
+    r"xox[baprs]-[A-Za-z0-9-]+",
+    r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
 ]
-
 SENSITIVE_RE = [re.compile(p) for p in SENSITIVE_PATTERNS]
-
-
-def is_sensitive(value: str) -> bool:
-    return any(r.search(value) for r in SENSITIVE_RE)
-
 
 def redact(value: str) -> str:
     for r in SENSITIVE_RE:
         value = r.sub("[REDACTED]", value)
     return value
 
+def is_sensitive(value: str) -> bool:
+    return any(r.search(value) for r in SENSITIVE_RE)
 
-# ── Workspace auto-discovery ──────────────────────────────────────────────────
+
+# ── Message extraction ────────────────────────────────────────────────────────
+
+def _text_from_content(content) -> str:
+    """Extract plain text from a message content field (str or list of blocks)."""
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text") or block.get("input_text") or "")
+        return " ".join(p for p in parts if p).strip()
+    return ""
+
+
+def _is_meaningful(text: str) -> bool:
+    """Skip noise: one-word acks, system notifications, file paths, loop prompts."""
+    text = text.strip()
+    if len(text) < 8:
+        return False
+    if text.lower() in {"ok", "yes", "no", "对", "好", "是", "嗯", "apply", "done"}:
+        return False
+    # Skip system task-notification XML blocks
+    if "<task-notification>" in text or "<task-id>" in text:
+        return False
+    # Skip messages that are mostly a file path (loop monitoring prompts)
+    if re.match(r'^(Check|Read|Run)\s+(eval|progress|the file)', text, re.IGNORECASE):
+        return False
+    # Skip pure Windows path messages
+    if re.match(r'^[A-Za-z]:\\', text) and len(text) < 120:
+        return False
+    return True
+
+
+def extract_claude_messages(since: datetime | None = None) -> list[dict]:
+    """
+    Extract user messages from all Claude Code session files.
+    Returns list of {timestamp, project, cwd, text}.
+    """
+    claude_dir = Path.home() / ".claude" / "projects"
+    if not claude_dir.exists():
+        return []
+
+    messages = []
+    for proj_dir in claude_dir.iterdir():
+        if not proj_dir.is_dir():
+            continue
+        project_name = _decode_claude_project_name(proj_dir.name)
+
+        for session_file in proj_dir.glob("*.jsonl"):
+            try:
+                with open(session_file, encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        obj = json.loads(line)
+                        if obj.get("type") != "user":
+                            continue
+                        ts_str = obj.get("timestamp", "")
+                        ts = _parse_ts(ts_str)
+                        if since and ts and ts < since:
+                            continue
+                        content = obj.get("message", {}).get("content", "")
+                        text = _text_from_content(content)
+                        text = redact(text)
+                        if not _is_meaningful(text):
+                            continue
+                        messages.append({
+                            "ts": ts or datetime.min.replace(tzinfo=timezone.utc),
+                            "source": "claude",
+                            "project": project_name,
+                            "cwd": obj.get("cwd", ""),
+                            "text": text,
+                        })
+            except Exception:
+                continue
+
+    return messages
+
+
+def extract_codex_messages(since: datetime | None = None) -> list[dict]:
+    """
+    Extract user messages from all Codex session files.
+    Returns list of {timestamp, project, cwd, text}.
+    """
+    sessions_dir = Path.home() / ".codex" / "sessions"
+    if not sessions_dir.exists():
+        return []
+
+    messages = []
+    for session_file in sessions_dir.rglob("*.jsonl"):
+        cwd = ""
+        try:
+            with open(session_file, encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    obj = json.loads(line)
+
+                    # grab cwd from session_meta
+                    if obj.get("type") == "session_meta":
+                        cwd = obj.get("payload", {}).get("cwd", "")
+                        continue
+
+                    if obj.get("type") != "response_item":
+                        continue
+
+                    payload = obj.get("payload", {})
+                    if payload.get("role") != "user":
+                        continue
+
+                    ts_str = obj.get("timestamp", "")
+                    ts = _parse_ts(ts_str)
+                    if since and ts and ts < since:
+                        continue
+
+                    content = payload.get("content", [])
+                    text = _text_from_content(content)
+                    text = redact(text)
+                    if not _is_meaningful(text):
+                        continue
+
+                    project = Path(cwd).name if cwd else session_file.stem[:20]
+                    messages.append({
+                        "ts": ts or datetime.min.replace(tzinfo=timezone.utc),
+                        "source": "codex",
+                        "project": project,
+                        "cwd": cwd,
+                        "text": text,
+                    })
+        except Exception:
+            continue
+
+    return messages
+
+
+def _decode_claude_project_name(dir_name: str) -> str:
+    """C--Users-foo-myproject -> myproject (last segment)."""
+    m = re.match(r'^[A-Za-z]{1,2}--(.*)$', dir_name)
+    if m:
+        parts = m.group(1).split("-")
+        return parts[-1] if parts else dir_name
+    return dir_name
+
+
+def _parse_ts(ts_str: str) -> datetime | None:
+    if not ts_str:
+        return None
+    try:
+        return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+# ── Group and format digest ───────────────────────────────────────────────────
+
+def build_session_digest(messages: list[dict], max_msgs_per_project: int = 40) -> str:
+    """
+    Group messages by project/cwd, sample up to max_msgs_per_project,
+    and render as a structured Markdown digest for the AI to read.
+    """
+    # Group by (source, cwd or project)
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for msg in messages:
+        key = msg["cwd"] or msg["project"]
+        groups[key].append(msg)
+
+    # Sort groups by most recent message
+    sorted_groups = sorted(
+        groups.items(),
+        key=lambda kv: max(m["ts"] for m in kv[1]),
+        reverse=True,
+    )
+
+    lines = [
+        "# SelfOS Session Digest",
+        f"Generated: {date.today()}",
+        f"Total messages extracted: {len(messages)}",
+        f"Projects/contexts: {len(sorted_groups)}",
+        "",
+        "---",
+        "",
+        "## Instructions for AI agent",
+        "",
+        "Read all sections below. For each context, infer:",
+        "- What the user was working on (→ `02_Work/` or `03_Research/`)",
+        "- What skills and tools they used (→ `01_Career/`)",
+        "- What goals or priorities they expressed (→ `NOW.md`, `GOALS.md`)",
+        "- What decisions they made (→ `DECISIONS.md`)",
+        "- What they were learning (→ `05_Life/`)",
+        "",
+        "Then write one staging file per vault module with your findings.",
+        "Label all inferences as `[ai-inference]`. Only write what is clearly supported by the text.",
+        "",
+        "---",
+        "",
+    ]
+
+    for cwd, msgs in sorted_groups:
+        msgs_sorted = sorted(msgs, key=lambda m: m["ts"])
+        # Sample: take first 5, last 5, and evenly spaced from the middle
+        sampled = _sample_messages(msgs_sorted, max_msgs_per_project)
+
+        latest_ts = max(m["ts"] for m in msgs_sorted)
+        source_tags = sorted({m["source"] for m in msgs_sorted})
+
+        lines.append(f"## Context: `{cwd}`")
+        lines.append(f"Source: {', '.join(source_tags)} | "
+                     f"Messages: {len(msgs_sorted)} | "
+                     f"Last active: {latest_ts.strftime('%Y-%m-%d')}")
+        lines.append("")
+
+        for msg in sampled:
+            ts_str = msg["ts"].strftime("%Y-%m-%d %H:%M")
+            lines.append(f"[{ts_str}] {msg['text']}")
+            lines.append("")
+
+        lines.append("---")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _sample_messages(msgs: list[dict], n: int) -> list[dict]:
+    """Take a representative sample: head + tail + evenly spaced middle."""
+    if len(msgs) <= n:
+        return msgs
+    head = msgs[:5]
+    tail = msgs[-5:]
+    middle_count = n - 10
+    if middle_count <= 0:
+        return head + tail
+    middle_pool = msgs[5:-5]
+    step = max(1, len(middle_pool) // middle_count)
+    middle = middle_pool[::step][:middle_count]
+    return head + middle + tail
+
+
+# ── Workspace discovery (kept from previous version) ─────────────────────────
 
 def _decode_claude_project_path(dir_name: str) -> Path | None:
-    """
-    Claude Code encodes project paths as directory names.
-    Encoding: drive letter becomes "X--", path separators become "-".
-    Example: "C--Users-foo-myproject" -> C:\\Users\\foo\\myproject
-    """
-    # Match drive prefix: one or two uppercase letters followed by --
     m = re.match(r'^([A-Za-z]{1,2})--(.*)$', dir_name)
     if not m:
         return None
@@ -69,7 +297,6 @@ def _decode_claude_project_path(dir_name: str) -> Path | None:
 
 
 def discover_claude_workspaces() -> list[Path]:
-    """Return all project directories that Claude Code has been used in."""
     claude_dir = Path.home() / ".claude" / "projects"
     if not claude_dir.exists():
         return []
@@ -84,112 +311,82 @@ def discover_claude_workspaces() -> list[Path]:
 
 
 def discover_codex_workspaces() -> list[Path]:
-    """
-    Codex doesn't store workspace paths directly.
-    We recover them from recent session history (cwd field in turn records).
-    """
     workspaces = set()
-
-    # 1. OPENAI_CODEX_WORKSPACE env var (if set)
     env_ws = os.environ.get("OPENAI_CODEX_WORKSPACE")
     if env_ws:
         p = Path(env_ws)
         if p.is_dir():
             workspaces.add(p)
-
-    # 2. Parse session_index + recent session files for cwd paths
     codex_dir = Path.home() / ".codex"
     sessions_dir = codex_dir / "sessions"
-    index_file = codex_dir / "session_index.jsonl"
-
-    if index_file.exists() and sessions_dir.exists():
+    for session_file in sessions_dir.rglob("*.jsonl"):
         try:
-            with open(index_file, encoding="utf-8", errors="ignore") as f:
-                session_ids = []
+            with open(session_file, encoding="utf-8", errors="replace") as f:
                 for line in f:
-                    try:
-                        obj = json.loads(line)
-                        if "id" in obj:
-                            session_ids.append(obj["id"])
-                    except json.JSONDecodeError:
-                        continue
-
-            # Check the most recent 20 sessions for cwd info
-            for sid in reversed(session_ids[-20:]):
-                session_path = _find_codex_session_file(sessions_dir, sid)
-                if not session_path:
-                    continue
-                try:
-                    content = session_path.read_text(encoding="utf-8", errors="ignore")
-                    # Look for cwd or workdir fields in the session JSON/JSONL
-                    for match in re.finditer(r'"(?:cwd|workdir|workspace)"\s*:\s*"([^"]+)"', content):
-                        p = Path(match.group(1))
-                        if p.is_dir():
-                            workspaces.add(p)
-                except Exception:
-                    continue
+                    obj = json.loads(line)
+                    if obj.get("type") == "session_meta":
+                        cwd = obj.get("payload", {}).get("cwd", "")
+                        if cwd:
+                            p = Path(cwd)
+                            if p.is_dir():
+                                workspaces.add(p)
+                        break
         except Exception:
-            pass
-
+            continue
     return sorted(workspaces)
 
 
-def _find_codex_session_file(sessions_dir: Path, session_id: str) -> Path | None:
-    """Find the session file for a given session ID (may be nested by year)."""
-    # sessions/<year>/<session_id>.jsonl or sessions/<session_id>.jsonl
-    for candidate in [
-        sessions_dir / f"{session_id}.jsonl",
-        *sessions_dir.rglob(f"{session_id}.jsonl"),
-    ]:
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def discover_all_workspaces() -> dict[str, list[Path]]:
-    """Auto-discover all Claude Code and Codex workspaces."""
+def discover_all_workspaces() -> dict:
     claude_ws = discover_claude_workspaces()
     codex_ws = discover_codex_workspaces()
-
-    # Deduplicate: if same path appears in both, show once
     all_paths = set(claude_ws) | set(codex_ws)
-    return {
-        "claude": claude_ws,
-        "codex": codex_ws,
-        "all": sorted(all_paths),
-    }
+    return {"claude": claude_ws, "codex": codex_ws, "all": sorted(all_paths)}
 
 
-# ── Git context ───────────────────────────────────────────────────────────────
+def build_discovery_report(discovered: dict) -> str:
+    claude_lines = "\n".join(f"  - {p}" for p in discovered["claude"]) or "  (none found)"
+    codex_lines = "\n".join(f"  - {p}" for p in discovered["codex"]) or "  (none found)"
+    return f"""---
+type: discovery-report
+updated: {date.today()}
+source: bootstrap-discover-{date.today()}
+---
+
+# Workspace Discovery Report
+
+## Claude Code workspaces
+{claude_lines}
+
+## Codex workspaces
+{codex_lines}
+
+## All unique workspaces ({len(discovered['all'])} total)
+{chr(10).join(f'  - {p}' for p in discovered['all']) or '  (none found)'}
+
+## Next step
+    python bootstrap.py --sessions --vault ./vault
+"""
+
+
+# ── Code workspace scan (kept from previous version) ─────────────────────────
 
 def get_git_info(workspace: Path) -> dict:
     info = {}
     try:
-        name = subprocess.check_output(
-            ["git", "config", "user.name"], cwd=workspace, text=True
-        ).strip()
+        name = subprocess.check_output(["git", "config", "user.name"], cwd=workspace, text=True).strip()
         if name and not is_sensitive(name):
             info["name"] = name
-
-        email = subprocess.check_output(
-            ["git", "config", "user.email"], cwd=workspace, text=True
-        ).strip()
+        email = subprocess.check_output(["git", "config", "user.email"], cwd=workspace, text=True).strip()
         if email and not is_sensitive(email):
             info["email"] = email
-
-        remotes = subprocess.check_output(
-            ["git", "remote", "-v"], cwd=workspace, text=True
-        ).strip()
+        remotes = subprocess.check_output(["git", "remote", "-v"], cwd=workspace, text=True).strip()
         repos = re.findall(r"github\.com[:/]([^/\s]+/[^\s.]+)", remotes)
         if repos:
             info["github_repos"] = list(set(repos))
-
     except Exception:
         pass
     return info
 
-
-# ── Project language / stack detection ───────────────────────────────────────
 
 def detect_stack(workspace: Path) -> list:
     stack = []
@@ -210,37 +407,50 @@ def detect_stack(workspace: Path) -> list:
     return stack
 
 
-# ── README / project description ──────────────────────────────────────────────
-
 def extract_project_description(workspace: Path) -> str:
     for name in ["README.md", "README.rst", "README.txt"]:
         readme = workspace / name
         if readme.exists():
             content = readme.read_text(encoding="utf-8", errors="ignore")
             lines = content.splitlines()
-            paragraphs = []
-            current = []
+            paragraphs, current = [], []
             for line in lines:
                 if line.strip():
                     current.append(line.strip())
                 elif current:
                     paragraphs.append(" ".join(current))
                     current = []
-            if paragraphs:
-                for p in paragraphs:
-                    if not p.startswith("#"):
-                        return redact(p[:300])
+            for p in paragraphs:
+                if not p.startswith("#"):
+                    return redact(p[:300])
     return ""
 
 
-# ── Build staging output ──────────────────────────────────────────────────────
+def scan_workspace(workspace: Path, vault: Path) -> None:
+    staging = vault / "91_Staging"
+    staging.mkdir(parents=True, exist_ok=True)
+    prefix = f"{date.today()}-{workspace.name}"
+    print(f"\n{'='*60}\nScanning: {workspace}\n{'='*60}")
+    git_info = get_git_info(workspace)
+    stack = detect_stack(workspace)
+    description = extract_project_description(workspace)
+    print(f"  Git user : {git_info.get('name', 'not found')}")
+    print(f"  Stack    : {', '.join(stack) if stack else 'none'}")
 
-def build_profile_draft(git_info: dict, stack: list, description: str) -> str:
+    profile_path = staging / f"{prefix}-profile.md"
+    profile_path.write_text(_build_profile_draft(git_info, stack, description), encoding="utf-8")
+    print(f"  Profile draft  : {profile_path.relative_to(vault)}")
+
+    project_path = staging / f"{prefix}-project.md"
+    project_path.write_text(_build_project_draft(workspace, stack, description), encoding="utf-8")
+    print(f"  Project draft  : {project_path.relative_to(vault)}")
+
+
+def _build_profile_draft(git_info, stack, description):
     name = git_info.get("name", "[Your Name]")
     repos = git_info.get("github_repos", [])
     github = f"https://github.com/{repos[0].split('/')[0]}" if repos else "[github.com/username]"
     stack_str = ", ".join(stack) if stack else "[fill in your stack]"
-
     return f"""---
 type: profile
 updated: {date.today()}
@@ -258,14 +468,9 @@ source: bootstrap-{date.today()}
 ## Current Role
 - Title: [fill in]
 - Company: [fill in]
-- Team: [fill in]
-- Start date: [fill in]
 
 ## Technical Strengths
 - {stack_str}
-
-## Long-Term Goals
-- [fill in]
 
 ## GitHub
 - {github}
@@ -276,8 +481,7 @@ source: bootstrap-{date.today()}
 """
 
 
-def build_project_draft(workspace: Path, stack: list, description: str) -> str:
-    project_name = workspace.name
+def _build_project_draft(workspace, stack, description):
     return f"""---
 type: project-context
 updated: {date.today()}
@@ -288,7 +492,7 @@ source: bootstrap-{date.today()}
 
 ## Active Projects
 
-### {project_name}
+### {workspace.name}
 - **Status**: in progress
 - **Stack**: {', '.join(stack) if stack else '[fill in]'}
 - **Description**: {description if description else '[fill in]'}
@@ -297,108 +501,91 @@ source: bootstrap-{date.today()}
 
 ## Notes
 - Scanned from: {workspace}
-- Review and fill in the blanks before applying to canonical files.
-"""
-
-
-def build_discovery_report(discovered: dict[str, list[Path]]) -> str:
-    claude_lines = "\n".join(f"  - {p}" for p in discovered["claude"]) or "  (none found)"
-    codex_lines = "\n".join(f"  - {p}" for p in discovered["codex"]) or "  (none found)"
-    all_lines = "\n".join(f"  - {p}" for p in discovered["all"]) or "  (none found)"
-
-    return f"""---
-type: discovery-report
-updated: {date.today()}
-source: bootstrap-discover-{date.today()}
----
-
-# Workspace Discovery Report
-
-## Claude Code workspaces
-{claude_lines}
-
-## Codex workspaces
-{codex_lines}
-
-## All unique workspaces ({len(discovered['all'])} total)
-{all_lines}
-
-## Next step
-Pick the workspaces that represent active projects and run:
-    python bootstrap.py --workspace <path> --vault ./vault
-
-Or pass all at once with --workspaces (space-separated).
 """
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-
-def scan_workspace(workspace: Path, vault: Path, label: str = "") -> None:
-    staging = vault / "91_Staging"
-    staging.mkdir(parents=True, exist_ok=True)
-
-    tag = f"-{label}" if label else ""
-    prefix = f"{date.today()}{tag}-{workspace.name}"
-
-    print(f"\n{'='*60}")
-    print(f"Scanning: {workspace}")
-    print(f"{'='*60}")
-
-    git_info = get_git_info(workspace)
-    stack = detect_stack(workspace)
-    description = extract_project_description(workspace)
-
-    print(f"  Git user : {git_info.get('name', 'not found')}")
-    print(f"  Stack    : {', '.join(stack) if stack else 'none'}")
-    print(f"  Repos    : {', '.join(git_info.get('github_repos', [])) or 'none'}")
-
-    profile_path = staging / f"{prefix}-profile.md"
-    profile_path.write_text(build_profile_draft(git_info, stack, description), encoding="utf-8")
-    print(f"  Profile draft  : {profile_path.relative_to(vault)}")
-
-    project_path = staging / f"{prefix}-project.md"
-    project_path.write_text(build_project_draft(workspace, stack, description), encoding="utf-8")
-    print(f"  Project draft  : {project_path.relative_to(vault)}")
-
 
 def main():
     import sys
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-    parser = argparse.ArgumentParser(description="SelfOS Bootstrap — auto-fill vault from workspace")
-    parser.add_argument("--workspace", help="Single workspace directory to scan")
-    parser.add_argument("--workspaces", nargs="+", help="Multiple workspace directories to scan")
-    parser.add_argument("--vault", default="./vault", help="SelfOS vault directory")
-    parser.add_argument(
-        "--discover",
-        action="store_true",
-        help="Auto-discover Claude Code and Codex workspaces, write a discovery report to staging",
+    parser = argparse.ArgumentParser(
+        description="SelfOS Bootstrap — build a self-portrait from AI conversation history"
     )
+    parser.add_argument("--sessions", action="store_true",
+                        help="Extract from Claude Code + Codex session history (primary mode)")
+    parser.add_argument("--days", type=int, default=0,
+                        help="Only include sessions from the last N days (0 = all time)")
+    parser.add_argument("--vault", default="./vault", help="SelfOS vault directory")
+    parser.add_argument("--discover", action="store_true",
+                        help="List all Claude Code + Codex workspaces")
+    parser.add_argument("--workspace", help="Scan a single workspace directory (code files)")
+    parser.add_argument("--workspaces", nargs="+", help="Scan multiple workspace directories")
     args = parser.parse_args()
 
     vault = Path(args.vault).resolve()
-    staging = vault / "91_Staging"
-    staging.mkdir(parents=True, exist_ok=True)
 
-    print(f"SelfOS Bootstrap")
+    print("SelfOS Bootstrap")
     print(f"Vault: {vault}")
 
+    # ── Session extraction mode ───────────────────────────────────────────────
+    if args.sessions:
+        since = None
+        if args.days > 0:
+            since = datetime.now(timezone.utc) - timedelta(days=args.days)
+            print(f"\nExtracting sessions from the last {args.days} days...")
+        else:
+            print("\nExtracting all sessions (use --days N to limit)...")
+
+        print("  Reading Claude Code sessions...", end=" ", flush=True)
+        claude_msgs = extract_claude_messages(since)
+        print(f"{len(claude_msgs)} messages")
+
+        print("  Reading Codex sessions...", end=" ", flush=True)
+        codex_msgs = extract_codex_messages(since)
+        print(f"{len(codex_msgs)} messages")
+
+        all_msgs = claude_msgs + codex_msgs
+        all_msgs.sort(key=lambda m: m["ts"])
+
+        if not all_msgs:
+            print("\nNo messages found. Try without --days to include all history.")
+            return
+
+        digest = build_session_digest(all_msgs)
+
+        # Write to 90_Inbox (git-ignored)
+        inbox = vault / "90_Inbox"
+        inbox.mkdir(parents=True, exist_ok=True)
+        out_path = inbox / f"{date.today()}-sessions-digest.md"
+        out_path.write_text(digest, encoding="utf-8")
+
+        print(f"\n  Digest written: vault/90_Inbox/{out_path.name}")
+        print(f"  {len(all_msgs)} messages across {len(set(m['cwd'] or m['project'] for m in all_msgs))} contexts")
+        print()
+        print("Next step — tell your AI agent:")
+        print('  "Read vault/90_Inbox/' + out_path.name + ' and distribute insights to vault modules."')
+        print()
+        print("The AI will write staging files to vault/91_Staging/ for your review.")
+        print("90_Inbox/ is git-ignored — session content never leaves your machine.")
+        return
+
+    # ── Discovery mode ────────────────────────────────────────────────────────
     if args.discover:
-        print("\nDiscovering workspaces from Claude Code and Codex...")
+        print("\nDiscovering workspaces...")
         discovered = discover_all_workspaces()
         print(f"  Claude Code: {len(discovered['claude'])} workspace(s)")
         print(f"  Codex:       {len(discovered['codex'])} workspace(s)")
-        print(f"  Total unique: {len(discovered['all'])}")
-
+        staging = vault / "91_Staging"
+        staging.mkdir(parents=True, exist_ok=True)
         report_path = staging / f"{date.today()}-discovery-report.md"
         report_path.write_text(build_discovery_report(discovered), encoding="utf-8")
         print(f"\n  Discovery report: {report_path.relative_to(vault)}")
-        print("\nReview the report, then re-run with --workspaces to scan specific ones.")
-        print("Or scan all discovered workspaces now:")
-        print("  python bootstrap.py --workspaces " + " ".join(f'"{p}"' for p in discovered["all"]))
         return
 
+    # ── Workspace code scan mode ──────────────────────────────────────────────
     workspaces = []
     if args.workspaces:
         workspaces = [Path(w).resolve() for w in args.workspaces]
@@ -415,10 +602,7 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"Done. {len(workspaces)} workspace(s) scanned.")
-    print("Review the staging files above, then tell your AI agent:")
-    print('  "Apply the bootstrap staging files to my vault."')
-    print()
-    print("Nothing has been written to canonical vault files yet.")
+    print('Tell your AI: "Apply the bootstrap staging files to my vault."')
 
 
 if __name__ == "__main__":
