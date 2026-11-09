@@ -1567,6 +1567,13 @@ const DIM_ICONS = {{
   research:'🔬', life:'🌿', family:'🏠'
 }};
 let _currentDimKey = '';
+let _pendingDimMsg = '';
+
+function chatAboutDim() {{
+  document.getElementById('dim-modal').classList.remove('open');
+  if (chatCollapsed) toggleChat();
+  _sendChatSilent(_pendingDimMsg);
+}}
 
 function openDim(card) {{
   const key   = card.dataset.key;
@@ -1586,10 +1593,8 @@ function openDim(card) {{
   document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
   document.getElementById('dim-modal').classList.add('open');
 
-  // Simultaneously send chat in background
-  if (chatCollapsed) toggleChat();
-  const msg = lang === 'zh' ? `帮我分析一下「${{label}}」这个维度` : `Tell me about my ${{label}} dimension`;
-  _sendChatSilent(msg);  // closes modal once request is sent
+  // Pre-store the message so the chat button can send it
+  _pendingDimMsg = lang === 'zh' ? `帮我分析一下「${{label}}」这个维度` : `Tell me about my ${{label}} dimension`;
 }}
 document.getElementById('dim-modal').addEventListener('click', e => {{
   if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
@@ -1607,8 +1612,6 @@ async function _sendChatSilent(text) {{
       headers: {{'Content-Type': 'application/json'}},
       body: JSON.stringify({{messages: chatHistory}})
     }});
-    // Close modal as soon as request is sent (not waiting for response)
-    setTimeout(() => document.getElementById('dim-modal').classList.remove('open'), 800);
     const res = await fetchPromise;
     const data = await res.json();
     thinking.remove();
