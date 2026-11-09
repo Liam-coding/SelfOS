@@ -949,15 +949,29 @@ def _suggestion(key: str, v: int | None) -> dict:
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+def _vault_preferred_name(vault: Path) -> str:
+    """Read Preferred name from vault/PROFILE.md; fallback to empty string."""
+    profile = vault / "PROFILE.md"
+    if not profile.exists():
+        return ""
+    for line in profile.read_text(encoding="utf-8").splitlines():
+        if line.strip().lower().startswith("- preferred name:"):
+            val = line.split(":", 1)[-1].strip()
+            return val if val else ""
+    return ""
+
+
 def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     """
-    Generate vault/dashboard.html — bilingual (zh/en toggle), with per-dimension
-    suggestions. Returns the path written.
+    Generate dashboard.html one level above vault/ — bilingual (zh/en toggle),
+    with per-dimension suggestions. Returns the path written.
     """
     history = load_scores(vault)
     if scores is None and history:
         latest = history[0]
         scores = {k: v for k, v in latest.items() if k != "date"}
+
+    preferred_name = _vault_preferred_name(vault)
 
     # Compute overall score
     if scores:
@@ -1034,12 +1048,21 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     updated = date.today().isoformat()
     scored_count = len([v for v in (scores or {}).values() if isinstance(v, int)])
 
+    # Overall ring
+    r_big = 54
+    circ_big = round(3.14159 * 2 * r_big, 2)
+    overall_int = int(overall) if overall and overall >= 1 else 0
+    arc_big = round((overall_int / 10) * circ_big, 2) if overall_int else 0
+
+    greeting_zh = f"你好，{preferred_name}" if preferred_name else "你好"
+    greeting_en = f"Hello, {preferred_name}" if preferred_name else "Hello"
+
     html = f"""<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SelfOS — Life Dashboard</title>
+<title>SelfOS</title>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
   body{{
@@ -1052,30 +1075,45 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
       radial-gradient(ellipse 50% 40% at 80% 10%, #1a0a2e 0%, transparent 50%),
       #090912;
   }}
-  .topbar{{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}}
-  h1{{font-size:1.375rem;font-weight:700;letter-spacing:-.03em;color:#fff}}
-  .subtitle{{color:rgba(255,255,255,.4);font-size:.8rem;margin-top:.2rem;font-weight:400}}
+  /* ── Header ── */
+  .header{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.25rem}}
+  .header-left{{display:flex;flex-direction:column;gap:.25rem}}
+  .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1}}
+  .slogan{{font-size:.8rem;color:rgba(255,255,255,.38);font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
+  .greeting{{font-size:.95rem;font-weight:500;color:rgba(255,255,255,.65);margin-top:.5rem}}
   .lang-btn{{
     background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
     color:rgba(255,255,255,.85);border-radius:8px;padding:.375rem .875rem;
     font-size:.8rem;font-weight:500;cursor:pointer;
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:background .15s
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:background .15s;
+    flex-shrink:0;margin-top:.25rem
   }}
   .lang-btn:hover{{background:rgba(255,255,255,.18)}}
-  /* Overall panel */
+  /* ── Overall panel ── */
   .overall{{
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
     backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-    border-radius:20px;padding:2rem 2.25rem;margin-bottom:1.25rem;
+    border-radius:24px;padding:2rem 2.5rem;margin-bottom:1.25rem;
     display:flex;align-items:center;gap:2.5rem;
     box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 20px 60px rgba(0,0,0,.4)
   }}
-  .overall-score{{font-size:5rem;font-weight:800;line-height:1;color:{overall_color};
-    font-variant-numeric:tabular-nums;letter-spacing:-.04em}}
-  .overall-info h2{{font-size:1rem;font-weight:600;color:#fff;margin-bottom:.3rem}}
-  .overall-status{{font-size:.875rem;font-weight:600;color:{overall_color};margin-bottom:.2rem}}
+  .overall-ring-wrap{{position:relative;width:128px;height:128px;flex-shrink:0}}
+  .overall-ring{{transform:rotate(-90deg)}}
+  .overall-ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7}}
+  .overall-ring-fill{{fill:none;stroke-width:7;stroke-linecap:round}}
+  .overall-ring-score{{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:0
+  }}
+  .overall-ring-num{{font-size:2.5rem;font-weight:800;line-height:1;
+    color:{overall_color};letter-spacing:-.04em;font-variant-numeric:tabular-nums}}
+  .overall-ring-label{{font-size:.65rem;color:rgba(255,255,255,.35);font-weight:500;
+    text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem}}
+  .overall-info h2{{font-size:1.125rem;font-weight:700;color:#fff;margin-bottom:.35rem}}
+  .overall-status{{font-size:.9rem;font-weight:600;color:{overall_color};margin-bottom:.25rem}}
   .overall-count{{font-size:.8rem;color:rgba(255,255,255,.4)}}
-  /* Cards */
+  .overall-date{{font-size:.72rem;color:rgba(255,255,255,.25);margin-top:.5rem}}
+  /* ── Cards ── */
   .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}
   .card{{
     background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
@@ -1087,7 +1125,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .card:hover{{background:rgba(255,255,255,.09);transform:translateY(-1px)}}
   .card-header{{margin-bottom:.75rem}}
   .dim-label{{font-size:.68rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}}
-  /* Ring */
+  /* Ring (cards) */
   .ring-wrap{{position:relative;width:72px;height:72px;margin:0 auto .75rem}}
   .ring{{transform:rotate(-90deg)}}
   .ring-bg{{fill:none;stroke:rgba(255,255,255,.08);stroke-width:5}}
@@ -1117,16 +1155,32 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div>
-    <h1>SelfOS — Life Dashboard</h1>
-    <p class="subtitle" id="subtitle-text">更新于 {updated} · 基于 vault 内容自动推断 · 仅供参考</p>
+<div class="header">
+  <div class="header-left">
+    <div class="brand">SelfOS</div>
+    <div class="slogan" id="slogan-text"
+         data-zh="你的第二大脑，为 AI 时代而生"
+         data-en="Your second brain, built for the AI era">你的第二大脑，为 AI 时代而生</div>
+    <div class="greeting" id="greeting-text"
+         data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
   </div>
   <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
 </div>
 
 <div class="overall">
-  <div class="overall-score">{overall_display}</div>
+  <div class="overall-ring-wrap">
+    <svg class="overall-ring" viewBox="0 0 128 128" width="128" height="128">
+      <circle class="overall-ring-bg" cx="64" cy="64" r="{r_big}"/>
+      <circle class="overall-ring-fill" cx="64" cy="64" r="{r_big}"
+        stroke="{overall_color}"
+        stroke-dasharray="{arc_big} {circ_big}"
+        stroke-dashoffset="0"/>
+    </svg>
+    <div class="overall-ring-score">
+      <span class="overall-ring-num">{overall_display}</span>
+      <span class="overall-ring-label" data-zh="综合" data-en="overall">综合</span>
+    </div>
+  </div>
   <div class="overall-info">
     <h2 id="overall-title" data-zh="综合状态" data-en="Overall">综合状态</h2>
     <p class="overall-status" id="overall-status"
@@ -1134,6 +1188,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <p class="overall-count" id="overall-count"
        data-zh="{scored_count} 个维度有数据"
        data-en="{scored_count} dimensions scored">{scored_count} 个维度有数据</p>
+    <p class="overall-date" id="overall-date"
+       data-zh="更新于 {updated}" data-en="Updated {updated}">更新于 {updated}</p>
   </div>
 </div>
 
@@ -1164,8 +1220,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   </div>
 </div>
 
-<footer style="margin-top:1.25rem">SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
-<a href="90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
+<footer>SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
+<a href="vault/90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
 
 <script>
 let lang = 'zh';
@@ -1173,10 +1229,6 @@ function toggleLang() {{
   lang = lang === 'zh' ? 'en' : 'zh';
   document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
   document.documentElement.lang = lang;
-  const d = '{updated}';
-  document.getElementById('subtitle-text').textContent = lang === 'zh'
-    ? '更新于 ' + d + ' · 基于 vault 内容自动推断 · 仅供参考'
-    : 'Updated ' + d + ' · Auto-inferred from vault · For reference only';
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
@@ -1201,7 +1253,7 @@ document.querySelectorAll('.sparkline').forEach(canvas => {{
 </body>
 </html>"""
 
-    out = vault / "dashboard.html"
+    out = vault.parent / "dashboard.html"
     out.write_text(html, encoding="utf-8")
     return out
 

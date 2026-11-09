@@ -677,7 +677,7 @@ class TestGenerateDashboard:
         vault.mkdir()
         scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
         bs.generate_dashboard(vault, scores)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         for _, label, _ in bs.SCORE_DIMENSIONS:
             assert label in html
 
@@ -686,14 +686,14 @@ class TestGenerateDashboard:
         vault.mkdir()
         scores = {key: 8 for key, _, _ in bs.SCORE_DIMENSIONS}
         bs.generate_dashboard(vault, scores)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "8" in html
 
     def test_no_data_shows_dash(self, tmp_path):
         vault = tmp_path / "vault"
         vault.mkdir()
         bs.generate_dashboard(vault, scores=None)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "—" in html
 
     def test_skip_dim_not_shown(self, tmp_path):
@@ -702,14 +702,14 @@ class TestGenerateDashboard:
         scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
         scores["family"] = "skip"
         bs.generate_dashboard(vault, scores)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "家庭" not in html
 
     def test_bilingual_toggle_button_present(self, tmp_path):
         vault = tmp_path / "vault"
         vault.mkdir()
         bs.generate_dashboard(vault)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "toggleLang" in html
         assert "EN" in html
 
@@ -718,7 +718,7 @@ class TestGenerateDashboard:
         vault.mkdir()
         scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
         bs.generate_dashboard(vault, scores)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "Career" in html
         assert "Health" in html
         assert "Overall" in html
@@ -728,7 +728,7 @@ class TestGenerateDashboard:
         vault.mkdir()
         scores = {key: 7 for key, _, _ in bs.SCORE_DIMENSIONS}
         bs.generate_dashboard(vault, scores)
-        html = (vault / "dashboard.html").read_text(encoding="utf-8")
+        html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "dim-suggestion" in html
 
     def test_suggestion_returns_both_langs(self):
