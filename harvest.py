@@ -1574,12 +1574,47 @@ function openDim(card) {{
   const color = card.dataset.color;
   _currentDimKey = key;
   const label = card.dataset[lang === 'zh' ? 'labelZh' : 'labelEn'];
-  // Close modal immediately, open chat and send
+
+  // Show modal
+  document.getElementById('dim-modal-icon').textContent  = DIM_ICONS[key] || '📊';
+  document.getElementById('dim-modal-title').textContent = label;
+  const scoreEl = document.getElementById('dim-modal-score');
+  scoreEl.textContent = score;
+  scoreEl.style.color = color;
+  document.getElementById('dim-modal-status').textContent = card.dataset[lang === 'zh' ? 'statusZh' : 'statusEn'];
+  document.getElementById('dim-modal-status').style.color = color;
+  document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
+  document.getElementById('dim-modal').classList.add('open');
+
+  // Simultaneously send chat in background
   if (chatCollapsed) toggleChat();
-  const inp = document.getElementById('chat-input');
-  inp.value = lang === 'zh' ? `帮我分析一下「${{label}}」这个维度` : `Tell me about my ${{label}} dimension`;
-  inp.dispatchEvent(new Event('input'));
-  sendChat();
+  const msg = lang === 'zh' ? `帮我分析一下「${{label}}」这个维度` : `Tell me about my ${{label}} dimension`;
+  _sendChatSilent(msg);
+}}
+document.getElementById('dim-modal').addEventListener('click', e => {{
+  if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
+}});
+
+// Send a chat message without touching the input box
+async function _sendChatSilent(text) {{
+  appendMsg(text, 'user');
+  chatHistory.push({{role:'user', content: text}});
+  const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
+  thinking.classList.add('thinking');
+  try {{
+    const res = await fetch('/chat', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{messages: chatHistory}})
+    }});
+    const data = await res.json();
+    thinking.remove();
+    const reply = data.reply || data.error || 'Error';
+    appendMsg(reply, 'ai');
+    chatHistory.push({{role:'assistant', content: reply}});
+  }} catch(e) {{
+    thinking.textContent = lang === 'zh' ? '连接失败，请启动 serve.py' : 'Connection failed — run serve.py';
+  }}
 }}
 
 // ── Harvest modal ──
