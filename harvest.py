@@ -1608,7 +1608,7 @@ async function _sendChatSilent(text) {{
       body: JSON.stringify({{messages: chatHistory}})
     }});
     // Close modal as soon as request is sent (not waiting for response)
-    document.getElementById('dim-modal').classList.remove('open');
+    setTimeout(() => document.getElementById('dim-modal').classList.remove('open'), 800);
     const res = await fetchPromise;
     const data = await res.json();
     thinking.remove();
