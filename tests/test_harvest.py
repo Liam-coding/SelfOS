@@ -592,14 +592,15 @@ class TestScoreVault:
         content = scores_file.read_text(encoding="utf-8")
         assert "career" in content
 
-    def test_scores_append_on_second_run(self, tmp_path):
+    def test_scores_replace_on_same_day(self, tmp_path):
+        """Running twice on the same day replaces the row, not appends."""
         vault = tmp_path / "vault"
         vault.mkdir()
         bs.score_vault(vault)
         bs.score_vault(vault)
         content = (vault / bs.SCORES_FILE).read_text(encoding="utf-8")
         rows = [l for l in content.splitlines() if l.startswith("- ")]
-        assert len(rows) == 2
+        assert len(rows) == 1
 
     def test_infer_score_positive_signals(self):
         text = "\n".join([

@@ -684,7 +684,7 @@ SCORE_DIMENSIONS = [
     ("health",  "健康体能",  "04_Health_Fitness"),
     ("learning","学习成长",  "05_Life"),
     ("research","研究",      "03_Research"),
-    ("life",    "生活",      "05_Life"),
+    ("life",    "生活",      "__life__"),   # special: read from root files
     ("family",  "家庭",      None),
 ]
 
@@ -784,7 +784,8 @@ def score_vault(vault: Path, skip: list[str] | None = None) -> dict:
         # Family has no dedicated subdir — extract family-relevant lines from root files
         if subdir is None:
             family_kw = {"family", "parent", "child", "children", "partner", "spouse",
-                         "relationship", "home", "父母", "孩子", "伴侣", "家人", "家庭"}
+                         "relationship", "home", "girlfriend", "boyfriend",
+                         "父母", "孩子", "伴侣", "家人", "家庭", "女朋友", "男朋友"}
             lines = []
             for root_file in ["PROFILE.md", "NOW.md", "GOALS.md"]:
                 fp = vault / root_file
@@ -796,8 +797,40 @@ def score_vault(vault: Path, skip: list[str] | None = None) -> dict:
                     except OSError:
                         pass
             text = "\n".join(lines)
+        # Life dimension — general wellbeing from root files + 05_Life
+        elif subdir == "__life__":
+            parts = []
+            for root_file in ["NOW.md", "PROFILE.md", "GOALS.md"]:
+                fp = vault / root_file
+                if fp.exists():
+                    try:
+                        parts.append(fp.read_text(encoding="utf-8", errors="replace"))
+                    except OSError:
+                        pass
+            parts.append(_read_vault_text(vault, "05_Life"))
+            text = "\n".join(parts)[:3000]
+        # Career — subdir files + root PROFILE.md as supplement
+        elif key == "career":
+            text = _read_vault_text(vault, subdir)
+            if len([l for l in text.splitlines() if l.strip()]) < 10:
+                fp = vault / "PROFILE.md"
+                if fp.exists():
+                    try:
+                        text = fp.read_text(encoding="utf-8", errors="replace") + "\n" + text
+                    except OSError:
+                        pass
+            text = text[:3000]
         else:
             text = _read_vault_text(vault, subdir)
+            # Supplement sparse subdirs with root NOW.md
+            if len([l for l in text.splitlines() if l.strip()]) < 10:
+                fp = vault / "NOW.md"
+                if fp.exists():
+                    try:
+                        text = text + "\n" + fp.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        pass
+            text = text[:3000]
 
         scores[key] = _infer_score(text, key)
 
@@ -806,7 +839,8 @@ def score_vault(vault: Path, skip: list[str] | None = None) -> dict:
 
 
 def _append_scores(vault: Path, scores: dict, skip: list[str]) -> None:
-    """Append today's scores to vault/SCORES.md (create if missing)."""
+    """Append today's scores to vault/SCORES.md (create if missing).
+    If a row for today already exists, replace it instead of appending."""
     scores_path = vault / SCORES_FILE
     today = date.today().isoformat()
 
@@ -835,7 +869,21 @@ def _append_scores(vault: Path, scores: dict, skip: list[str]) -> None:
         scores_path.write_text(header + row + "\n", encoding="utf-8")
     else:
         existing = scores_path.read_text(encoding="utf-8")
-        scores_path.write_text(existing + row + "\n", encoding="utf-8")
+        lines = existing.splitlines()
+        # Replace existing row for today if present
+        replaced = False
+        new_lines = []
+        for line in lines:
+            if line.startswith(f"- {today} |"):
+                if not replaced:
+                    new_lines.append(row)
+                    replaced = True
+                # skip duplicate rows for today
+            else:
+                new_lines.append(line)
+        if not replaced:
+            new_lines.append(row)
+        scores_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
 
 def load_scores(vault: Path) -> list[dict]:
