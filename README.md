@@ -1,6 +1,6 @@
 # SelfOS
 
-**Your life, version controlled.**
+**Manage your life, the simplest way.**
 
 SelfOS is an open framework for building a personal knowledge and memory system that AI agents can read, update, and reason over. Think of it as the OS layer between you and your AI assistant — your second brain that persists across every conversation.
 
