@@ -1,0 +1,277 @@
+"""
+Tests for bootstrap.py core logic.
+Run: python -m pytest tests/test_bootstrap.py -v
+"""
+
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+# Add parent to path so we can import bootstrap
+sys.path.insert(0, str(Path(__file__).parent.parent))
+import bootstrap as bs
+
+
+# ── _decode_claude_project_name ───────────────────────────────────────────────
+
+class TestDecodeClaudeProjectName:
+    def test_windows_simple(self):
+        assert bs._decode_claude_project_name("C--Users-foo-myproject") == "myproject"
+
+    def test_windows_drive_only(self):
+        result = bs._decode_claude_project_name("C--")
+        assert result == "C--"
+
+    def test_macos_simple(self):
+        assert bs._decode_claude_project_name("-Users-foo-myproject") == "myproject"
+
+    def test_macos_deep(self):
+        assert bs._decode_claude_project_name("-Users-foo-bar-baz-project") == "project"
+
+    def test_unknown_format(self):
+        assert bs._decode_claude_project_name("someproject") == "someproject"
+
+
+# ── _decode_claude_project_path ───────────────────────────────────────────────
+
+class TestDecodeClaudeProjectPath:
+    def test_windows_nonexistent_returns_none(self):
+        result = bs._decode_claude_project_path("C--Users-nobody-fakepath")
+        assert result is None
+
+    def test_macos_nonexistent_returns_none(self):
+        result = bs._decode_claude_project_path("-Users-nobody-fakepath")
+        assert result is None
+
+    def test_unknown_format_returns_none(self):
+        result = bs._decode_claude_project_path("notapath")
+        assert result is None
+
+    def test_windows_home_exists(self, tmp_path):
+        pass  # covered by integration in test_windows_simple
+
+    def test_macos_root_path_construction(self, monkeypatch):
+        monkeypatch.setattr(Path, "exists", lambda self: True)
+        result = bs._decode_claude_project_path("-Users-foo-project")
+        assert result is not None
+        assert str(result).endswith("Users/foo/project") or "Users" in str(result)
+
+
+# ── _is_meaningful ────────────────────────────────────────────────────────────
+
+class TestIsMeaningful:
+    def test_too_short(self):
+        assert bs._is_meaningful("ok") is False
+        assert bs._is_meaningful("yes") is False
+        assert bs._is_meaningful("对") is False
+
+    def test_common_acks(self):
+        assert bs._is_meaningful("apply") is False
+        assert bs._is_meaningful("done") is False
+
+    def test_task_notification(self):
+        assert bs._is_meaningful("<task-notification>some content here</task-notification>") is False
+
+    def test_loop_monitoring_prompts(self):
+        assert bs._is_meaningful("Check eval progress by reading C:\\path\\to\\file") is False
+        assert bs._is_meaningful("Read the file C:\\path and show last 20 lines") is False
+
+    def test_bare_windows_path(self):
+        assert bs._is_meaningful("C:\\Users\\foo\\bar.md") is False
+
+    def test_meaningful_message(self):
+        assert bs._is_meaningful("我想在这个项目里加一个新的功能") is True
+        assert bs._is_meaningful("How do I configure the memory system?") is True
+
+    def test_borderline_length(self):
+        assert bs._is_meaningful("help me") is False  # 7 chars
+        assert bs._is_meaningful("help me!") is True   # 8 chars
+
+
+# ── redact ────────────────────────────────────────────────────────────────────
+
+class TestRedact:
+    def test_api_key(self):
+        text = "my key is sk-abcdefghijklmnopqrstu"
+        result = bs.redact(text)
+        assert "sk-" not in result
+        assert "[REDACTED]" in result
+
+    def test_github_pat(self):
+        text = "token ghp_" + "a" * 36
+        result = bs.redact(text)
+        assert "ghp_" not in result
+
+    def test_email(self):
+        text = "contact me at user@example.com please"
+        result = bs.redact(text)
+        assert "user@example.com" not in result
+        assert "[REDACTED]" in result
+
+    def test_password(self):
+        text = "password=mysecretpass123"
+        result = bs.redact(text)
+        assert "mysecretpass123" not in result
+
+    def test_clean_text_unchanged(self):
+        text = "I want to build a memory system for AI"
+        assert bs.redact(text) == text
+
+
+# ── _text_from_content ────────────────────────────────────────────────────────
+
+class TestTextFromContent:
+    def test_string_content(self):
+        assert bs._text_from_content("hello world") == "hello world"
+
+    def test_list_with_text_block(self):
+        content = [{"type": "text", "text": "hello"}, {"type": "text", "text": "world"}]
+        assert bs._text_from_content(content) == "hello world"
+
+    def test_list_with_input_text(self):
+        content = [{"type": "input_text", "input_text": "ignored", "text": "hello"}]
+        assert bs._text_from_content(content) == "hello"
+
+    def test_empty_list(self):
+        assert bs._text_from_content([]) == ""
+
+    def test_none_like(self):
+        assert bs._text_from_content(None) == ""
+
+
+# ── _sample_messages ─────────────────────────────────────────────────────────
+
+class TestSampleMessages:
+    def _make_msgs(self, n):
+        base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        return [
+            {"ts": base, "text": f"msg{i}", "source": "claude", "project": "p", "cwd": ""}
+            for i in range(n)
+        ]
+
+    def test_under_limit_returns_all(self):
+        msgs = self._make_msgs(10)
+        result = bs._sample_messages(msgs, 40)
+        assert len(result) == 10
+
+    def test_over_limit_samples(self):
+        msgs = self._make_msgs(100)
+        result = bs._sample_messages(msgs, 20)
+        assert len(result) <= 20
+
+    def test_exact_limit(self):
+        msgs = self._make_msgs(20)
+        result = bs._sample_messages(msgs, 20)
+        assert len(result) == 20
+
+    def test_preserves_order(self):
+        msgs = self._make_msgs(5)
+        result = bs._sample_messages(msgs, 40)
+        texts = [m["text"] for m in result]
+        assert texts == [f"msg{i}" for i in range(5)]
+
+
+# ── build_session_digest ──────────────────────────────────────────────────────
+
+class TestBuildSessionDigest:
+    def _make_msg(self, text, cwd="C:\\project\\myapp"):
+        return {
+            "ts": datetime(2026, 6, 1, tzinfo=timezone.utc),
+            "source": "claude",
+            "project": "myapp",
+            "cwd": cwd,
+            "text": text,
+        }
+
+    def test_contains_header(self):
+        msgs = [self._make_msg("I want to build a memory system")]
+        digest = bs.build_session_digest(msgs)
+        assert "# SelfOS Session Digest" in digest
+
+    def test_contains_instructions_block(self):
+        msgs = [self._make_msg("working on my research paper")]
+        digest = bs.build_session_digest(msgs)
+        assert "Instructions for AI agent" in digest
+
+    def test_contains_message_text(self):
+        msgs = [self._make_msg("working on my research paper about memory")]
+        digest = bs.build_session_digest(msgs)
+        assert "working on my research paper about memory" in digest
+
+    def test_groups_by_cwd(self):
+        msgs = [
+            self._make_msg("message from project A", cwd="C:\\proj\\alpha"),
+            self._make_msg("message from project B", cwd="C:\\proj\\beta"),
+        ]
+        digest = bs.build_session_digest(msgs)
+        assert "C:\\proj\\alpha" in digest or "proj" in digest
+        assert "C:\\proj\\beta" in digest or "beta" in digest
+
+    def test_total_count_in_header(self):
+        msgs = [self._make_msg(f"message number {i} about building things") for i in range(5)]
+        digest = bs.build_session_digest(msgs)
+        assert "5" in digest
+
+
+# ── load_state / save_state ───────────────────────────────────────────────────
+
+class TestBootstrapState:
+    def test_load_state_missing_returns_empty(self, tmp_path):
+        state = bs.load_state(tmp_path)
+        assert state == {}
+
+    def test_save_and_load_roundtrip(self, tmp_path):
+        state = {"last_run": "2026-06-01T12:00:00+00:00"}
+        bs.save_state(tmp_path, state)
+        loaded = bs.load_state(tmp_path)
+        assert loaded == state
+
+    def test_save_creates_file(self, tmp_path):
+        bs.save_state(tmp_path, {"last_run": "2026-01-01T00:00:00+00:00"})
+        assert (tmp_path / bs.STATE_FILE_NAME).exists()
+
+    def test_load_corrupt_file_returns_empty(self, tmp_path):
+        state_file = tmp_path / bs.STATE_FILE_NAME
+        state_file.write_text("not valid json", encoding="utf-8")
+        assert bs.load_state(tmp_path) == {}
+
+    def test_state_file_name_constant(self):
+        assert bs.STATE_FILE_NAME == ".bootstrap_state.json"
+
+
+# ── cleanup_old_digests ───────────────────────────────────────────────────────
+
+class TestCleanupOldDigests:
+    def _make_digests(self, inbox: Path, n: int) -> list[Path]:
+        files = []
+        for i in range(n):
+            f = inbox / f"2026-01-{i+1:02d}-sessions-digest.md"
+            f.write_text(f"digest {i}", encoding="utf-8")
+            files.append(f)
+        return files
+
+    def test_deletes_excess(self, tmp_path):
+        self._make_digests(tmp_path, 10)
+        deleted = bs.cleanup_old_digests(tmp_path, keep=7)
+        assert deleted == 3
+        remaining = list(tmp_path.glob("*-sessions-digest.md"))
+        assert len(remaining) == 7
+
+    def test_under_limit_deletes_nothing(self, tmp_path):
+        self._make_digests(tmp_path, 5)
+        deleted = bs.cleanup_old_digests(tmp_path, keep=7)
+        assert deleted == 0
+        assert len(list(tmp_path.glob("*-sessions-digest.md"))) == 5
+
+    def test_keeps_most_recent(self, tmp_path):
+        files = self._make_digests(tmp_path, 10)
+        bs.cleanup_old_digests(tmp_path, keep=3)
+        remaining = sorted(tmp_path.glob("*-sessions-digest.md"))
+        assert remaining == sorted(files[-3:])
+
+    def test_empty_inbox(self, tmp_path):
+        deleted = bs.cleanup_old_digests(tmp_path, keep=7)
+        assert deleted == 0

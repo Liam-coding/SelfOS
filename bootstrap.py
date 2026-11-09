@@ -536,7 +536,34 @@ def install_skill() -> bool:
     return True
 
 
+def cleanup_old_digests(inbox: Path, keep: int = 7) -> int:
+    """Delete old digest files, keeping the most recent `keep` files. Returns count deleted."""
+    digests = sorted(inbox.glob("*-sessions-digest.md"))
+    to_delete = digests[:-keep] if len(digests) > keep else []
+    for f in to_delete:
+        f.unlink()
+    return len(to_delete)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
+
+STATE_FILE_NAME = ".bootstrap_state.json"
+
+
+def load_state(vault: Path) -> dict:
+    state_file = vault / STATE_FILE_NAME
+    if state_file.exists():
+        try:
+            return json.loads(state_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def save_state(vault: Path, state: dict) -> None:
+    state_file = vault / STATE_FILE_NAME
+    state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
 
 def main():
     import sys
@@ -548,6 +575,8 @@ def main():
     )
     parser.add_argument("--days", type=int, default=0,
                         help="Only include sessions from the last N days (default: all)")
+    parser.add_argument("--full", action="store_true",
+                        help="Force full re-extraction (ignore last-run state)")
     args = parser.parse_args()
 
     vault = Path("./vault").resolve()
@@ -562,12 +591,18 @@ def main():
     else:
         print("  /digest skill: not found (skill file missing)")
 
+    state = load_state(vault)
     since = None
+
     if args.days > 0:
         since = datetime.now(timezone.utc) - timedelta(days=args.days)
         print(f"Extracting sessions from the last {args.days} days...")
+    elif args.full or "last_run" not in state:
+        print("Extracting all sessions (full mode)...")
     else:
-        print("Extracting all sessions...")
+        last_run_str = state["last_run"]
+        since = datetime.fromisoformat(last_run_str)
+        print(f"Extracting sessions since last run ({since.strftime('%Y-%m-%d %H:%M UTC')})...")
 
     print("  Reading Claude Code sessions...", end=" ", flush=True)
     claude_msgs = extract_claude_messages(since)
@@ -581,12 +616,24 @@ def main():
     all_msgs.sort(key=lambda m: m["ts"])
 
     if not all_msgs:
-        print("\nNo messages found.")
+        print("\nNo new messages since last run.")
+        if since:
+            print("Run with --full to re-extract everything.")
         return
 
     digest = build_session_digest(all_msgs)
     out_path = inbox / f"{date.today()}-sessions-digest.md"
     out_path.write_text(digest, encoding="utf-8")
+
+    # Persist last-run timestamp (use the latest message timestamp)
+    latest_msg_ts = max(m["ts"] for m in all_msgs)
+    state["last_run"] = latest_msg_ts.isoformat()
+    save_state(vault, state)
+
+    # Clean up old digests (keep last 7)
+    deleted = cleanup_old_digests(inbox, keep=7)
+    if deleted:
+        print(f"  Cleaned up {deleted} old digest(s).")
 
     print(f"\nDone. {len(all_msgs)} messages across {len(set(m['cwd'] or m['project'] for m in all_msgs))} contexts.")
     print(f"Digest: vault/90_Inbox/{out_path.name}")

@@ -5,3 +5,8 @@ vault/90_Inbox/
 *.toc
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+vault/.bootstrap_state.json

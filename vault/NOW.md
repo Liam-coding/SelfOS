@@ -5,32 +5,32 @@ updated: YYYY-MM-DD
 
 # Now
 
-> Update this file weekly or when priorities shift.
+> This is what matters right now. Update weekly or when things shift.
+> Tell your AI: "Update NOW.md based on what we've been working on."
 
 ## Top Priorities
-1. (most important thing right now)
-2.
-3.
+1. (most important thing this week — what does done look like?)
+2. (second priority)
+3. (third priority)
 
 ## Work
-- Current status:
-- Active projects:
+- Current focus:
+- Active projects: (name — status — next action)
 - Blockers:
-- Next action:
 
 ## Research / Side Projects
-- Status:
+- Active: (project name — what you're trying to figure out)
 - Next milestone:
 
 ## Learning
-- Active goals:
+- Active: (course, book, or skill — why / by when)
 - Next action:
 
 ## Life
-- (anything relevant — health, relationships, housing, finances)
+- (anything load-bearing right now: health, housing, finances, relationships)
 
 ## Open Questions
-- (things you're still figuring out)
+- (things you haven't decided yet or are still figuring out)
 
 ## Changes Since Last Review
-- YYYY-MM-DD: (what changed)
+- YYYY-MM-DD: (what changed and why)
