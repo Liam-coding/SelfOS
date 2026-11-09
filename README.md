@@ -98,7 +98,7 @@ metadata:
 git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
 # 2. Extract your AI history (installs /digest skill automatically)
-python bootstrap.py
+python harvest.py
 
 # 3. Open Claude Code and type /digest
 claude
@@ -225,7 +225,7 @@ vault 是一组按生活领域组织的 Markdown 文件。AI 在每次会话开�
 git clone https://github.com/Liam-coding/SelfOS.git && cd SelfOS
 
 # 2. 提取 AI 会话历史（自动安装 /digest skill）
-python bootstrap.py
+python harvest.py
 
 # 3. 打开 Claude Code，输入 /digest
 claude

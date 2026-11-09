@@ -1,6 +1,6 @@
 """
-Tests for bootstrap.py core logic.
-Run: python -m pytest tests/test_bootstrap.py -v
+Tests for harvest.py core logic.
+Run: python -m pytest tests/test_harvest.py -v
 """
 
 import json
@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-# Add parent to path so we can import bootstrap
+# Add parent to path so we can import harvest
 sys.path.insert(0, str(Path(__file__).parent.parent))
-import bootstrap as bs
+import harvest as bs
 
 
 # ── _decode_claude_project_name ───────────────────────────────────────────────
