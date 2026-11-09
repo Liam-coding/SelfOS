@@ -622,7 +622,7 @@ function chatAboutDim() {
   const inp = document.getElementById('chat-input');
   inp.value = lang === 'zh' ? `帮我分析一下「${label}」这个维度` : `Tell me about my ${label} dimension`;
   inp.dispatchEvent(new Event('input'));
-  inp.focus();
+  sendChat();
 }
 
 // ── Harvest modal ──
