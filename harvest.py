@@ -1054,8 +1054,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     overall_int = int(overall) if overall and overall >= 1 else 0
     arc_big = round((overall_int / 10) * circ_big, 2) if overall_int else 0
 
-    greeting_zh = f"你好，{preferred_name}" if preferred_name else "你好"
-    greeting_en = f"Hello, {preferred_name}" if preferred_name else "Hello"
+    greeting_zh = f"你好，{preferred_name}" if preferred_name else "你好，Liam"
+    greeting_en = f"Hello, {preferred_name}" if preferred_name else "Hello, Liam"
 
     html = f"""<!DOCTYPE html>
 <html lang="zh">
@@ -1080,7 +1080,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .header-left{{display:flex;flex-direction:column;gap:.2rem}}
   .brand{{font-size:2.25rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1}}
   .slogan{{font-size:.8rem;color:rgba(255,255,255,.38);font-weight:400;letter-spacing:.01em;margin-top:.15rem}}
-  .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:rgba(255,255,255,.82);margin-top:.75rem;line-height:1.15}}
+  .greeting{{font-size:3rem;font-weight:300;letter-spacing:-.02em;color:rgba(255,255,255,.82);margin-top:.75rem;line-height:1.15;text-align:right}}
   .header-right{{display:flex;flex-direction:column;align-items:flex-end;gap:.625rem}}
   .header-btns{{display:flex;gap:.5rem;align-items:center}}
   .lang-btn,.harvest-btn{{
@@ -1101,6 +1101,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .harvest-btn:hover{{background:rgba(99,102,241,.4)}}
   /* ── Hero: greeting left + ring right ── */
   .hero{{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem;gap:2rem}}
+  .hero-greeting{{flex:1;display:flex;justify-content:flex-end;padding-right:2rem}}
   /* ── Overall ring (right side) ── */
   .overall{{display:flex;flex-direction:column;align-items:center;gap:.75rem;flex-shrink:0}}
   .overall-ring-wrap{{position:relative;width:160px;height:160px}}
@@ -1177,8 +1178,10 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 </div>
 
 <div class="hero">
-  <div class="greeting" id="greeting-text"
-       data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
+  <div class="hero-greeting">
+    <div class="greeting" id="greeting-text"
+         data-zh="{greeting_zh}" data-en="{greeting_en}">{greeting_zh}</div>
+  </div>
   <div class="overall">
     <div class="overall-ring-wrap">
       <svg class="overall-ring" viewBox="0 0 160 160" width="160" height="160">
