@@ -1157,7 +1157,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   a{{color:#0071e3;text-decoration:none}}
   /* ── Chat panel ── */
   .chat-panel{{
-    position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);
+    position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);
     width:320px;height:520px;
     background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:20px;
     box-shadow:0 8px 40px rgba(0,0,0,.12);
