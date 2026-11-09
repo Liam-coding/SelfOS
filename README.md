@@ -177,7 +177,7 @@ PRs welcome. If you adapt SelfOS to a new AI agent or workflow, open a PR to add
 
 # SelfOS — 中文文档
 
-**把你的人生，纳入版本控制。**
+**用最简单的方式管理你的人生**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
