@@ -98,11 +98,25 @@ cd SelfOS
 
 Run the bootstrap script to scan your existing projects and pre-fill your vault templates. It reads your git config, detects your tech stack, and filters out all sensitive data before writing anything.
 
+**Option A — discover all Claude Code and Codex workspaces automatically:**
+
 ```bash
-python bootstrap.py --workspace /path/to/your/projects --vault ./vault
+python bootstrap.py --discover --vault ./vault
 ```
 
-This writes draft files to `vault/91_Staging/` only — nothing is written directly to your vault. Review the drafts, then tell your AI agent:
+This scans `~/.claude/projects/` and `~/.codex/sessions/` to find every workspace you've used with Claude Code or Codex, and writes a discovery report to `vault/91_Staging/`. Review the report, then scan the projects you care about:
+
+```bash
+python bootstrap.py --workspaces /path/to/project1 /path/to/project2 --vault ./vault
+```
+
+**Option B — scan a specific workspace directly:**
+
+```bash
+python bootstrap.py --workspace /path/to/your/project --vault ./vault
+```
+
+All output goes to `vault/91_Staging/` only — nothing is written to canonical vault files. Review the drafts, then tell your AI agent:
 
 > "Apply the bootstrap staging files to my vault."
 
@@ -195,7 +209,7 @@ See [`docs/agent-integration.md`](docs/agent-integration.md) for detailed setup 
 
 Your AI assistant should know you — not just what you said in the last message, but who you are, what you're working toward, and how you think. SelfOS is the infrastructure layer that makes that possible.
 
-It's not a product. It's a pattern. Fork it, adapt it, make it yours.
+Today it's a pattern. The goal is for it to become the standard OS layer between every person and their AI — a personal context layer that travels with you, works with any agent, and compounds over time. Fork it, build on it, help shape what it becomes.
 
 ---
 
@@ -264,6 +278,20 @@ cd SelfOS
 ### 第二步 — Bootstrap（从工作区自动填充）
 
 运行 bootstrap 脚本，扫描你现有的项目，自动预填 vault 模板。脚本会读取你的 git 配置、检测技术栈，并在写入任何内容之前过滤所有敏感信息。
+
+**方式 A — 自动发现所有 Claude Code 和 Codex 工作区：**
+
+```bash
+python bootstrap.py --discover --vault ./vault
+```
+
+脚本会扫描 `~/.claude/projects/` 和 `~/.codex/sessions/`，找出你曾经使用过的所有工作区，并将发现报告写入 `vault/91_Staging/`。查看报告后，选择你关心的项目进行扫描：
+
+```bash
+python bootstrap.py --workspaces /路径/项目1 /路径/项目2 --vault ./vault
+```
+
+**方式 B — 直接扫描指定工作区：**
 
 ```bash
 python bootstrap.py --workspace /你的项目路径 --vault ./vault
@@ -362,7 +390,7 @@ vault 中的每条信息都有标签，让你始终清楚其可信度：
 
 你的 AI 助手应该了解你——不只是你上条消息说了什么，而是你是谁、你在追求什么、你怎么思考。SelfOS 是让这一切成为可能的基础设施层。
 
-这不是产品，是一种模式。Fork 它，改造它，让它成为你的。
+现在它是一种模式。目标是让它成为每个人和 AI 之间的标准 OS 层——一个随你迁移、兼容任意 Agent、随时间持续积累的个人上下文层。Fork 它，在上面构建，帮助塑造它的未来。
 
 ---
 
