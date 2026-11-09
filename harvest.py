@@ -1155,6 +1155,70 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
   .legend-range{{font-size:.68rem;color:#86868b;margin-left:.1rem}}
   footer{{margin-top:1.5rem;color:#aeaeb2;font-size:.7rem;text-align:center}}
   a{{color:#0071e3;text-decoration:none}}
+  /* ── Chat panel ── */
+  .chat-panel{{
+    position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);
+    width:320px;height:520px;
+    background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:20px;
+    box-shadow:0 8px 40px rgba(0,0,0,.12);
+    display:flex;flex-direction:column;overflow:hidden;
+    z-index:100
+  }}
+  .chat-header{{
+    padding:.875rem 1.125rem;border-bottom:1px solid rgba(0,0,0,.07);
+    display:flex;align-items:center;gap:.625rem;flex-shrink:0
+  }}
+  .chat-header-dot{{width:8px;height:8px;border-radius:50%;background:#0071e3;flex-shrink:0}}
+  .chat-header-title{{font-size:.8rem;font-weight:600;color:#1d1d1f}}
+  .chat-header-sub{{font-size:.68rem;color:#86868b;margin-left:auto}}
+  .chat-messages{{
+    flex:1;overflow-y:auto;padding:.875rem 1rem;
+    display:flex;flex-direction:column;gap:.625rem;
+    scroll-behavior:smooth
+  }}
+  .chat-messages::-webkit-scrollbar{{width:4px}}
+  .chat-messages::-webkit-scrollbar-thumb{{background:rgba(0,0,0,.1);border-radius:2px}}
+  .msg{{max-width:88%;padding:.55rem .8rem;border-radius:14px;font-size:.8rem;line-height:1.5;word-break:break-word}}
+  .msg-user{{
+    align-self:flex-end;background:#0071e3;color:#fff;
+    border-bottom-right-radius:4px
+  }}
+  .msg-ai{{
+    align-self:flex-start;background:#f5f5f7;color:#1d1d1f;
+    border-bottom-left-radius:4px
+  }}
+  .msg-ai.thinking{{color:#86868b;font-style:italic}}
+  .chat-input-row{{
+    padding:.75rem;border-top:1px solid rgba(0,0,0,.07);
+    display:flex;gap:.5rem;flex-shrink:0
+  }}
+  .chat-input{{
+    flex:1;border:1px solid rgba(0,0,0,.12);border-radius:10px;
+    padding:.5rem .75rem;font-size:.8rem;font-family:inherit;
+    outline:none;resize:none;background:#f5f5f7;color:#1d1d1f;
+    line-height:1.4;max-height:80px;overflow-y:auto
+  }}
+  .chat-input:focus{{border-color:#0071e3;background:#fff}}
+  .chat-send{{
+    background:#0071e3;color:#fff;border:none;border-radius:10px;
+    width:34px;height:34px;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1rem;transition:background .15s;align-self:flex-end
+  }}
+  .chat-send:hover{{background:#0077ed}}
+  .chat-send:disabled{{background:#aeaeb2;cursor:not-allowed}}
+  .chat-toggle{{
+    position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);
+    background:#0071e3;color:#fff;border:none;border-radius:14px;
+    padding:.6rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,113,227,.35);z-index:100;
+    display:none;white-space:nowrap
+  }}
+  .chat-toggle:hover{{background:#0077ed}}
+  @media(max-width:900px){{
+    .chat-panel{{left:.75rem;width:280px}}
+    body{{padding-left:1rem}}
+  }}
 </style>
 </head>
 <body>
@@ -1237,6 +1301,24 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <footer>SelfOS · <span data-zh="数据来源" data-en="Source">数据来源</span>: vault/ ·
 <a href="vault/90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
 
+<!-- Chat panel -->
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-header-dot"></div>
+    <span class="chat-header-title" data-zh="问问我的 AI" data-en="Ask My AI">问问我的 AI</span>
+    <span class="chat-header-sub" data-zh="了解你的 vault" data-en="knows your vault">了解你的 vault</span>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg msg-ai" data-zh="你好，Liam！有什么想聊的？关于你的工作、研究、健康或目标，我都在。"
+         data-en="Hey Liam! Ask me anything about your work, research, health, or goals.">你好，Liam！有什么想聊的？关于你的工作、研究、健康或目标，我都在。</div>
+  </div>
+  <div class="chat-input-row">
+    <textarea class="chat-input" id="chat-input" rows="1"
+      placeholder="输入消息…" data-ph-zh="输入消息…" data-ph-en="Type a message…"></textarea>
+    <button class="chat-send" id="chat-send" onclick="sendChat()">↑</button>
+  </div>
+</div>
+
 <script>
 let lang = 'zh';
 function toggleLang() {{
@@ -1246,6 +1328,8 @@ function toggleLang() {{
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
+  const inp = document.getElementById('chat-input');
+  inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
 }}
 function runHarvest() {{
   const btn = document.getElementById('harvest-btn');
@@ -1253,10 +1337,61 @@ function runHarvest() {{
   btn.textContent = lang === 'zh' ? '运行中…' : 'Running…';
   fetch('/__harvest__', {{method:'POST'}})
     .catch(() => {{}})
-    .finally(() => {{
-      setTimeout(() => location.reload(), 2000);
-    }});
+    .finally(() => {{ setTimeout(() => location.reload(), 2500); }});
 }}
+
+// ── Chat ──
+const chatHistory = [];
+function appendMsg(text, role) {{
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'msg-user' : 'msg-ai');
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}}
+async function sendChat() {{
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('chat-send').disabled = true;
+
+  appendMsg(text, 'user');
+  chatHistory.push({{role:'user', content: text}});
+
+  const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
+  thinking.classList.add('thinking');
+
+  try {{
+    const res = await fetch('/chat', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{messages: chatHistory}})
+    }});
+    const data = await res.json();
+    thinking.remove();
+    const reply = data.reply || data.error || 'Error';
+    appendMsg(reply, 'ai');
+    chatHistory.push({{role:'assistant', content: reply}});
+  }} catch(e) {{
+    thinking.textContent = lang === 'zh' ? '连接失败，请启动 serve.py' : 'Connection failed — run serve.py';
+    thinking.classList.add('thinking');
+  }}
+  document.getElementById('chat-send').disabled = false;
+  inp.focus();
+}}
+document.getElementById('chat-input').addEventListener('keydown', e => {{
+  if (e.key === 'Enter' && !e.shiftKey) {{ e.preventDefault(); sendChat(); }}
+}});
+document.getElementById('chat-input').addEventListener('input', function() {{
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+}});
+
+// Sparkline
 document.querySelectorAll('.sparkline').forEach(canvas => {{
   const values = JSON.parse(canvas.dataset.values);
   const color = canvas.dataset.color;

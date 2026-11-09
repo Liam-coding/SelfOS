@@ -10,3 +10,4 @@ __pycache__/
 *.pyo
 .pytest_cache/
 vault/.bootstrap_state.json
+.env
