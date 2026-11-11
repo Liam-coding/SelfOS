@@ -6,6 +6,7 @@ from pathlib import Path
 import base64
 
 def safe_path(vault, name):
+    vault = Path(vault).resolve()
     if name not in (".knowledge_pipeline.json","05_Life/lessons.md","knowledge/personal_facts.md","knowledge/preferences.md","knowledge/history.md") and not re.fullmatch(r"02_Work/projects/[a-f0-9]{64}\.md", name):
         raise ValueError("unsupported pipeline path")
     path = vault / name
@@ -16,6 +17,7 @@ def safe_path(vault, name):
 
 def recover(vault):
     from selfos.storage.files import _atomic_write
+    vault = Path(vault).resolve()
     journal = vault / ".knowledge_pending.json"
     if journal.exists():
         for name, content in json.loads(journal.read_text()).items():
@@ -29,6 +31,7 @@ def recover(vault):
 
 def commit(vault, writes, run_id, index):
     from selfos.storage.files import _atomic_write
+    vault = Path(vault).resolve()
     originals = {}
     for name in writes:
         path = safe_path(vault, name)
