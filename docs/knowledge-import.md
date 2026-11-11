@@ -17,7 +17,7 @@ python knowledge.py --restore-last
 python knowledge.py --restore RUN_ID
 ```
 
-Configure ANTHROPIC_API_KEY and optional ANTHROPIC_BASE_URL in .env. The configured Anthropic-compatible endpoint receives redacted input and relevant knowledge context. Redaction is a safeguard, not a guarantee that every sensitive detail is removed. Review the source material and choose an endpoint appropriate for it.
+Configure your model and proxy on the dashboard under **模型与网络**, or use ANTHROPIC_API_KEY and optional ANTHROPIC_BASE_URL in .env. See [model settings](model-settings.md) for available interfaces. The configured endpoint receives redacted input and relevant knowledge context. Redaction is a safeguard, not a guarantee that every sensitive detail is removed. Review the source material and choose an endpoint appropriate for it.
 
 ## What is retained
 

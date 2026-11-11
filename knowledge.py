@@ -477,8 +477,10 @@ def _parse_model_json(raw):
 
 
 def api_generator(root):
+    from model_client import request_opener
+    open_model = request_opener(root)
     key, base = _get_api_config(root)
-    if not key:
+    if not key and __import__('model_settings').load_config(root)['provider']=='anthropic':
         raise RuntimeError('ANTHROPIC_API_KEY is missing. Configure it in .env before importing knowledge.')
     def generate(batch, context):
         # Raw local file paths remain local in the source index.
@@ -499,7 +501,7 @@ def api_generator(root):
         request = Request(base + '/v1/messages', data=json.dumps(body).encode('utf-8'),
                           headers={'x-api-key': key, 'anthropic-version': '2023-06-01',
                                    'content-type': 'application/json'}, method='POST')
-        with urlopen(request, timeout=90) as response:
+        with open_model(request, timeout=90) as response:
             result = json.loads(response.read())
         content = result.get('content', [])
         raw = ''.join(block.get('text', '') for block in content
@@ -596,8 +598,10 @@ If repair_feedback is present, regenerate a complete valid response addressing t
 
 
 def api_summarizer(root, *, review_records=True):
+    from model_client import request_opener
+    open_model = request_opener(root)
     key, base = _get_api_config(root)
-    if not key:
+    if not key and __import__('model_settings').load_config(root)['provider']=='anthropic':
         raise RuntimeError('ANTHROPIC_API_KEY is missing')
     def summarize(session):
         from knowledge_pipeline import transient_only
@@ -621,7 +625,7 @@ def api_summarizer(root, *, review_records=True):
         body['tool_choice']={'type':'tool','name':'retain_knowledge','disable_parallel_tool_use':True}
         req = Request(base + '/v1/messages', data=json.dumps(body).encode(),
                       headers={'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'}, method='POST')
-        with urlopen(req, timeout=90) as response:
+        with open_model(req, timeout=90) as response:
             data = json.loads(response.read())
         raw = ''.join(b.get('text', '') for b in data.get('content', []) if b.get('type') == 'text')
         tool_inputs=[b.get('input') for b in data.get('content',[]) if b.get('type')=='tool_use' and b.get('name')=='retain_knowledge']
@@ -656,7 +660,7 @@ def api_summarizer(root, *, review_records=True):
             except ValueError as error:
                 raise ResponseFormatError(str(error),raw) from error
             try:
-                result=review_personal_records(result,key,base,open_request=urlopen)
+                result=review_personal_records(result,key,base,open_request=open_model)
             except Exception as error:
                 error.additional_api_calls=1
                 raise
@@ -665,8 +669,10 @@ def api_summarizer(root, *, review_records=True):
 
 
 def api_refiner(root, *, review_records=True, cancel=lambda:False):
+    from model_client import request_opener
+    open_model = request_opener(root)
     key, base = _get_api_config(root)
-    if not key:
+    if not key and __import__('model_settings').load_config(root)['provider']=='anthropic':
         raise RuntimeError('ANTHROPIC_API_KEY is missing')
     def refine(payload):
         from knowledge_policy import DEFAULT_SETTINGS,validate_settings,limits
@@ -718,7 +724,7 @@ Return the complete result through exactly one synthesize_knowledge tool call.
                 'tool_choice':{'type':'tool','name':'synthesize_knowledge','disable_parallel_tool_use':True}}
         req = Request(base + '/v1/messages', data=json.dumps(body).encode(),
                       headers={'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'}, method='POST')
-        with urlopen(req, timeout=90) as response:
+        with open_model(req, timeout=90) as response:
             data = json.loads(response.read())
         calls=[b.get('input') for b in data.get('content',[]) if b.get('type')=='tool_use' and b.get('name')=='synthesize_knowledge']
         raw=json.dumps(calls,ensure_ascii=False) if calls else ''.join(b.get('text','') for b in data.get('content',[]) if b.get('type')=='text')
@@ -758,16 +764,16 @@ Return the complete result through exactly one synthesize_knowledge tool call.
                 basis.append({'text':text,
                     'source_ids':list(original_project['source_ids']),'kind':'inference',
                     'domain':original_project.get('domain','work')})
-            result=review_reusable_records(result,key,base,open_request=urlopen,cancel=cancel)
+            result=review_reusable_records(result,key,base,open_request=open_model,cancel=cancel)
             from knowledge_method_support import review_method_support
             try:
-                result=review_method_support(result,basis,key,base,open_request=urlopen,cancel=cancel)
+                result=review_method_support(result,basis,key,base,open_request=open_model,cancel=cancel)
             except Exception as error:
                 error.additional_api_calls=getattr(error,'additional_api_calls',0)+result.get('_additional_api_calls',0)
                 raise
             from knowledge_observation_merge import merge_project_observations
             try:
-                merged=merge_project_observations(result.get('observations',[]),key,base,open_request=urlopen,cancel=cancel)
+                merged=merge_project_observations(result.get('observations',[]),key,base,open_request=open_model,cancel=cancel)
             except Exception as error:
                 error.additional_api_calls=getattr(error,'additional_api_calls',0)+result.get('_additional_api_calls',0)
                 raise

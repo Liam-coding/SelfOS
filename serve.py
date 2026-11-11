@@ -167,17 +167,8 @@ Vault context:
 
 def _get_config() -> tuple[str, str]:
     """Return (api_key, base_url) from env or .env file."""
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
-    env_file = ROOT / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line.startswith("ANTHROPIC_API_KEY=") and not key:
-                key = line.split("=", 1)[1].strip().strip('"').strip("'")
-            elif line.startswith("ANTHROPIC_BASE_URL="):
-                base_url = line.split("=", 1)[1].strip().strip('"').strip("'")
-    return key, base_url.rstrip("/")
+    from harvest import _get_api_config
+    return _get_api_config(ROOT)
 
 
 def _call_claude(messages: list[dict], api_key: str, base_url: str) -> str:
@@ -201,7 +192,7 @@ def _call_claude(messages: list[dict], api_key: str, base_url: str) -> str:
         },
         method="POST",
     )
-    with urlopen(req, timeout=30) as resp:
+    with __import__('model_client').request_opener(ROOT)(req, timeout=30) as resp:
         data = json.loads(resp.read())
     return data["content"][0]["text"]
 
@@ -280,9 +271,21 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/__knowledge_settings__':
             from knowledge_service import get_status
             return self._send_json(200, get_status(VAULT))
+        if self.path == '/__model_settings__':
+            from model_settings import public_config
+            return self._send_json(200, public_config(ROOT))
         if self.path in ("/", "/dashboard.html"):
             if DASHBOARD.exists():
                 body = DASHBOARD.read_bytes()
+                from dashboard_ui import STYLE, integrate_overall
+                page=body.decode('utf-8')
+                page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
+                body=integrate_overall(page).encode('utf-8')
+                body=body.replace(b"let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';",
+                                  b"let lang = localStorage.getItem('selfos-lang') === 'zh' ? 'zh' : 'en';")
+                from model_ui import CONTROLS
+                if b'id="model-settings-entry"' not in body:
+                    body=body.replace(b'</body>',CONTROLS.encode('utf-8')+b'</body>')
                 self._send(200, body, "text/html; charset=utf-8")
             else:
                 self._send_json(404, {"error": "dashboard.html not found — run harvest.py first"})
@@ -391,6 +394,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
+        if self.path in ('/__model_settings__','/__model_test__'):
+            with KNOWLEDGE_RUN_LOCK:
+                if KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409,{'error':'Stop the current import before changing or testing models'})
+                try:
+                    from model_settings import save_config
+                    from model_client import test_connection
+                    body=json.loads(self._read_body())
+                    if self.path=='/__model_settings__': result=save_config(ROOT,body)
+                    else: result=test_connection(ROOT)
+                    return self._send_json(200,result)
+                except (ValueError,TypeError,KeyError) as error:
+                    return self._send_json(400,{'error':str(error)})
+                except RuntimeError as error:
+                    return self._send_json(502,{'error':str(error)})
+                except Exception:
+                    return self._send_json(502,{'error':'Model connection failed; check endpoint, authentication, model and proxy'})
         if self.path in ('/__knowledge_settings__', '/__knowledge_restore__'):
             origin = self.headers.get('Origin')
             host = self.headers.get('Host', '')
@@ -507,7 +527,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_json(400, {"error": "messages required"})
 
                 api_key, base_url = _get_config()
-                if not api_key:
+                if not api_key and __import__('model_settings').load_config(ROOT)['provider']=='anthropic':
                     return self._send_json(500, {
                         "error": "ANTHROPIC_API_KEY not set. Add it to .env or export it."
                     })

@@ -12,7 +12,7 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
 
 ## 快速开始
 
-需要 **Python 3.10+**、Git，以及用于整理和聊天的 Anthropic 兼容 API。应用仅使用 Python 标准库。
+需要 **Python 3.10+**、Git，以及用于整理和聊天的 Anthropic Messages 或 OpenAI-compatible Chat Completions API。本地模型需要支持工具调用。应用仅使用 Python 标准库。
 
 1. 克隆项目：
 
@@ -21,7 +21,7 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
     cd SelfOS
     ```
 
-2. 在项目根目录创建 `.env`：
+2. 可选：为 Anthropic 创建 `.env`；也可以启动后直接在页面配置模型：
 
     ```dotenv
     ANTHROPIC_API_KEY=your-api-key
@@ -36,6 +36,7 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
     ```
 
     打开 [http://localhost:7070](http://localhost:7070)。
+    点击 **模型与网络**，填写接口、Base URL、模型名称、密钥和代理，先点击 **保存并测试连接**。详见[模型设置](docs/model-settings.md)。
 
 4. 点击 **关注哪些内容**，选择领域和详细程度，再点击 **整理我的知识**。操作完成后，通过 **查看知识** 浏览内容和来源。
 

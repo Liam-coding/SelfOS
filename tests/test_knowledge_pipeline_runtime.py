@@ -76,6 +76,7 @@ def test_summary_api_maps_aliases_and_does_not_send_local_paths(monkeypatch):
         return Response()
     monkeypatch.setattr(knowledge, "_get_api_config", lambda _: ("test-key", "https://example.test"))
     monkeypatch.setattr(knowledge, "urlopen", request)
+    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
     result = knowledge.api_summarizer(None)(item)
     assert result["project"]["source_ids"] == ["m1"]
     assert result["project"]["project_id"] == "C:/projects/alpha"

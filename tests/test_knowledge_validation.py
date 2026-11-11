@@ -172,6 +172,7 @@ def api_with_response(monkeypatch, raw, *, stop_reason='end_turn'):
         requests.append(json.loads(request.data))
         return Response()
     monkeypatch.setattr(knowledge, 'urlopen', open_request)
+    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
     return knowledge.api_generator(Path('.')), requests
 
 

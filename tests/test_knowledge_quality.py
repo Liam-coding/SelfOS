@@ -18,6 +18,7 @@ def test_summarizer_does_not_call_model_for_transient_only_input(tmp_path,monkey
     import knowledge
     monkeypatch.setattr(knowledge,'_get_api_config',lambda root:('test-key','http://unused'))
     monkeypatch.setattr(knowledge,'urlopen',lambda *args,**kwargs:pytest.fail('Noise must not reach model'))
+    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
     result=knowledge.api_summarizer(tmp_path)(session('Continue. Retry. Thanks.'))
     assert result=={'project':None,'lessons':[],'personal_facts':[],'preferences':[],'history':[]}
 
