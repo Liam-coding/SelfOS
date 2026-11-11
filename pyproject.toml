@@ -19,4 +19,4 @@ selfos-auth = "selfos.app.cli:auth"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"selfos.resources" = ["locales/*/*.json", "templates/*.md", "skills/digest/*.md"]
+"selfos.resources" = ["locales/*/*.json", "templates/*.md", "skills/digest/*.md", "web/manifest.json", "web/templates/*.html", "web/styles/*.css", "web/scripts/*.js"]

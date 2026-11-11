@@ -1,0 +1,6 @@
+<div id="auth-account-buttons"><button class="harvest-btn" onclick="document.getElementById('app-settings').close();document.getElementById('auth-change').showModal()" data-auth-key="change"></button><button class="harvest-btn" onclick="logoutSelfOS()" data-auth-key="logout"></button><p id="auth-account-status" role="status"></p></div>
+<dialog id="auth-change" class="auth-card"><h2 data-auth-key="change"></h2><p data-auth-key="change_hint"></p>
+<form onsubmit="changeSelfOSPassword(event)"><label><span data-auth-key="current"></span><input id="auth-current" type="password" autocomplete="current-password" required maxlength="1024"></label>
+<label><span data-auth-key="new"></span><input id="auth-new" type="password" autocomplete="new-password" required minlength="12" maxlength="1024"></label>
+<label><span data-auth-key="confirm"></span><input id="auth-new-confirm" type="password" autocomplete="new-password" required maxlength="1024"></label>
+<p id="auth-change-status" role="status"></p><button type="submit" data-auth-key="change"></button><button type="button" onclick="document.getElementById('auth-change').close();document.querySelectorAll('#auth-change input').forEach(e=>e.value='')" data-auth-key="close"></button></form></dialog>

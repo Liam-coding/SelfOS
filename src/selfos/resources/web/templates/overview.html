@@ -1,0 +1,27 @@
+<section class="knowledge-overview" aria-labelledby="knowledge-heading">
+  <div class="knowledge-hero-layout">
+    <div>
+      <div class="knowledge-eyebrow">Personal Intelligence</div>
+      <h1 class="knowledge-heading" id="knowledge-heading" data-zh="让你的知识，变得更清晰。" data-en="Your knowledge. A little clearer.">让你的知识，<span>变得更清晰。</span></h1>
+      <p class="knowledge-description" data-zh="从日常对话中，留下值得记住的事实、选择和经验。让过去的思考，成为下一步的起点。" data-en="Keep the facts, choices and experience that matter. Turn past thinking into a starting point for what comes next.">从日常对话中，留下值得记住的事实、选择和经验。<br>让过去的思考，成为下一步的起点。</p>
+      <div class="knowledge-actions">
+        <button class="knowledge-secondary" onclick="browseKnowledge('projects')" data-zh="查看知识" data-en="Browse knowledge">查看知识</button>
+        <button class="knowledge-primary" onclick="confirmHarvest(false,true)" data-zh="整理我的知识" data-en="Organize my knowledge">整理我的知识 <span aria-hidden="true">↗</span></button>
+        <button class="knowledge-secondary" onclick="openKnowledgeSettings()" data-zh="关注哪些内容" data-en="Choose what matters">关注哪些内容</button>
+      </div>
+      <div class="knowledge-status-line" aria-live="polite"><span class="knowledge-status-dot" id="knowledge-connection-dot"></span><span id="knowledge-overview-status">正在连接本地知识库…</span></div>
+    </div>
+    <div class="knowledge-orbit" aria-hidden="true">
+      <svg viewBox="0 0 250 250" fill="none"><circle cx="125" cy="125" r="109" stroke="currentColor" stroke-opacity=".3"/><circle cx="125" cy="125" r="89" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="2 8"/><path d="M30 180L218 64M36 60L216 181" stroke="currentColor" stroke-opacity=".18"/><circle cx="214" cy="62" r="7" fill="#94bfff" stroke="white" stroke-width="3"/><circle cx="31" cy="180" r="5" fill="#91a9ec"/><circle cx="194" cy="209" r="4" fill="#88bbf4"/></svg>
+      <div class="knowledge-orbit-core"><span>Self</span></div>
+    </div>
+  </div>
+  <div class="knowledge-metrics">
+    <div class="knowledge-metric"><div class="knowledge-metric-label" data-zh="项目" data-en="Projects">项目</div><div class="knowledge-metric-value" id="knowledge-count-cards">—</div><div class="knowledge-metric-note" data-zh="目标与下一步" data-en="Goals and next steps">目标与下一步</div></div>
+    <div class="knowledge-metric"><div class="knowledge-metric-label" data-zh="可复用经验" data-en="Experience">可复用经验</div><div class="knowledge-metric-value" id="knowledge-count-lessons">—</div><div class="knowledge-metric-note" data-zh="让思考持续积累" data-en="Thinking that compounds">让思考持续积累</div></div>
+    <div class="knowledge-metric"><div class="knowledge-metric-label" data-zh="个人事实" data-en="Personal facts">个人事实</div><div class="knowledge-metric-value" id="knowledge-count-personal_facts">—</div><div class="knowledge-metric-note" data-zh="来自你的明确表达" data-en="Explicitly shared by you">来自你的明确表达</div></div>
+    <div class="knowledge-metric"><div class="knowledge-metric-label" data-zh="偏好" data-en="Preferences">偏好</div><div class="knowledge-metric-value" id="knowledge-count-preferences">—</div><div class="knowledge-metric-note" data-zh="保留当前的选择" data-en="Your current choices">保留当前的选择</div></div>
+    <div class="knowledge-metric"><div class="knowledge-metric-label" data-zh="历史" data-en="History">历史</div><div class="knowledge-metric-value" id="knowledge-count-history">—</div><div class="knowledge-metric-note" data-zh="变化与来源可追溯" data-en="Changes with a source">变化与来源可追溯</div></div>
+  </div>
+</section>
+<script>@@SELFOS_RESOURCE:scripts/overview.js@@</script>

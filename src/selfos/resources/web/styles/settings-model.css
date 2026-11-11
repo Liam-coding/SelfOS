@@ -1,0 +1,10 @@
+
+#model-settings { margin:auto!important; background:var(--bg,#fff)!important; padding:28px!important; max-height:calc(100vh - 40px); overflow:auto; box-shadow:0 24px 80px rgba(19,44,88,.2); }
+#model-settings::backdrop,#app-settings::backdrop { background:rgba(31,42,66,.3); backdrop-filter:blur(6px); }
+#model-settings h3 { font-size:22px; margin-bottom:14px; }
+#model-settings p { font-size:13px; line-height:1.6; margin:12px 0; }
+#model-settings input:not([type=checkbox]),#model-settings select { background:var(--surface,#fff); color:var(--text,#222); border:1px solid var(--line,#ccc); border-radius:8px; padding:9px; margin-top:5px; max-width:100%; }
+#model-settings button { padding:10px 14px; border:1px solid var(--line,#ccc); border-radius:10px; margin:4px 2px; cursor:pointer; }
+#model-settings button[type=submit] { background:var(--blue,#2474db); color:white; }
+#model-settings button:disabled { opacity:.5; cursor:wait; }
+#model-status { overflow-wrap:anywhere; color:var(--muted,#555); }

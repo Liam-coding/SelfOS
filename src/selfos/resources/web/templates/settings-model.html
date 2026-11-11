@@ -1,0 +1,32 @@
+
+<style>@@SELFOS_RESOURCE:styles/settings-model.css@@</style>
+<div id="model-settings-entry" style="display:inline-flex">
+  <button class="harvest-btn" onclick="openAppSettings()" data-zh="⚙ 设置" data-en="⚙ Settings">⚙ Settings</button>
+</div>
+<dialog id="app-settings" style="margin:auto;background:var(--bg,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:28px;width:min(440px,90vw)">
+  <h3 data-zh="设置" data-en="Settings">Settings</h3>
+  <p style="margin:20px 0"><label><span data-zh="语言" data-en="Language">Language</span>
+    <select id="settings-language" onchange="setSettingsLanguage(this.value)" style="padding:10px;border-radius:8px"><option value="en">English</option><option value="zh">中文</option></select></label></p>
+  <button class="harvest-btn" onclick="document.getElementById('app-settings').close();openModelSettings()" data-zh="模型与网络" data-en="Model and network">Model and network</button>
+  <p id="current-model" style="font-size:12px;margin:16px 0" aria-live="polite"></p>
+  <button class="harvest-btn" onclick="document.getElementById('app-settings').close()" data-zh="关闭" data-en="Close">Close</button>
+</dialog>
+<dialog id="model-settings" style="background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:24px;width:min(540px,90vw)">
+  <h3 data-zh="模型与网络" data-en="Model and network">模型与网络</h3>
+  <p data-zh="知识整理、项目精炼和聊天共用此配置。密钥仅保存在本地服务，输入留空保留已有密钥。" data-en="Imports, project refinement and chat share this configuration. Keys stay on the local server. Leave the key blank to keep it.">知识整理、项目精炼和聊天共用此配置。密钥仅保存在本地服务，输入留空保留已有密钥。</p>
+  <form onsubmit="event.preventDefault();saveModelSettings(false)">
+    <p><label><span data-zh="接口" data-en="Interface">接口</span> <select id="model-provider" onchange="changeModelProvider()"><option value="anthropic">Anthropic Messages</option><option value="openai">OpenAI-compatible</option></select></label></p>
+    <p><label>Base URL <input id="model-base" type="url" required style="width:100%"></label></p>
+    <p><label><span data-zh="模型名称" data-en="Model name">模型名称</span> <input id="model-name" required placeholder="例如 claude-haiku-4-5-20251001 / gpt-4.1-mini" style="width:100%"></label></p>
+    <p><label>API key <input id="model-key" type="password" autocomplete="new-password" placeholder="留空保留已有密钥" style="width:100%"></label></p>
+    <p><label><input id="model-clear-key" type="checkbox"><span data-zh="清除已有密钥（本地模型可不填）" data-en="Clear saved key (optional for local models)">清除已有密钥（本地模型可不填）</span></label></p>
+    <p><label><span data-zh="代理" data-en="Proxy">代理</span> <select id="model-proxy-mode" onchange="updateModelProxy()"><option value="auto" data-zh="自动：环境变量 / 系统代理" data-en="Auto: environment / system proxy">自动：环境变量 / 系统代理</option><option value="manual" data-zh="手动 HTTP(S) 代理" data-en="Manual HTTP(S) proxy">手动 HTTP(S) 代理</option><option value="direct" data-zh="直连" data-en="Direct">直连</option></select></label></p>
+    <p id="model-proxy-row"><label><span data-zh="代理地址" data-en="Proxy URL">代理地址</span> <input id="model-proxy-url" placeholder="http://127.0.0.1:7890" style="width:100%"></label></p>
+    <p data-zh="本地模型默认直连。自动模式优先环境变量，Windows 下再读取系统静态代理；暂不执行 PAC 脚本。" data-en="Local models connect directly. Auto uses environment variables, then the Windows static proxy. PAC scripts are not supported.">本地模型默认直连。自动模式优先环境变量，Windows 下再读取系统静态代理；暂不执行 PAC 脚本。</p>
+    <p id="model-status" role="status" style="white-space:pre-wrap"></p>
+    <button type="submit" data-zh="保存" data-en="Save">保存</button>
+    <button type="button" onclick="saveModelSettings(true)" data-zh="保存并测试连接" data-en="Save and test connection">保存并测试连接</button>
+    <button type="button" onclick="document.getElementById('model-settings').close()" data-zh="关闭" data-en="Close">关闭</button>
+  </form>
+</dialog>
+<script>@@SELFOS_RESOURCE:scripts/settings-model.js@@</script>
