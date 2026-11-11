@@ -39,4 +39,4 @@ Point your agent at these files and instruct it to propose changes to `vault/91_
 
 1. Test the agent with the minimum required context above
 2. Document any agent-specific config in this file
-3. Open a PR to add it to the README's supported agents table
+3. Open a PR documenting the integration here and updating the README's agent setup guidance
