@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "status": "frozen after rubric review",
+  "files": {
+    "tests/test_project_knowledge_contract.py": "e0201417288c53a316a37cff0aed6eb484bc85c852d99b90254d55ad965c6564",
+    "tests/test_knowledge_eval_grader.py": "ef74ba17af5ebd74833d8ada1b454173fd0edb0244a29ab8213056c2f548cf5d",
+    "evals/knowledge_cases.json": "96447faf314e6309e860c437d6ca7a4564a7987f13ee79d3791a1e57cb74a6e9",
+    "evals/run_knowledge_eval.py": "6d5ebc21eedf27bb833cb6b28589cf9c6495c196036380e84b3a1af69568f44a",
+    "docs/superpowers/specs/2026-11-10-project-knowledge-test-contract.md": "ab8f59163b66d51697c327a146cea398705bf829b5cc86d37e798fd1523da59d"
+  },
+  "baseline": {
+    "test_groups": {
+      "tests.test_harvest.TestDecodeClaudeProjectName": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestDecodeClaudeProjectPath": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestIsMeaningful": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestRedact": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestTextFromContent": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestSampleMessages": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestBuildSessionDigest": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestBootstrapState": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestCleanupOldDigests": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestResolveSince": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestIntegrationExtractAndDigest": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestEnsureVaultStructure": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestVersion": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestFileMtimeOk": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestComputeSignalQuality": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestBuildStatsReport": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestScoreVault": {
+        "total": 10,
+        "passed": 10,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestLoadScores": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestGenerateDashboard": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestGetApiConfig": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestAutoGenerateStaging": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestServeStagingLogic": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_harvest.TestDashboardStagingUI": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_knowledge": {
+        "total": 22,
+        "passed": 22,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_knowledge_eval_grader": {
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "tests.test_project_knowledge_contract": {
+        "total": 85,
+        "passed": 0,
+        "failed": 85,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "cases_passed": 18,
+    "case_count": 24,
+    "checks_passed": 153,
+    "checks_total": 166
+  },
+  "rubric_corrections_before_freeze": [
+    {
+      "case": "benchmark",
+      "reason": "The model preserved that real-world measurement is pending. The initial required alternatives missed pending/measurement and could incorrectly accept an affirmative verification. Require an explicit pending/not-yet phrase instead."
+    },
+    {
+      "case": "bulk-code",
+      "reason": "The initial cache alternative rejected the grammatical variant caching even though it correctly describes a cache. Add caching; the required next-step benchmark criterion remains unchanged."
+    }
+  ],
+  "rule": "Do not change fixtures or expectations to improve scores. Document legitimate test corrections and re-baseline. Keep raw outputs for independent review."
+}

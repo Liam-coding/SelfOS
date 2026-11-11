@@ -6,6 +6,32 @@ SelfOS is an open framework for building a personal knowledge and memory system 
 
 > "An AI that remembers nothing about you is a stranger. SelfOS turns it into a collaborator."
 
+### One-click personal knowledge / 一键整理个人知识库
+
+![SelfOS knowledge overview and browser](docs/images/selfos-knowledge-dashboard.png)
+
+*Core dashboard with example data / 核心页面，使用示例数据。*
+
+Start with `python serve.py`, then open `http://localhost:7070` and click **Build Knowledge / 一键整理知识库**. SelfOS reads local Claude Code and Codex JSONL conversations, including supported migrated Claude archives, and turns useful discussion into five separate views: **personal facts, preferences, projects, reusable experience, and history**.
+
+The pipeline filters transient requests and runtime chatter, compacts code and bulk data in memory, then organizes session parts with three workers by default. It retains project goals, reasoning, decisions, blockers and next steps. Reusable methods are reviewed and grouped by meaning; there is **no target number of retained records**. Original conversations are never edited.
+
+Choose focus domains and concise, balanced or detailed wording in **Knowledge settings**. Imports write automatically with source references, audit records and backups. Successful session parts are saved as checkpoints; canonical knowledge is replaced only after the complete operation succeeds. A settings change automatically rebuilds against the new policy.
+
+You can click **Stop** at any time. New work stops being scheduled; active requests may finish and save, so stopping is not instantaneous. Wait for the stopped status before shutting down the server. A page refresh or stream disconnect also requests cooperative stopping; the page follows the existing job's saving/stopped status instead of launching another import. Click Build Knowledge again to continue remaining work; unchanged successful checkpoints are reused.
+
+Configure `ANTHROPIC_API_KEY` and optionally `ANTHROPIC_BASE_URL` in `.env`. Organizing and chat send redacted text and relevant context to that configured API; local storage does not mean offline inference. Source file paths stay in `vault/.knowledge_pipeline.json`. Source IDs and evidence checks make records traceable, but AI summaries and model reviews do not independently prove factual accuracy.
+
+启动服务后点击 **一键整理知识库**。系统先过滤临时请求、压缩模型输入，再按会话并发提取，将个人事实、偏好、项目、可复用经验和历史分别保留。关注领域和详细程度可配置，保留数量由内容决定；原始对话不修改。整理过程会调用你配置的 AI API。
+
+整理可随时停止：已成功片段保留为检查点，正在进行的请求可能仍需完成保存；页面显示停止后再关闭服务。刷新或断线也会请求协作停止，页面接回的是当前保存或停止状态；再次点击整理才续跑剩余内容，复用有效检查点。整次操作成功后才安装到正式知识库，并保留来源、备份和撤销能力。
+
+Use the dashboard **Undo last import**, or `python knowledge.py --restore-last`, to restore the last completed operation. `python knowledge.py --restore RUN_ID` restores an older backup. Restoration refuses to overwrite later file edits; restore newer operations first. Manual notes outside managed sections are preserved, including notes on generated project cards.
+
+每次正式写入都有备份。页面可撤销上次整理，CLI 可用 `--restore-last` 或 `--restore RUN_ID` 恢复；后续手工修改会阻止覆盖恢复。自动生成区域以外的手工备注会保留。当前支持本地 JSONL 会话，其他聊天软件的导出格式尚未接入。
+
+See [the import guide](docs/knowledge-import.md) for CLI examples, retention rules, retries and recovery, and [the evaluation guide](evals/README.md) for reproducible quality checks.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **[中文文档 →](#chinese)**
@@ -20,7 +46,7 @@ Think of it as a **second brain** built for the AI era: a personal knowledge man
 
 - **Git-native**: everything is Markdown + Git. Your life has version history.
 - **AI-agnostic**: works with Claude Code, Codex, or any agent that can read files.
-- **Privacy-first**: runs entirely on your local machine. No cloud, no database.
+- **Local storage**: Markdown stays on your machine. Optional organizing and chat use your configured AI API.
 - **Structured but flexible**: opinionated enough to be useful out of the box, open enough to adapt to your life.
 
 > Built for anyone who uses AI daily and wants their assistant to actually know them. Git is optional — your AI agent can manage the vault for you.
@@ -37,7 +63,7 @@ You ──→ AI Agent ──→ reads vault/ ──→ understands your context
                   ──→ commits to Git
 ```
 
-The vault is a directory of Markdown files organized by life domain. The AI reads these files at the start of each session and maintains them over time. The staging workflow ensures nothing is written without your approval.
+The vault is a directory of Markdown files organized by life domain. The AI reads these files at the start of each session and maintains them over time. Manual agent edits use staging approval; the one-click knowledge import writes directly with provenance and recoverable backups.
 
 ---
 
@@ -134,7 +160,7 @@ start vault/dashboard.html  # Windows
 
 ## The staging workflow
 
-SelfOS enforces a strict **propose → approve → apply → commit** cycle. Your AI never writes directly to canonical vault files.
+Manual agent edits follow a **propose → approve → apply → commit** cycle. One-click knowledge import follows the automatic retention settings described above and writes with source references and backups.
 
 ```
 1. You give the AI information or ask it to update something
@@ -143,7 +169,7 @@ SelfOS enforces a strict **propose → approve → apply → commit** cycle. You
 4. AI applies to canonical files and commits to Git
 ```
 
-This means every change to your vault is something you consciously approved.
+Staging lets you review manual proposals; automatic imports retain an audit trail and restoration support.
 
 ---
 
@@ -238,7 +264,7 @@ SelfOS 是一个开源框架，用于构建 AI 可读、可更新、可推理的
                  ──→ Git 提交
 ```
 
-vault 是一组按生活领域组织的 Markdown 文件。AI 在每次会话开始时读取这些文件，并随时间维护它们。Staging 工作流确保没有你的审批，AI 什么都不会写入。
+vault 是一组按生活领域组织的 Markdown 文件。AI 在每次会话开始时读取这些文件，并随时间维护它们。手工编辑使用 staging 审批；一键知识整理按配置直接写入，保留来源和可恢复备份。
 
 ---
 
@@ -285,7 +311,7 @@ open vault/dashboard.html   # macOS
 
 ## Staging 工作流
 
-SelfOS 强制执行严格的 **提议 → 审批 → 应用 → 提交** 循环，AI 永远不会直接写入正式 vault 文件。
+手工编辑采用 **提议 → 审批 → 应用 → 提交** 循环。一键知识整理按上面的自动保留配置直接写入，并保存来源和备份。
 
 ```
 1. 你给 AI 信息，或要求它更新某些内容
@@ -294,7 +320,7 @@ SelfOS 强制执行严格的 **提议 → 审批 → 应用 → 提交** 循环�
 4. AI 应用到正式文件并 Git 提交
 ```
 
-这意味着 vault 中的每一处变更都是你主动审批过的。
+Staging 用于审核手工提议；自动整理保留审计记录和恢复能力。
 
 ---
 

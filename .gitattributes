@@ -1,0 +1,6 @@
+# Preserve the exact frozen acceptance bytes, including original line endings.
+tests/test_project_knowledge_contract.py -text
+tests/test_knowledge_eval_grader.py -text
+evals/knowledge_cases.json -text whitespace=cr-at-eol
+evals/run_knowledge_eval.py -text
+docs/superpowers/specs/2026-11-10-project-knowledge-test-contract.md -text
