@@ -1,5 +1,6 @@
+import selfos.app.pipeline as _app_pipeline
 import json
-import knowledge_pipeline as pipeline
+
 from tests.test_project_knowledge_contract import session,summary
 
 
@@ -17,7 +18,7 @@ def extract(item,domain='work'):
 
 def test_equal_text_does_not_merge_explicitly_different_domains(tmp_path):
     items=sessions(tmp_path);vault=tmp_path/'vault'
-    pipeline.consolidate_sessions(vault,items,lambda item:extract(item,'work' if item['session_id']=='s1' else 'research'))
+    _app_pipeline.consolidate_sessions(vault,items,lambda item:extract(item,'work' if item['session_id']=='s1' else 'research'))
     state=json.loads((vault/'.knowledge_pipeline.json').read_text())
     assert len(state['lessons'])==2
     assert {(row['domain'],tuple(row['source_ids'])) for row in state['lessons']}=={('work',('m1',)),('research',('m2',))}
@@ -25,13 +26,13 @@ def test_equal_text_does_not_merge_explicitly_different_domains(tmp_path):
 
 def test_stopping_after_one_project_refinement_preserves_other_project_sources(tmp_path):
     items=sessions(tmp_path);vault=tmp_path/'vault'
-    pipeline.consolidate_sessions(vault,items,extract,max_workers=1)
+    _app_pipeline.consolidate_sessions(vault,items,extract,max_workers=1)
     stop=False
     def refine(payload):
         nonlocal stop
         stop=True
         return {'project':payload['project'],'lessons':[],'observations':[]}
-    result=pipeline.refine_projects(vault,refine,cancel=lambda:stop)
+    result=_app_pipeline.refine_projects(vault,refine,cancel=lambda:stop)
     state=json.loads((vault/'.knowledge_pipeline.json').read_text())
     assert result['projects']==1
     assert len(state['lessons'])==1

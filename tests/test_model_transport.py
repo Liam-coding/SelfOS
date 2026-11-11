@@ -3,8 +3,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request
 import pytest
-from model_settings import save_config
-from model_client import request_opener, test_connection as connection_check
+from selfos.providers.settings import save_config
+from selfos.providers.client import request_opener, test_connection as connection_check
 
 @pytest.fixture
 def api():
@@ -49,8 +49,8 @@ def test_actual_knowledge_extraction_uses_openai(api,tmp_path):
     assert captured[0][2]['tools'][0]['function']['name']=='retain_knowledge'
 
 def test_anthropic_default_model_preserved(tmp_path):
-    from model_client import adapt_request
-    from model_settings import load_config
+    from selfos.providers.client import adapt_request
+    from selfos.providers.settings import load_config
     body={'model':'claude-sonnet-4-6','max_tokens':100,'messages':[]}
     request=adapt_request(Request('https://unused',data=json.dumps(body).encode()),load_config(tmp_path))
     assert json.loads(request.data)['model']=='claude-sonnet-4-6'

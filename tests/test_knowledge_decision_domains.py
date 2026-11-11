@@ -1,6 +1,6 @@
 import copy
-from knowledge_pipeline import merge_project_card
-from knowledge_history import history_records
+from selfos.knowledge.projects import merge_project_card
+from selfos.knowledge.history import history_records
 from tests.test_project_knowledge_contract import card
 
 
@@ -44,7 +44,7 @@ def test_legacy_decision_without_domain_stays_unclassified():
 
 def test_browser_can_open_equal_records_in_distinct_domains(tmp_path):
     import json
-    from knowledge_library import list_knowledge,knowledge_detail
+    from selfos.app.library import list_knowledge, knowledge_detail
     records=[{'text':'Use incremental import','source_ids':['m1'],
               'kind':'inference','domain':domain} for domain in ('work','research')]
     (tmp_path/'.knowledge_pipeline.json').write_text(json.dumps({'lessons':records}),encoding='utf-8')

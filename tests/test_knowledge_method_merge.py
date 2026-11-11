@@ -23,7 +23,7 @@ def responder(change=None):
 
 
 def merge(records,request,cancel=lambda:False):
-    from knowledge_method_merge import merge_reviewed_methods
+    from selfos.providers.reviews.methods import merge_reviewed_methods
     return merge_reviewed_methods(records,'test','https://example.test',open_request=request,cancel=cancel)
 
 

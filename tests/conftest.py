@@ -1,4 +1,11 @@
 import pytest
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+# Only the byte-frozen acceptance contract needs the historical adapter name.
+sys.path.insert(0, str(ROOT / 'evals/adapters'))
 
 @pytest.fixture(autouse=True)
 def isolate_auth_for_existing_behavior_tests(request,monkeypatch):

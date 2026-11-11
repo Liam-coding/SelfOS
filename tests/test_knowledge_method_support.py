@@ -28,7 +28,7 @@ def responder(change=None):
 
 
 def check(result,basis,request,cancel=lambda:False):
-    from knowledge_method_support import review_method_support
+    from selfos.providers.reviews.support import review_method_support
     return review_method_support(result,basis,'test','https://example.test',open_request=request,cancel=cancel)
 
 

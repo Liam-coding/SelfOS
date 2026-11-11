@@ -22,7 +22,7 @@ def responses(monkeypatch, verdicts):
             'input':{'verdicts':verdicts}}]})
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',request)
-    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
     return calls
 
 

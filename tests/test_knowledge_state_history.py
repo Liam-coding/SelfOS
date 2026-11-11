@@ -1,6 +1,6 @@
 import copy
-from knowledge_pipeline import merge_project_card
-from knowledge_history import history_records
+from selfos.knowledge.projects import merge_project_card
+from selfos.knowledge.history import history_records
 from tests.test_project_knowledge_contract import card
 
 
@@ -28,8 +28,8 @@ def test_out_of_order_state_history_keeps_every_distinct_snapshot():
 
 
 def test_state_history_is_written_and_visible_with_its_original_source(tmp_path):
-    from knowledge_pipeline import consolidate_sessions
-    from knowledge_library import list_knowledge,knowledge_detail
+    from selfos.app.pipeline import consolidate_sessions
+    from selfos.app.library import list_knowledge, knowledge_detail
     from tests.test_project_knowledge_contract import session
     first=session('Upload project is blocked on signature mapping.',identity='m1',session='s1')
     later=session('Signature mapping is fixed. Next validate replay.',identity='m2',session='s2',timestamp='2026-11-10T09:00:00Z')

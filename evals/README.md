@@ -14,10 +14,10 @@ Run all program tests with `python -m pytest -q --junitxml=program-results.xml`.
 Run the legacy live baseline with:
 
 ```
-python evals/run_knowledge_eval.py --live --adapter legacy --workers 3 --output quality-results.json
+python evals/run.py --live --adapter legacy --workers 3 --output quality-results.json
 ```
 
-The implemented knowledge_pipeline module provides the contract interfaces and `api_summarizer(root)`, delegating to the actual prepared-session summarizer. Evaluate the current implementation with `--adapter pipeline`; use an output path outside your vault.
+The evaluation-only adapter in evals/adapters/knowledge_pipeline.py provides the contract interfaces and `api_summarizer(root)`, delegating to the actual prepared-session summarizer. Evaluate the current implementation with `--adapter pipeline`; use an output path outside your vault. The new launcher supplies package and adapter paths while preserving the original evaluator and contract files byte-for-byte.
 
 The most recent two fixed-corpus development runs scored 23/24 cases with 162/166 and 165/166 checks respectively. Independent multi-project holdouts still showed intermittent context omissions. These are separate from program-test pass rates, are not guarantees, and should be rerun on your configured model without changing the frozen ruler.
 

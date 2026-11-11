@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 import pytest
 import serve
-from knowledge_service import run_knowledge
+from selfos.app.knowledge import run_knowledge
 from tests.test_knowledge_service import source, summarize, refine
 
 

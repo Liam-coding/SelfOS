@@ -1,6 +1,6 @@
 # Python backend architecture
 
-The backend lives in an installable package under src/selfos. Root Python files preserve existing commands and imports; new backend code imports the owning package module directly.
+The backend lives in an installable package under src/selfos. Only four Python command files remain at the root: serve.py, knowledge.py, harvest.py and selfos_auth.py. Backend modules and ordinary tests import the owning package directly.
 
 | Package | Responsibility | Examples |
 | --- | --- | --- |
@@ -57,7 +57,11 @@ Equivalent module commands are python -m selfos serve, knowledge, harvest or aut
 
 ## Compatibility and verification
 
-Root modules are thin entry points. The isolated _compat and _legacy modules forward legacy symbols to their actual owners, including assignments used by existing integrations and tests. Internal package code never uses these facades. Prefer injecting the explicit parameters or patching the owning package in new tests.
+The four command modules retain compatibility exports through _compat and _legacy. Internal package code never uses these facades. Former root helpers such as model_client, knowledge_library and knowledge_policy are no longer import entry points; use selfos.providers.client, selfos.app.library and the owning selfos.knowledge/storage modules instead. For tests, patch the module where the dependency is looked up.
+
+Generated dashboard.html stays local and is ignored by Git. A screenshot remains in docs/images for the README.
+
+The frozen acceptance contract and evaluator retain historical imports without modifying their bytes. Their isolated adapter lives in evals/adapters/knowledge_pipeline.py. Test setup adds that directory for evaluation compatibility; invoke the frozen evaluator through python evals/run.py. Neither installed application code nor normal source modules depend on this adapter.
 
 Run python -m pytest -q. Boundary tests cover import direction, cycles, legacy exports, foreign working directories, resource availability and package subprocess commands. HTTP regressions cover authentication, local-origin checks, progress, cancellation and resume. Knowledge regressions use synthetic conversations and temporary vaults; frozen evaluation files and original conversations are not rewritten.
 

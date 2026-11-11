@@ -2,7 +2,7 @@ import copy,json
 from pathlib import Path
 import pytest
 import knowledge
-from knowledge_pipeline import validate_summary
+from selfos.knowledge.projects import validate_summary
 from tests.test_project_knowledge_contract import session
 
 
@@ -16,7 +16,7 @@ def response(monkeypatch, record, category='preferences'):
     def request(req,**kwargs):captured.append(json.loads(req.data));return Response()
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',request)
-    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
     return knowledge.api_summarizer(Path('.'),review_records=False),captured
 
 
@@ -99,13 +99,13 @@ def test_tool_use_input_is_parsed_and_validated_without_text_json(monkeypatch):
             'input':{'project':None,'lessons':[],'preferences':[record()]}}]}).encode()
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',lambda *args,**kwargs:Response())
-    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
     item=session('I prefer Chinese explanations.')
     assert validate_summary(knowledge.api_summarizer(None,review_records=False)(item),item)['preferences'][0]['evidence'] == item['messages'][0]['text']
 
 
 def test_automatic_skill_context_is_filtered_before_extraction():
-    from knowledge_pipeline import compact_message
+    from selfos.knowledge.filtering import compact_message
     item=session('Base directory for this skill: C:/temporary/bundled-skills/example\n# Skill instructions')
     assert compact_message(item['messages'][0]) is None
 
@@ -120,7 +120,7 @@ def test_json_encoded_record_arrays_are_decoded_without_weakening_validation(mon
         def read(self):return json.dumps({'content':[{'type':'tool_use','name':'retain_knowledge','input':data}]}).encode()
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',lambda *args,**kwargs:Response())
-    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
     result=knowledge.api_summarizer(None,review_records=False)(item)
     assert validate_summary(result,item)['preferences'][0]['source_ids']==['m1']
     data['preferences']=json.dumps([record(evidence_id='s99:e1')])
@@ -135,7 +135,7 @@ def test_malformed_encoded_arrays_are_not_repaired_or_discarded(monkeypatch):
         def read(self):return json.dumps({'content':[{'type':'tool_use','name':'retain_knowledge','input':data}]}).encode()
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',lambda *args,**kwargs:Response())
-    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
     with pytest.raises(ValueError,match='lessons'):knowledge.api_summarizer(None,review_records=False)(session())
 
 

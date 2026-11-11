@@ -1,10 +1,11 @@
 import importlib,json,copy
 from pathlib import Path
 import pytest
+from selfos.storage.settings import save_settings
 from tests.test_project_knowledge_contract import card
 
 def api():
-    try:return importlib.import_module('knowledge_service')
+    try:return importlib.import_module('selfos.app.knowledge')
     except ModuleNotFoundError:pytest.fail('knowledge_service not implemented')
 
 def source(tmp_path):
@@ -32,7 +33,7 @@ def test_first_import_then_cached_import_has_no_extra_model_calls(tmp_path):
 def test_changed_policy_rebuilds_automatically_and_preserves_raw_source(tmp_path):
     s=api();roots,path=source(tmp_path);raw=path.read_bytes();vault=tmp_path/'vault'
     s.run_knowledge(vault,roots=[roots],summarize=summarize,refine=refine)
-    s.save_settings(vault,{'domains':['personal'],'detail':'concise'})
+    save_settings(vault,{'domains':['personal'],'detail':'concise'})
     result=s.run_knowledge(vault,roots=[roots],summarize=summarize,refine=refine)
     assert result['mode']=='rebuild' and result['installed']
     state=json.loads((vault/'.knowledge_pipeline.json').read_text())

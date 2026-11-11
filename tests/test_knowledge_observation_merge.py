@@ -21,7 +21,7 @@ def responder(change=None):
 
 
 def merge(records,request,cancel=lambda:False):
-    from knowledge_observation_merge import merge_project_observations
+    from selfos.providers.reviews.observations import merge_project_observations
     return merge_project_observations(records,'test','https://example.test',open_request=request,cancel=cancel)
 
 

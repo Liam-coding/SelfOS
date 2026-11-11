@@ -1,6 +1,7 @@
 import copy,json
-from knowledge_pipeline import consolidate_sessions,restore_pipeline_backup
-from knowledge_history import history_records
+from selfos.app.pipeline import consolidate_sessions
+from selfos.storage.pipeline import restore_pipeline_backup
+from selfos.knowledge.history import history_records
 from tests.test_project_knowledge_contract import session,card
 
 
@@ -52,7 +53,7 @@ def test_cancelled_upgrade_preserves_exact_checkpoint(tmp_path):
 
 
 def test_history_rebuild_rejects_foreign_sources_and_selected_domain_mismatch():
-    from knowledge_history import rebuild_cached_state_history
+    from selfos.knowledge.history import rebuild_cached_state_history
     project=card(decision_history=['Existing decision'])
     state={'cards':{project['project_id']:copy.deepcopy(project)},'summaries':{'bad':{'project':card(source_ids=['foreign'])}},
            'sources':{'foreign':{'project_id':'other/project','timestamp':'2026-11-10T08:00:00Z'}}}
@@ -66,7 +67,7 @@ def test_history_rebuild_rejects_foreign_sources_and_selected_domain_mismatch():
 
 
 def test_cached_refinement_also_upgrades_without_resynthesis(tmp_path):
-    from knowledge_pipeline import refine_projects
+    from selfos.app.pipeline import refine_projects
     legacy_checkpoint(tmp_path)
     refine_projects(tmp_path,lambda payload:{'project':payload['project'],'lessons':[],'observations':[]})
     path=tmp_path/'.knowledge_pipeline.json';state=json.loads(path.read_text())
@@ -113,8 +114,8 @@ def test_failed_history_upgrade_rolls_back_both_files(tmp_path,monkeypatch):
 
 
 def test_older_snapshots_recover_domains_without_duplicate_events():
-    from knowledge_history import rebuild_cached_state_history
-    from knowledge_pipeline import merge_project_card
+    from selfos.knowledge.history import rebuild_cached_state_history
+    from selfos.knowledge.projects import merge_project_card
     old=card(domain='work',source_ids=['m1'])
     new=card(domain='research',source_ids=['m2'],updated_at='2026-11-10T09:00:00Z')
     current=merge_project_card(old,new)

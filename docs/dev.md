@@ -237,7 +237,7 @@ python harvest.py --dry-run
 
 ## 下一步方向（未排期）
 
-知识库一键整理现在使用 knowledge_pipeline.py：在内存中压缩代码围栏和大块 JSON、过滤临时请求及无关工具输出，按完整项目路径和原始会话分组，默认 3 路 API 并发、串行保存。原始对话文件保持不变。CLI 支持 `python knowledge.py --dry-run`（不调用 API、不写知识库）和 `--workers 1`。
+知识库一键整理现在使用 selfos.app.pipeline：在内存中压缩代码围栏和大块 JSON、过滤临时请求及无关工具输出，按完整项目路径和原始会话分组，默认 3 路 API 并发、串行保存。原始对话文件保持不变。CLI 支持 `python knowledge.py --dry-run`（不调用 API、不写知识库）和 `--workers 1`。
 
 质量修复进一步区分 user_statement、quoted_dialogue、runtime_evidence、机器摘要和代理状态；引用或工具结果不能升级为用户事实。工具失败和日志错误保留为证据。项目卡当前决策最多 8 条，decision_history、lesson_history 和原始来源留在索引；项目级语义归并合并同义表达、过滤临时建议，未变化的语义归并结果也缓存。允许无项目更新的空结果或独立经验。
 

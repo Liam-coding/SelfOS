@@ -3,7 +3,7 @@ import pytest
 
 
 def review():
-    from knowledge_lesson_review import review_reusable_records
+    from selfos.providers.reviews.lessons import review_reusable_records
     return review_reusable_records
 
 
@@ -131,7 +131,7 @@ def test_failed_cross_batch_grouping_includes_all_call_costs(monkeypatch):
     def failed(*args,**kwargs):
         error=ResponseFormatError('Invalid method grouping');error.additional_api_calls=2
         raise error
-    monkeypatch.setattr('knowledge_method_merge.merge_reviewed_methods',failed)
+    monkeypatch.setattr('selfos.providers.reviews.methods.merge_reviewed_methods',failed)
     with pytest.raises(ResponseFormatError) as error:
         review()(records(21),'test','https://example.test',open_request=request)
     assert len(calls)==2 and error.value.additional_api_calls==4

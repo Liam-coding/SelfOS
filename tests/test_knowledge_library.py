@@ -1,11 +1,12 @@
 import json
+from selfos.app import library as library_api
 from pathlib import Path
 import pytest
 
 
 def library():
-    import knowledge_library
-    return knowledge_library
+
+    return library_api
 
 
 @pytest.fixture
