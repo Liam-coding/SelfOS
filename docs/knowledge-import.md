@@ -4,7 +4,7 @@ SelfOS turns local AI conversations into traceable personal knowledge. The dashb
 
 ## Run locally
 
-Use Python 3.10 or later. The application uses the standard library; install pytest separately to run tests.
+Use Python 3.10 or later and install `requirements.txt` for Argon2id password hashing. Install pytest separately to run tests. See [authentication](authentication.md) for login and local recovery.
 
 ```powershell
 python serve.py
