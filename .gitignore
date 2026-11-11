@@ -8,6 +8,10 @@ Thumbs.db
 __pycache__/
 *.pyc
 *.pyo
+build/
+dist/
+src/*.egg-info/
+.superpowers/
 .pytest_cache/
 vault/.bootstrap_state.json
 .env

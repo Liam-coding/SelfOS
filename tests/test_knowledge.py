@@ -223,7 +223,8 @@ def test_http_knowledge_stream_runs_pipeline_and_reports_exit(monkeypatch):
         def poll(self):
             return 0
     def launch(cmd, **kwargs):
-        assert Path(cmd[2]).name == 'knowledge.py'
+        assert cmd[2:5] == ['-m', 'selfos', 'knowledge']
+        assert '--root' in cmd and '--vault' in cmd
         assert '--stop-file' in cmd
         assert '-u' in cmd
         return Process()
