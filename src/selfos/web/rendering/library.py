@@ -52,6 +52,7 @@ HTML = r'''<section id="knowledge-library" class="knowledge-library" aria-labell
  }catch(e){if(seq===detailGeneration)el('kb-sources').append(node('p',e.message));}finally{if(seq===detailGeneration)more.disabled=false;}}
  async function open(id){activeId=id;sourceOffset=0;const seq=++detailGeneration,content=el('kb-detail-content');content.replaceChildren(node('p',t('加载详情…','Loading details…')));el('kb-detail').showModal();try{const d=await request('/__knowledge_item__?'+new URLSearchParams({id}));if(seq!==detailGeneration)return;const item=d.item;content.replaceChildren(node('h2',item.title),node('p',attribution(item),'kb-meta'),node('p',item.summary));if(item.conflict)content.append(node('p',t('存在冲突，需结合来源确认。','Conflicting records: check sources.')));
  for(const [field,zh,en]of [['decisions','当前选择','Current decisions'],['blockers','待解决','Blockers'],['next_steps','下一步','Next steps']])if(item[field].length){content.append(node('h3',t(zh,en)));const list=node('ul');item[field].forEach(v=>list.append(node('li',v)));content.append(list);}
+ if(item.category==='projects'){const timeline=node('button',window.projectTimelineLabel(),'pt-entry-button');timeline.dataset.projectTimeline=id;timeline.onclick=()=>window.openProjectTimeline(id);content.append(timeline);}
  if(item.evidence)content.append(node('h3',t('原文依据','Quoted evidence')),node('pre',item.evidence));
  if(item.source_scope==='project_context')content.append(node('p',t('这是归档的项目记录。旧记录仅保留项目上下文来源，无法确定这条记录的直接依据与时间。','Archived project record. Legacy sources describe project context; direct evidence and event time are unavailable.')));
  if(item.source_scope==='session_context')content.append(node('p',t('来源属于讨论这条记录的会话；日期为来源会话时间。','Sources belong to the conversation discussing this record; the date is the session time.')));
@@ -67,3 +68,15 @@ HTML = r'''<section id="knowledge-library" class="knowledge-library" aria-labell
  document.addEventListener('DOMContentLoaded',()=>{tabs();load();});document.addEventListener('selfos-language',()=>{tabs();load();});
 })();
 </script>'''
+
+from selfos.web.rendering.timeline import HTML as TIMELINE_HTML
+HTML += TIMELINE_HTML
+
+
+def refresh_library(page):
+    """Refresh an existing library component without writing generated dashboard data."""
+    import re
+    page = re.sub(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->', '', page, flags=re.S)
+    pattern = r'<section id="knowledge-library"(?=[\s>]).*?</section>\s*<dialog id="kb-detail"(?=[\s>]).*?</dialog>\s*<script>.*?</script>'
+    page = re.sub(pattern, lambda _: HTML, page, count=1, flags=re.S)
+    return page

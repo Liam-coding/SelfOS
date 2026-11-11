@@ -55,6 +55,12 @@ def _sources(state,ids):
     return result
 
 
+def _record_identity(category, record):
+    text = record.get('intent', '') if category == 'projects' else record.get('text', '')
+    return digest([category, record.get('project_id'), record.get('key'), record.get('value'),
+                   text, record.get('source_ids', []), record.get('domain')])
+
+
 def _records(state):
     rows=[]
     metadata={}
@@ -70,7 +76,7 @@ def _records(state):
         if record.get('source_scope')=='project_context':date=''
         text=record.get('intent','') if category=='projects' else record.get('text','')
         title=record.get('title','') if category=='projects' else record.get('project_title') or record.get('value') or text[:80]
-        row={'id':digest([category,record.get('project_id'),record.get('key'),record.get('value'),text,ids,record.get('domain')]),
+        row={'id':_record_identity(category,record),
             'category':category,'title':redact(str(title)),'summary':redact(str(text)),
             'date':date,'domain':record.get('domain','work' if category=='projects' else ''),
             'kind':record.get('kind','inference'),'status':record.get('status',''),
@@ -126,3 +132,31 @@ def knowledge_source(vault,identity):
         if message['id']==identity:
             return {**_sources(state,[identity])[0],'text':message['text']}
     raise ValueError('Conversation source changed; the original message could not be verified')
+
+
+def knowledge_timeline(vault, identity, category="all", offset=0, limit=50, revision=''):
+    from selfos.knowledge.timeline import project_timeline
+    if category not in ("all", "goals", "decisions", "progress", "blockers"):
+        raise ValueError("Unknown timeline category")
+    if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+        raise ValueError("Offset must be non-negative")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 200:
+        raise ValueError("Limit must be 1..200")
+    if not isinstance(revision, str) or (revision and (len(revision) != 64 or any(c not in '0123456789abcdef' for c in revision))):
+        raise ValueError('Invalid timeline revision')
+    state = _state(vault)
+    for project_id, card in state.get("cards", {}).items():
+        if isinstance(card, dict) and _record_identity('projects', card) == identity:
+            result = project_timeline(state, project_id)
+            current_revision = digest(result)
+            reset_required = bool(revision and revision != current_revision)
+            if reset_required:offset = 0
+            entries = [entry for entry in result["entries"] if category == "all" or entry["type"] == category]
+            page = copy.deepcopy(entries[offset:offset + limit])
+            for entry in page:
+                entry["sources"] = _sources(state, entry["source_ids"])
+                entry["unavailable_source_count"] = len(entry["source_ids"]) - len(entry["sources"])
+            return {"project_id": identity, "current": result["current"], "items": page,
+                    "total": len(entries), "offset": offset, "limit": limit,
+                    "revision": current_revision, "reset_required": reset_required}
+    raise KeyError("Project not found; it may have changed after organizing")

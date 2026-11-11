@@ -16,14 +16,18 @@ class DashboardRoutes:
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
                 return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
             return self._send_json(200, self.runtime.knowledge_run_status())
-        if parsed_path.path in ('/__knowledge__','/__knowledge_item__','/__knowledge_source__'):
+        if parsed_path.path in ('/__knowledge__','/__knowledge_item__','/__knowledge_source__','/__knowledge_timeline__'):
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
                 return self._send_json(403,{'error':'Knowledge is available from the local dashboard only'})
-            from selfos.app.library import list_knowledge, knowledge_detail, knowledge_source
+            from selfos.app.library import list_knowledge, knowledge_detail, knowledge_source, knowledge_timeline
             qs=parse_qs(parsed_path.query)
             try:
-                if parsed_path.path=='/__knowledge__':
+                if parsed_path.path=='/__knowledge_timeline__':
+                    result=knowledge_timeline(self.runtime.VAULT,qs.get('id',[''])[0],
+                        category=qs.get('category',['all'])[0],offset=int(qs.get('offset',['0'])[0]),
+                        limit=int(qs.get('limit',['50'])[0]),revision=qs.get('revision',[''])[0])
+                elif parsed_path.path=='/__knowledge__':
                     result=list_knowledge(self.runtime.VAULT,category=qs.get('category',['all'])[0],query=qs.get('query',[''])[0],
                         offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['50'])[0]))
                 elif parsed_path.path=='/__knowledge_item__':
@@ -46,6 +50,8 @@ class DashboardRoutes:
                 page=body.decode('utf-8')
                 from selfos.web.rendering.knowledge import refresh_controls
                 page=refresh_controls(page)
+                from selfos.web.rendering.library import refresh_library
+                page=refresh_library(page)
                 page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
                 body=integrate_overall(page).encode('utf-8')
                 from selfos.web.rendering.auth import ACCOUNT_CONTROLS

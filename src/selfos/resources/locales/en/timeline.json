@@ -1,0 +1,9 @@
+{
+  "title": "Project timeline", "open": "View project timeline", "close": "Close", "updated": "History changed; the timeline restarted from the beginning.",
+  "current": "Current state", "history": "Historical observations", "unknown_group": "Observations without a reliable date",
+  "all": "All milestones", "goals": "Goals", "decisions": "Decisions", "progress": "Progress", "blockers": "Blockers", "next_steps": "Next steps",
+  "filter": "Milestone type", "unknown": "Unknown", "event": "Event time", "observation": "Observation time", "source": "Source/session time", "import": "Import time",
+  "in_progress": "In progress", "blocked": "Blocked", "paused": "Paused", "completed": "Complete; verification required", "verified_complete": "Verified complete", "reported_complete": "Assistant reports completion; unverified",
+  "loading": "Loading timeline…", "error": "Timeline unavailable. Retry or reopen this project.", "retry": "Retry", "more": "Load more", "empty": "No recorded milestones for this filter.", "count": "Showing {shown} of {total} milestones",
+  "context": "Summary observation, not a direct quotation. Inspect the original conversation for context.", "legacy": "Legacy project context. Direct evidence and observation time are unavailable.", "superseded": "Recorded as superseded", "source_button": "Read original source", "source_error": "Original source unavailable, changed or outside allowed locations. Retry if the source is restored.", "missing": "Unavailable recorded sources: {count}", "basis": "Chronology based on: {basis}", "note": "Current state comes from the saved project. Historical goals are observations; a changed goal alone does not establish supersession. Unknown event and import dates are not inferred."
+}
