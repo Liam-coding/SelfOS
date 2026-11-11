@@ -55,4 +55,9 @@ Files: modify src/selfos/web/rendering/knowledge.py and dashboard.py as needed; 
 - [x] Run focused service/HTTP/JavaScript tests, then full suite once changes stabilize.
 - [x] Verify synthetic stopped-zero-published/nonzero-staged UI and resumed publication on desktop/mobile browser.
 - [x] Verify packaged locale resources and all frozen hashes.
-- [ ] Submit a separate English PR with Closes #37 after the completed independent reviews and verification.
+- [x] Submitted PR #42 with Closes #37 after independent reviews and verification.
+
+Validation: 643 full tests passed, 23 focused regressions passed, and three UI
+checks plus the production desktop/mobile Chromium fixture passed after final
+styling. English/Chinese wheel resources and all five frozen acceptance hashes
+were verified. No real source scan or live model calls were used.
