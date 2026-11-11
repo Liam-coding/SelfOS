@@ -17,6 +17,7 @@ def mock_response(monkeypatch,content):
     def request(req,**kwargs):captured.append(json.loads(req.data));return Response()
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',request)
+    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
     return captured
 
 
@@ -73,6 +74,7 @@ def test_empty_freeform_synthesis_cannot_silently_skip_original_candidates(monke
             'lesson_group':c['id'],'lesson_text':c['text'],'observation_text':'','reason':'Supported mechanism.'} for c in candidates]}}])
     monkeypatch.setattr(knowledge,'_get_api_config',lambda _:('test-key','https://example.test'))
     monkeypatch.setattr(knowledge,'urlopen',request)
+    monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: knowledge.urlopen)
     item=payload();item['lessons']=[{'text':'Use atomic checkpoint writes','domain':'work','kind':'inference','source_ids':['m1']}]
     output=knowledge.api_refiner(None)(item)
     assert len(calls)==3 and output['lessons'][0]['source_ids']==['m1']

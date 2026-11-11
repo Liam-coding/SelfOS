@@ -11,6 +11,8 @@ __pycache__/
 .pytest_cache/
 vault/.bootstrap_state.json
 .env
+.selfos-model.json
+.selfos-model-*.tmp
 vault/.knowledge_backups/
 vault/.knowledge_state.json
 vault/.knowledge_sources.json

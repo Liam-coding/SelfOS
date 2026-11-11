@@ -857,6 +857,7 @@ class TestAutoGenerateStaging:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+        monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: bs.urlopen)
 
         result = bs.auto_generate_staging(vault, digest)
         assert len(result) == 2
@@ -884,6 +885,7 @@ class TestAutoGenerateStaging:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+        monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: bs.urlopen)
 
         result = bs.auto_generate_staging(vault, digest)
         assert len(result) == 1
@@ -902,6 +904,7 @@ class TestAutoGenerateStaging:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+        monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: bs.urlopen)
 
         result = bs.auto_generate_staging(vault, digest)
         assert result == []
@@ -914,6 +917,7 @@ class TestAutoGenerateStaging:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: (_ for _ in ()).throw(URLError("timeout")))
+        monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: bs.urlopen)
 
         result = bs.auto_generate_staging(vault, digest)
         assert result == []
@@ -936,6 +940,7 @@ class TestAutoGenerateStaging:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(bs, "urlopen", lambda req, timeout=30: FakeResp())
+        monkeypatch.setattr(__import__('model_client'), 'request_opener', lambda root: bs.urlopen)
 
         result = bs.auto_generate_staging(vault, digest)
         assert len(result) == 1  # only GOALS.md with real content

@@ -12,7 +12,7 @@ SelfOS is a local, Markdown-based personal knowledge system. It organizes your C
 
 ## Quick start
 
-Requires **Python 3.10+**, Git, and an Anthropic-compatible API for organizing and chat. The application uses the Python standard library.
+Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible Chat Completions API for organizing and chat. Local models need tool support. The application uses the Python standard library.
 
 1. Clone the repository:
 
@@ -21,7 +21,7 @@ Requires **Python 3.10+**, Git, and an Anthropic-compatible API for organizing a
     cd SelfOS
     ```
 
-2. Create `.env` in the repository root:
+2. Optionally create `.env` for Anthropic, or configure your model on the dashboard after starting it:
 
     ```dotenv
     ANTHROPIC_API_KEY=your-api-key
@@ -36,6 +36,7 @@ Requires **Python 3.10+**, Git, and an Anthropic-compatible API for organizing a
     ```
 
     Open [http://localhost:7070](http://localhost:7070).
+    Select **模型与网络** (Model and network) to choose the interface, Base URL, model, API key and proxy. Use **Save and test connection** before importing. See [model settings](docs/model-settings.md).
 
 4. Select your focus domains and detail level under **Choose what matters**, then click **Organize my knowledge**. When the operation completes, use **Browse knowledge** to explore records and their sources.
 

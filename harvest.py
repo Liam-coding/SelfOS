@@ -1030,6 +1030,8 @@ def _vault_preferred_name(vault: Path) -> str:
 
 def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     from knowledge_ui import CONTROLS as knowledge_controls
+    from model_ui import CONTROLS as model_controls
+    knowledge_controls += model_controls
     from dashboard_ui import STYLE as selfos_style, OVERVIEW as knowledge_overview
     from knowledge_browser_ui import STYLE as library_style, HTML as library_html
     """
@@ -1657,7 +1659,7 @@ function toggleTheme() {{
 }}
 
 // ── Language ──
-let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';
+let lang = localStorage.getItem('selfos-lang') === 'zh' ? 'zh' : 'en';
 document.documentElement.lang = lang;
 function applyLanguage() {{
   document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
@@ -2053,6 +2055,8 @@ checkStaging();
 </html>"""
 
     out = vault.parent / "dashboard.html"
+    from dashboard_ui import integrate_overall
+    html = integrate_overall(html)
     out.write_text(html, encoding="utf-8")
     return out
 
@@ -2298,17 +2302,9 @@ Output a JSON array as specified."""
 
 
 def _get_api_config(root: Path) -> tuple[str, str]:
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
-    env_file = root / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line.startswith("ANTHROPIC_API_KEY=") and not key:
-                key = line.split("=", 1)[1].strip().strip('"').strip("'")
-            elif line.startswith("ANTHROPIC_BASE_URL="):
-                base_url = line.split("=", 1)[1].strip().strip('"').strip("'")
-    return key, base_url.rstrip("/")
+    from model_settings import load_config
+    c=load_config(root)
+    return c['api_key'],c['base_url'].rstrip('/')
 
 
 def _read_vault_file(path: Path, max_chars: int = 1500) -> str:
@@ -2323,7 +2319,7 @@ def auto_generate_staging(vault: Path, digest_path: Path) -> list[Path]:
     Returns list of written staging file paths."""
     root = vault.parent
     api_key, base_url = _get_api_config(root)
-    if not api_key:
+    if not api_key and __import__('model_settings').load_config(root)['provider']=='anthropic':
         print("  [auto-staging] Skipped — ANTHROPIC_API_KEY not set")
         return []
 
@@ -2361,7 +2357,7 @@ def auto_generate_staging(vault: Path, digest_path: Path) -> list[Path]:
             },
             method="POST",
         )
-        with urlopen(req, timeout=60) as resp:
+        with __import__('model_client').request_opener(root)(req, timeout=60) as resp:
             data = json.loads(resp.read())
         raw = data["content"][0]["text"].strip()
     except URLError as e:
