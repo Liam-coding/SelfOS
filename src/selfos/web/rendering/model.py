@@ -30,8 +30,8 @@ CONTROLS = r'''
   <form onsubmit="event.preventDefault();saveModelSettings(false)">
     <p><label><span data-zh="接口" data-en="Interface">接口</span> <select id="model-provider" onchange="changeModelProvider()"><option value="anthropic">Anthropic Messages</option><option value="openai">OpenAI-compatible</option></select></label></p>
     <p><label>Base URL <input id="model-base" type="url" required style="width:100%"></label></p>
-    <p><label><span data-zh="模型名称" data-en="Model name">模型名称</span> <input id="model-name" required placeholder="例如 claude-haiku-4-5-20251001 / gpt-4.1-mini" style="width:100%"></label></p>
-    <p><label>API key <input id="model-key" type="password" autocomplete="new-password" placeholder="留空保留已有密钥" style="width:100%"></label></p>
+    <p><label><span data-zh="模型名称" data-en="Model name">模型名称</span> <input id="model-name" required placeholder="e.g. claude-haiku-4-5-20251001 / gpt-4.1-mini" style="width:100%"></label></p>
+    <p><label>API key <input id="model-key" type="password" autocomplete="new-password" placeholder="Leave blank to keep the saved key" style="width:100%"></label></p>
     <p><label><input id="model-clear-key" type="checkbox"><span data-zh="清除已有密钥（本地模型可不填）" data-en="Clear saved key (optional for local models)">清除已有密钥（本地模型可不填）</span></label></p>
     <p><label><span data-zh="代理" data-en="Proxy">代理</span> <select id="model-proxy-mode" onchange="updateModelProxy()"><option value="auto" data-zh="自动：环境变量 / 系统代理" data-en="Auto: environment / system proxy">自动：环境变量 / 系统代理</option><option value="manual" data-zh="手动 HTTP(S) 代理" data-en="Manual HTTP(S) proxy">手动 HTTP(S) 代理</option><option value="direct" data-zh="直连" data-en="Direct">直连</option></select></label></p>
     <p id="model-proxy-row"><label><span data-zh="代理地址" data-en="Proxy URL">代理地址</span> <input id="model-proxy-url" placeholder="http://127.0.0.1:7890" style="width:100%"></label></p>
@@ -43,6 +43,29 @@ CONTROLS = r'''
   </form>
 </dialog>
 <script>
+const modelMessages = __MODEL_MESSAGES__;
+let modelView = {config:null, status:null, unavailable:false};
+function modelText(key) {
+  const locale=document.documentElement.lang==='zh'?'zh':'en';
+  return modelMessages[locale][key] || modelMessages.en[key] || key;
+}
+function refreshModelLanguage() {
+  document.getElementById('model-name').placeholder=modelText('namePlaceholder');
+  document.getElementById('model-key').placeholder=modelText('keyPlaceholder');
+  if(modelView.config) {
+    const c=modelView.config;
+    document.getElementById('current-model').textContent=c.provider+' · '+(c.model||modelText('defaultModel'));
+  } else if(modelView.unavailable) document.getElementById('current-model').textContent=modelText('unavailable');
+  if(modelView.status) {
+    const s=modelView.status;
+    document.getElementById('model-status').textContent=s.key?modelText(s.key):s.error?modelText('requestFailed')+': '+s.error:s.text;
+  } else if(modelView.config) {
+    const c=modelView.config;
+    document.getElementById('model-status').textContent=modelText('proxySource')+': '+c.proxy_source+' '+JSON.stringify(c.effective_proxy)+'\n'+modelText('key')+': '+modelText(c.has_api_key?'configured':'notConfigured');
+  }
+}
+function setModelStatus(status) {modelView.status=status;refreshModelLanguage();}
+document.addEventListener('selfos-language',refreshModelLanguage);
 function openAppSettings() {
   document.getElementById('settings-language').value=document.documentElement.lang==='zh'?'zh':'en';
   document.getElementById('app-settings').showModal();
@@ -61,12 +84,11 @@ function changeModelProvider() {
   document.getElementById('model-key').value='';
 }
 function showCurrentModel(c) {
-  document.getElementById('current-model').textContent=c.provider+' · '+(c.model||'默认 Claude 模型');
-  document.getElementById('model-status').textContent='代理来源：'+c.proxy_source+' '+JSON.stringify(c.effective_proxy)+'\n密钥：'+(c.has_api_key?'已配置':'未配置');
+  modelView.config=c;modelView.status=null;modelView.unavailable=false;refreshModelLanguage();
 }
 async function modelRequest(url,body) {
   const r=await fetch(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();if(!r.ok)throw new Error(data.error||'请求失败');return data;
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'HTTP '+r.status);return data;
 }
 async function openModelSettings() {
   document.getElementById('model-settings').showModal();
@@ -76,7 +98,7 @@ async function openModelSettings() {
     document.getElementById('model-name').value=c.model||(c.provider==='anthropic'?'claude-haiku-4-5-20251001':'');
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
     updateModelProxy();showCurrentModel(c);
-  }catch(e){document.getElementById('model-status').textContent=e.message;}
+  }catch(e){setModelStatus({error:e.message});}
 }
 async function saveModelSettings(test) {
   const form=document.querySelector('#model-settings form');if(!form.reportValidity())return;
@@ -84,8 +106,8 @@ async function saveModelSettings(test) {
   try {
     const c=await modelRequest('/__model_settings__',{provider:document.getElementById('model-provider').value,base_url:document.getElementById('model-base').value,model:document.getElementById('model-name').value,api_key:document.getElementById('model-key').value,clear_api_key:document.getElementById('model-clear-key').checked,proxy_mode:document.getElementById('model-proxy-mode').value,proxy_url:document.getElementById('model-proxy-url').value});
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;showCurrentModel(c);
-    if(test){document.getElementById('model-status').textContent='正在测试网络、认证与结构化输出（发送一条测试请求）…';const r=await modelRequest('/__model_test__',{});document.getElementById('model-status').textContent=r.message;}
-  }catch(e){document.getElementById('model-status').textContent=e.message;}
+    if(test){setModelStatus({key:'testing'});const r=await modelRequest('/__model_test__',{});setModelStatus(r.ok?{key:'passed'}:{text:r.message});}
+  }catch(e){setModelStatus({error:e.message});}
   finally{buttons.forEach(b=>b.disabled=false);}
 }
 document.addEventListener('DOMContentLoaded',()=>{
@@ -93,7 +115,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(header)header.append(document.getElementById('model-settings-entry'));
   const languageButton=document.getElementById('lang-toggle');
   if(languageButton){languageButton.hidden=true;languageButton.style.display='none';document.getElementById('app-settings').append(languageButton);}
-  modelRequest('/__model_settings__').then(showCurrentModel).catch(()=>{document.getElementById('current-model').textContent='启动本地服务后配置模型';});
+  refreshModelLanguage();
+  modelRequest('/__model_settings__').then(showCurrentModel).catch(()=>{modelView.unavailable=true;refreshModelLanguage();});
 });
 </script>
 '''
+
+def _embed_messages():
+    import json
+    from importlib.resources import files
+    root=files('selfos.resources').joinpath('locales')
+    messages={key:json.loads(root.joinpath(locale,'model.json').read_text(encoding='utf-8'))
+              for key,locale in [('en','en'),('zh','zh-CN')]}
+    return json.dumps(messages,ensure_ascii=True).replace('<','\\u003c')
+
+CONTROLS=CONTROLS.replace('__MODEL_MESSAGES__',_embed_messages())

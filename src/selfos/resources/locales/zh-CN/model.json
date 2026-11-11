@@ -1,0 +1,13 @@
+{
+  "defaultModel": "默认模型",
+  "proxySource": "代理来源",
+  "key": "密钥",
+  "configured": "已配置",
+  "notConfigured": "未配置",
+  "namePlaceholder": "例如 claude-haiku-4-5-20251001 / gpt-4.1-mini",
+  "keyPlaceholder": "留空保留已有密钥",
+  "requestFailed": "请求失败",
+  "testing": "正在测试网络、认证与结构化输出（发送一条测试请求）…",
+  "passed": "网络、认证与结构化输出测试通过",
+  "unavailable": "启动本地服务后配置模型"
+}
