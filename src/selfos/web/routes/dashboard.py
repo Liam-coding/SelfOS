@@ -25,14 +25,18 @@ class DashboardRoutes:
             try:
                 if parsed_path.path=='/__knowledge__':
                     result=list_knowledge(self.runtime.VAULT,category=qs.get('category',['all'])[0],query=qs.get('query',[''])[0],
-                        offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['50'])[0]))
+                        offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['50'])[0]),
+                        project=qs.get('project',[''])[0],source=qs.get('source',[''])[0],
+                        date_from=qs.get('date_from',[''])[0],date_to=qs.get('date_to',[''])[0])
                 elif parsed_path.path=='/__knowledge_item__':
                     result=knowledge_detail(self.runtime.VAULT,qs.get('id',[''])[0],
                         source_offset=int(qs.get('source_offset',['0'])[0]))
-                else:result=knowledge_source(self.runtime.VAULT,qs.get('id',[''])[0])
+                else:result=knowledge_source(self.runtime.VAULT,qs.get('id',[''])[0],
+                    offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['24000'])[0]))
                 return self._send_json(200,result)
-            except KeyError as error:return self._send_json(404,{'error':str(error).strip("'")})
-            except (ValueError,TypeError) as error:return self._send_json(400,{'error':str(error)})
+            except KeyError as error:return self._send_json(404,{'error':str(error).strip("'"),'code':'not_found'})
+            except (ValueError,TypeError) as error:return self._send_json(400,{'error':str(error),
+                'code':getattr(error,'code','invalid_search' if parsed_path.path=='/__knowledge__' else 'invalid_source_request')})
         if self.path == '/__knowledge_settings__':
             from selfos.app.knowledge import get_status
             return self._send_json(200, get_status(self.runtime.VAULT))
@@ -46,6 +50,8 @@ class DashboardRoutes:
                 page=body.decode('utf-8')
                 from selfos.web.rendering.knowledge import refresh_controls
                 page=refresh_controls(page)
+                from selfos.web.rendering.library import refresh_library
+                page=refresh_library(page)
                 page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
                 body=integrate_overall(page).encode('utf-8')
                 from selfos.web.rendering.auth import ACCOUNT_CONTROLS
