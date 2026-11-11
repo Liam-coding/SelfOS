@@ -37,6 +37,32 @@ SelfOS/
 
 ## 核心流程
 
+### 旧版模块追加整理（兼容实现）
+
+以下两节描述旧版模块追加流程。网页和 CLI 的当前默认会话压缩、并发整理与项目归并流程见文末及 docs/knowledge-import.md 的 Configurable knowledge retention。
+
+- 网页的“一键整理知识库”调用 `GET /__knowledge_stream__`，运行 `knowledge.py` 并通过 SSE 显示进度。
+- 扫描 Claude Code/Codex 的用户和 AI 文字消息，以及 Codex 迁移目录中的 Claude 历史；跳过工具输出、思考内容和系统上下文。
+- 按 12,000 个对话字符分批，不截掉长消息尾部；已完成片段和已有知识条目通过哈希去重。
+- 已有知识库上下文按每个模块最多约 4,000 字符提供首尾摘录；这不改变正式文件，也不截断新对话的处理。
+- AI 输出限定模块的知识条目；校验来源 ID 后追加，区分 `[user-statement]`、`[assistant-suggestion]`、`[ai-inference]`。
+- 每批先备份再写入，失败回滚该批；成功后记录状态，已完成批次保留，重试继续剩余部分。
+- `vault/.knowledge_sources.json` 保存来源 ID 对应的原始文件路径、角色、时间和项目。
+- `python knowledge.py --restore RUN_ID` 按反向批次恢复，并检查后续改动。备份目录与索引均被 Git 忽略。
+- 此流程重新生成 dashboard，评分仍由原有 Harvest 更新。待审核 staging 流程继续独立使用。
+
+新增测试：`python -m pytest tests/test_knowledge.py -q`；全套：`python -m pytest -q`。
+
+### 模型结果校验与自动修复
+
+- 正文必须是非空字符串，去除首尾空白后最多 4,000 字符；过长正文反馈给模型重写，不静默截断。
+- 每批模型输入使用 s1、s2 等短来源编号；返回后映射回原始 ID。单个来源字符串、首尾空白和重复来源可以明确规范化；未知来源绝不猜测。
+- 类别接受明确别名并统一到 user_fact、assistant_suggestion、inference；缺失类别保守标记为 inference。AI 回复不能因别名转换成为用户陈述。
+- 同一条知识的多个无效字段一次报告；重新生成时将具体错误作为 repair_feedback 提供给模型。
+- 默认最多尝试 3 次。验证/格式错误、临时超时和可重试 API 错误可重试；鉴权等永久错误不会重复请求。持续失败的批次不会写入，也不会标记为已处理。
+- 失败响应与字段错误脱敏保存到 vault/.knowledge_errors/，不提交 Git；进度日志显示诊断位置，不显示原始响应。
+- 专项测试：python -m pytest tests/test_knowledge_validation.py -q。
+
 ```
 harvest.py 运行
   ├── 1. 提取 Claude Code / Codex JSONL 会话（用户消息）
@@ -206,6 +232,23 @@ python harvest.py --dry-run
 ---
 
 ## 下一步方向（未排期）
+
+知识库一键整理现在使用 knowledge_pipeline.py：在内存中压缩代码围栏和大块 JSON、过滤临时请求及无关工具输出，按完整项目路径和原始会话分组，默认 3 路 API 并发、串行保存。原始对话文件保持不变。CLI 支持 `python knowledge.py --dry-run`（不调用 API、不写知识库）和 `--workers 1`。
+
+质量修复进一步区分 user_statement、quoted_dialogue、runtime_evidence、机器摘要和代理状态；引用或工具结果不能升级为用户事实。工具失败和日志错误保留为证据。项目卡当前决策最多 8 条，decision_history、lesson_history 和原始来源留在索引；项目级语义归并合并同义表达、过滤临时建议，未变化的语义归并结果也缓存。允许无项目更新的空结果或独立经验。
+
+聊天直接读取索引中的目标、状态、阻塞和下一步；来源哈希与长历史不占当前状态预算。Git 根目录和 worktree common-dir 用于识别仓库，确认过的历史路径可通过 project_aliases 映射，原始路径留在来源元数据。身份映射或输入内容改变后，相应片段可能重新生成一次。修复旧缓存应先在隔离目录重建，再用 install_rebuilt 带事务备份替换；手工经验笔记保留，旧生成结果可从备份恢复。
+
+项目卡片写入 `02_Work/projects/`，经验写入 `05_Life/lessons.md`；来源、内容指纹及合并状态保存在 `.knowledge_pipeline.json`。旧事实文件与旧检查点保留，新项目摘要首次运行需要独立建立缓存。备份位于 `.knowledge_backups/<run-id>/`，使用 `python knowledge.py --restore <run-id>` 恢复；恢复会检查导入后是否有其他修改。崩溃遗留的死进程锁自动回收，未完成事务在下次启动时恢复。
+
+页面停止按钮调用 `POST /__knowledge_stop__`。停止后不再调度新请求；已发请求允许完成并保存，单次 API 等待上限为 90 秒。扫描与分组也检查停止信号。失败会话不缓存，其他会话继续；点击整理可跳过已经缓存的输入。项目状态的未知摘要不能清除已有阻塞，助手完成报告标记为 reported_complete。
+
+当前整理流程的配置与质量标准见 docs/knowledge-import.md 的 Configurable knowledge retention。项目观察独立保存并进入历史视图；个人事实、偏好、项目状态、可复用方法、历史分别保留。当前决策预算由 detail 配置决定，经验没有最终条数目标。
+
+项目归并的候选逐条复核每批最多 20 个；非组长方法可留空正文并引用完整组长，来源由程序合并。格式失败只修复当前批，明确传入数量、ID 白名单与具体错误。修复成功和归并失败均在 .knowledge_errors/ 留存脱敏诊断。knowledge_method_merge.py 对跨批次方法按最多 80 项、48,000 字符比较，完整覆盖候选对，只选择已有正文；未知组长、跨领域分组、缺项或重复拒绝。较大方法池的比较次数会增加，目前归并范围为单个项目。SYNTHESIS_VERSION 12 只更新最终归并缓存，不重放有效会话提取。
+
+GET /__knowledge_run__ 提供同源任务状态，不公开进程或停止标记路径。独立 stdout 读取在断线后仍记录最后保存；等待子进程与读取线程结束后才释放任务锁。页面断线后轮询，刷新后接回，保存期间不能重复启动。
+
 
 - **周期性自动 harvest**：Windows 计划任务 / cron，每天定时采集
 - **vault diff 视图**：staging 弹窗里展示 before/after diff

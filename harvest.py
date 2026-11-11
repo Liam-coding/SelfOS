@@ -1029,6 +1029,9 @@ def _vault_preferred_name(vault: Path) -> str:
 
 
 def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
+    from knowledge_ui import CONTROLS as knowledge_controls
+    from dashboard_ui import STYLE as selfos_style, OVERVIEW as knowledge_overview
+    from knowledge_browser_ui import STYLE as library_style, HTML as library_html
     """
     Generate dashboard.html one level above vault/ — bilingual (zh/en toggle),
     with per-dimension suggestions. Returns the path written.
@@ -1451,6 +1454,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     .chat-panel{{right:.75rem;width:280px}}
   }}
 </style>
+{selfos_style}
+{library_style}
 </head>
 <body>
 <div class="header">
@@ -1463,14 +1468,20 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <div class="header-btns">
       <button class="staging-btn" onclick="openStagingModal()" id="staging-btn"
               data-zh="● 待审核" data-en="● Pending"></button>
+      <button class="harvest-btn" onclick="confirmHarvest(false, true)" id="knowledge-btn"
+              title="整理本地对话并直接写入知识库，保留备份与来源"
+              data-zh="一键整理知识库" data-en="Build Knowledge">一键整理知识库</button>
       <button class="harvest-btn" onclick="openHarvestModal()" id="harvest-btn"
               data-zh="⟳ 采集数据" data-en="⟳ Harvest">⟳ 采集数据</button>
+      {knowledge_controls}
       <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="切换主题">☀</button>
       <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">EN</button>
     </div>
   </div>
 </div>
 
+{knowledge_overview}
+{library_html}
 <!-- Harvest modal -->
 <div class="modal-backdrop" id="harvest-modal">
   <div class="modal">
@@ -1526,6 +1537,7 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     <div class="progress-title" id="progress-title" data-zh="采集中…" data-en="Harvesting…">采集中…</div>
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
     <div class="progress-log" id="progress-log"></div>
+    <button class="progress-done-btn" id="knowledge-stop-btn" onclick="stopKnowledge()" style="display:none">停止整理 / Stop</button>
     <button class="progress-done-btn" id="progress-done-btn" onclick="location.reload()"
             data-zh="完成，刷新页面" data-en="Done, Refresh">完成，刷新页面</button>
   </div>
@@ -1609,16 +1621,16 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
 <a href="vault/90_Inbox/"><span data-zh="查看原始摘要" data-en="View digest">查看原始摘要</span></a></footer>
 
 <!-- Chat panel -->
-<div class="chat-panel" id="chat-panel">
+<div class="chat-panel collapsed" id="chat-panel">
   <div class="chat-header" onclick="toggleChat()">
     <div class="chat-header-dot"></div>
     <span class="chat-header-title" data-zh="和我聊聊" data-en="Let's talk">和我聊聊</span>
-    <span class="chat-header-sub" data-zh="了解你的一切" data-en="knows your story">了解你的一切</span>
-    <button class="chat-collapse-btn" id="chat-collapse-btn" onclick="toggleChat(event)">▼</button>
+    <span class="chat-header-sub" data-zh="基于你的知识库" data-en="from your knowledge">基于你的知识库</span>
+    <button class="chat-collapse-btn" id="chat-collapse-btn" onclick="toggleChat(event)" aria-expanded="false" aria-label="展开聊天">▼</button>
   </div>
   <div class="chat-messages" id="chat-messages">
-    <div class="msg msg-ai" data-zh="你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？"
-         data-en="Hey Liam. Your scores are in — which dimension do you want to dig into?">你好，Liam。今天的评分出来了，有什么想深入聊的维度吗？</div>
+    <div class="msg msg-ai" data-zh="你好。想梳理一个项目，还是聊聊最近的想法？"
+         data-en="Hi. Want to think through a project, or talk about what's on your mind?">你好。想梳理一个项目，还是聊聊最近的想法？</div>
   </div>
   <div class="chat-input-row">
     <textarea class="chat-input" id="chat-input" rows="1"
@@ -1645,17 +1657,25 @@ function toggleTheme() {{
 }}
 
 // ── Language ──
-let lang = 'zh';
-function toggleLang() {{
-  lang = lang === 'zh' ? 'en' : 'zh';
+let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';
+document.documentElement.lang = lang;
+function applyLanguage() {{
   document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
   document.documentElement.lang = lang;
+  localStorage.setItem('selfos-lang', lang);
+  document.dispatchEvent(new Event('selfos-language'));
+  updateKnowledgeOverview();
   document.querySelectorAll('[data-zh][data-en]').forEach(el => {{
     el.textContent = el.dataset[lang];
   }});
   const inp = document.getElementById('chat-input');
   inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
 }}
+function toggleLang() {{
+  lang = lang === 'zh' ? 'en' : 'zh';
+  applyLanguage();
+}}
+document.addEventListener('DOMContentLoaded', applyLanguage);
 
 // ── Dim icons ──
 const DIM_ICONS = {{
@@ -1726,7 +1746,80 @@ function openHarvestModal() {{
 function closeHarvestModal() {{
   document.getElementById('harvest-modal').classList.remove('open');
 }}
-function confirmHarvest(full) {{
+let importRunning = false;
+let knowledgeRecoveryGeneration = 0;
+function recoverKnowledgeRun() {{
+  const generation = ++knowledgeRecoveryGeneration;
+  importRunning = true;
+  const bar = document.getElementById('progress-bar');
+  const stopBtn = document.getElementById('knowledge-stop-btn');
+  const title = document.getElementById('progress-title');
+  const icon = document.getElementById('progress-icon');
+  const doneBtn = document.getElementById('progress-done-btn');
+  document.getElementById('progress-modal').classList.add('open');
+  doneBtn.style.display = 'none';
+  stopBtn.style.display = 'block';
+  stopBtn.disabled = false;
+  title.textContent = lang === 'zh' ? '正在核实整理任务状态…' : 'Checking knowledge task status…';
+  async function recover() {{
+    try {{
+      const response = await fetch('/__knowledge_run__', {{cache: 'no-store'}});
+      if (!response.ok) throw new Error('Status unavailable');
+      const state = await response.json();
+      if (generation !== knowledgeRecoveryGeneration) return;
+      if (state.total) bar.style.width = Math.max(parseFloat(bar.style.width) || 0,
+        10 + Math.round(80 * state.completed / state.total)) + '%';
+      if (state.running) {{
+        title.textContent = state.phase === 'stopping'
+          ? (lang === 'zh' ? '正在停止并保存进度…' : 'Stopping and saving progress…')
+          : (lang === 'zh' ? '整理任务仍在运行，正在同步状态…' : 'Task is running; syncing status…');
+        setTimeout(recover, 1500);
+        return;
+      }}
+      const result = state.result || {{ok: false}};
+      importRunning = false;
+      stopBtn.style.display = 'none';
+      if (result.ok && !result.cancelled) bar.style.width = '100%';
+      icon.textContent = result.ok && !result.cancelled ? '✅' : '⚠️';
+      title.textContent = result.cancelled
+        ? (lang === 'zh' ? '已停止，已保存进度，可继续整理' : 'Stopped; progress saved, resume available')
+        : result.ok ? (lang === 'zh' ? '知识库整理完成' : 'Knowledge complete')
+        : (lang === 'zh' ? '整理未完成，可重试' : 'Incomplete; retry available');
+      doneBtn.style.display = 'block';
+      doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
+      checkStaging();
+    }} catch (error) {{
+      if (generation !== knowledgeRecoveryGeneration) return;
+      title.textContent = lang === 'zh' ? '暂时无法连接服务，正在重试状态查询…' : 'Server unavailable; retrying status…';
+      setTimeout(recover, 2000);
+    }}
+  }}
+  recover();
+}}
+// A reload attaches to a live task without launching an import.
+fetch('/__knowledge_run__', {{cache: 'no-store'}}).then(response => response.ok ? response.json() : null)
+  .then(state => {{ if (state && state.running && !importRunning) recoverKnowledgeRun(); }}).catch(() => {{}});
+async function stopKnowledge() {{
+  const btn = document.getElementById('knowledge-stop-btn');
+  btn.disabled = true;
+  try {{
+    const response = await fetch('/__knowledge_stop__', {{method: 'POST'}});
+    if (!response.ok) throw new Error('Stop request failed');
+    document.getElementById('progress-title').textContent = lang === 'zh'
+      ? '正在停止，保存已完成结果…' : 'Stopping; saving completed results…';
+  }} catch (error) {{
+    btn.disabled = false;
+    document.getElementById('progress-log').textContent += String.fromCharCode(10) + error.message;
+  }}
+}}
+
+function confirmHarvest(full, knowledge = false, rebuild = false) {{
+  if (importRunning) return;
+  ++knowledgeRecoveryGeneration;
+  importRunning = true;
+  const stopBtn = document.getElementById('knowledge-stop-btn');
+  stopBtn.disabled = false;
+  stopBtn.style.display = knowledge ? 'block' : 'none';
   closeHarvestModal();
   // show progress modal
   const pm = document.getElementById('progress-modal');
@@ -1738,7 +1831,9 @@ function confirmHarvest(full) {{
   bar.style.width = '0%';
   log.textContent = '';
   icon.textContent = '⏳';
-  title.textContent = lang === 'zh' ? '采集中…' : 'Harvesting…';
+  title.textContent = knowledge
+    ? (lang === 'zh' ? '正在整理知识库…' : 'Building knowledge…')
+    : (lang === 'zh' ? '采集中…' : 'Harvesting…');
   doneBtn.style.display = 'none';
   pm.classList.add('open');
 
@@ -1754,22 +1849,26 @@ function confirmHarvest(full) {{
     ['Done', 100],
   ];
   let pct = 0;
+  const savedSessions = new Set();
   function advanceTo(n) {{
     if (n > pct) {{ pct = n; bar.style.width = pct + '%'; }}
   }}
 
-  const url = '/__harvest_stream__?full=' + (full ? '1' : '0');
+  const url = knowledge ? '/__knowledge_stream__' + (rebuild ? '?action=rebuild' : '') : '/__harvest_stream__?full=' + (full ? '1' : '0');
   const es = new EventSource(url);
   es.onmessage = function(e) {{
     let msg;
     try {{ msg = JSON.parse(e.data); }} catch {{ return; }}
     if (msg.done) {{
       es.close();
-      advanceTo(100);
+      importRunning = false;
+      stopBtn.style.display = 'none';
+      if (msg.ok && !msg.cancelled) advanceTo(100);
       icon.textContent = msg.ok ? '✅' : '⚠️';
       title.textContent = msg.ok
-        ? (lang === 'zh' ? '采集完成' : 'Done')
-        : (lang === 'zh' ? '采集出错' : 'Error');
+        ? (lang === 'zh' ? (knowledge ? '知识库整理完成' : '采集完成') : 'Done')
+        : (lang === 'zh' ? (knowledge ? '整理未完成，可重试' : '采集出错') : 'Error — retry available');
+      if (msg.cancelled) title.textContent = lang === 'zh' ? '已停止，可继续整理' : 'Stopped; resume available';
       if (msg.ok) checkStaging();
       doneBtn.style.display = 'block';
       doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
@@ -1779,14 +1878,27 @@ function confirmHarvest(full) {{
     if (line.trim()) {{
       log.textContent += (log.textContent ? '\\n' : '') + line;
       log.scrollTop = log.scrollHeight;
-      for (const [kw, p] of STEPS) {{
-        if (line.toLowerCase().includes(kw.toLowerCase())) {{ advanceTo(p); break; }}
+      if (knowledge) {{
+        const batch = line.match(/(?:Organizing|Saved) (?:batch|session) (\\d+)\\/(\\d+)/);
+        if (batch) {{
+          if (line.startsWith('Saved')) savedSessions.add(batch[1]);
+          const completed = savedSessions.size;
+          advanceTo(10 + Math.round(80 * completed / Number(batch[2])));
+        }} else if (line.includes('Knowledge:')) advanceTo(10);
+      }} else {{
+        for (const [kw, p] of STEPS) {{
+          if (line.toLowerCase().includes(kw.toLowerCase())) {{ advanceTo(p); break; }}
+        }}
       }}
     }}
   }};
   es.onerror = function() {{
     es.close();
-    advanceTo(100);
+    if (knowledge) {{
+      recoverKnowledgeRun();
+      return;
+    }}
+    importRunning = false;
     icon.textContent = '⚠️';
     title.textContent = lang === 'zh' ? '连接中断' : 'Connection lost';
     doneBtn.style.display = 'block';
@@ -1797,11 +1909,16 @@ document.getElementById('harvest-modal').addEventListener('click', e => {{
 }});
 
 // ── Chat collapse ──
-let chatCollapsed = false;
+let chatCollapsed = localStorage.getItem('selfos-chat-open') !== 'true';
+document.getElementById('chat-panel').classList.toggle('collapsed', chatCollapsed);
+document.getElementById('chat-collapse-btn').setAttribute('aria-expanded', String(!chatCollapsed));
 function toggleChat(e) {{
   if (e) e.stopPropagation();
   chatCollapsed = !chatCollapsed;
   document.getElementById('chat-panel').classList.toggle('collapsed', chatCollapsed);
+  localStorage.setItem('selfos-chat-open', String(!chatCollapsed));
+  document.getElementById('chat-collapse-btn').setAttribute('aria-expanded', String(!chatCollapsed));
+  document.getElementById('chat-collapse-btn').setAttribute('aria-label', chatCollapsed ? '展开聊天' : '收起聊天');
 }}
 
 // ── Chat ──
