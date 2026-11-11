@@ -12,6 +12,8 @@ SelfOS is a local, Markdown-based personal knowledge system. It organizes your C
 
 ## Quick start
 
+For tested macOS environments and reproducible checks, see the [macOS compatibility report](docs/macos-compatibility.md).
+
 Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible Chat Completions API for organizing and chat. Local models need tool support. Password hashing uses argon2-cffi; install it with `python -m pip install -r requirements.txt`.
 
 1. Clone the repository:
