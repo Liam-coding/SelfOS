@@ -279,6 +279,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = DASHBOARD.read_bytes()
                 from dashboard_ui import STYLE, integrate_overall
                 page=body.decode('utf-8')
+                from knowledge_ui import refresh_controls
+                page=refresh_controls(page)
                 page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
                 body=integrate_overall(page).encode('utf-8')
                 body=body.replace(b"let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';",
