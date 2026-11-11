@@ -200,6 +200,62 @@ def _call_claude(messages: list[dict], api_key: str, base_url: str) -> str:
 # ── HTTP handler ───────────────────────────────────────────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
+    def _auth(self):
+        if not hasattr(self.server,'auth'):
+            from selfos_auth import AuthManager
+            self.server.auth=AuthManager(ROOT,VAULT)
+        return self.server.auth
+
+    def _token(self):
+        from http.cookies import SimpleCookie,CookieError
+        try:
+            cookies=SimpleCookie(self.headers.get('Cookie',''))
+            return cookies['selfos_session'].value if 'selfos_session' in cookies else ''
+        except CookieError:return ''
+
+    def _session_alive(self):
+        return self._auth().authenticated(self._token())
+
+    def _auth_guard(self):
+        from urllib.parse import urlsplit
+        path=urlsplit(self.path).path;auth=self._auth();token=self._token()
+        if self.command=='GET' and path=='/auth/status':
+            self._send_json(200,{'state':auth.status(),'authenticated':auth.authenticated(token)})
+            return False
+        if self.command=='POST' and path in ('/auth/setup','/auth/login','/auth/logout','/auth/change'):
+            try:
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0<length<=8192:raise ValueError('Invalid authentication request.')
+                body=json.loads(self._read_body())
+                if not isinstance(body,dict):raise ValueError('Invalid authentication request.')
+                new_token=''
+                if path=='/auth/setup':
+                    auth.setup(body.get('password'));new_token=auth.login(body.get('password'))
+                elif path=='/auth/login':new_token=auth.login(body.get('password'))
+                else:
+                    if not auth.authenticated(token):
+                        self._send_json(401,{'error':'Please log in again.','error_code':'login_required'});return False
+                    if path=='/auth/logout':auth.logout(token)
+                    else:auth.change(token,body.get('current_password'),body.get('password'))
+                cookie='selfos_session='+new_token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+str(auth.TTL if new_token else 0)
+                self._send(200,json.dumps({'ok':True}).encode(),extra_headers={'Set-Cookie':cookie})
+            except (ValueError,TypeError) as error:
+                message=str(error)
+                code='too_many' if 'wait' in message else 'password_length' if '12 to' in message else 'auth_error'
+                self._send_json(429 if code=='too_many' else 400,{'error':message,'error_code':code})
+            except Exception:
+                self._send_json(503,{'error':'Authentication unavailable. Use local recovery.','error_code':'unavailable'})
+            return False
+        if self.command=='GET' and path=='/login':
+            from auth_ui import login_page
+            self._send(200,login_page().encode(),'text/html; charset=utf-8');return False
+        if auth.authenticated(token):return True
+        if self.command=='GET' and path in ('/','/dashboard.html'):
+            from auth_ui import login_page
+            self._send(200,login_page().encode(),'text/html; charset=utf-8')
+        else:self._send_json(401,{'error':'Login required.','error_code':'login_required'})
+        return False
+
     def _local_request(self):
         from urllib.parse import urlsplit
         host=self.headers.get('Host','')
@@ -217,11 +273,14 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # quieter logs
         print(f"  {self.address_string()} {fmt % args}")
 
-    def _send(self, code: int, body: bytes, content_type: str = "application/json"):
+    def _send(self, code: int, body: bytes, content_type: str = "application/json",extra_headers=None):
         try:
             self.send_response(code)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
+            self.send_header('Cache-Control','no-store')
+            self.send_header('X-Frame-Options','DENY')
+            for name,value in (extra_headers or {}).items():self.send_header(name,value)
             self.end_headers()
             self.wfile.write(body)
         except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):
@@ -237,6 +296,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
+        if not self._auth_guard():return
         self.send_response(204)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
@@ -244,6 +304,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
+        if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
         if parsed_path.path == '/__knowledge_run__':
@@ -283,6 +344,8 @@ class Handler(BaseHTTPRequestHandler):
                 page=refresh_controls(page)
                 page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
                 body=integrate_overall(page).encode('utf-8')
+                from auth_ui import ACCOUNT_CONTROLS
+                body=body.replace(b'</body>',ACCOUNT_CONTROLS.encode('utf-8')+b'</body>')
                 body=body.replace(b"let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';",
                                   b"let lang = localStorage.getItem('selfos-lang') === 'zh' ? 'zh' : 'en';")
                 from model_ui import CONTROLS
@@ -354,6 +417,7 @@ class Handler(BaseHTTPRequestHandler):
                 if knowledge:
                     with KNOWLEDGE_RUN_LOCK: KNOWLEDGE_RUN['process'] = proc
                 for line in _process_lines(proc, _knowledge_run_line if knowledge else None):
+                    if not self._session_alive():raise ConnectionAbortedError('Login session expired. Sign in again to resume.')
                     if line is None:
                         self.wfile.write(b': heartbeat\n\n')
                         self.wfile.flush()
@@ -396,6 +460,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
+        if not self._auth_guard():return
         if self.path in ('/__model_settings__','/__model_test__'):
             with KNOWLEDGE_RUN_LOCK:
                 if KNOWLEDGE_RUN['stop_file'] is not None:
@@ -555,15 +620,9 @@ def main():
 
     # Only run harvest on startup if dashboard.html doesn't exist yet
     if not DASHBOARD.exists():
-        print("dashboard.html not found — running harvest.py to build it...")
-        result = subprocess.run(
-            [sys.executable, str(ROOT / "harvest.py")],
-            capture_output=True, text=True, timeout=120, cwd=str(ROOT)
-        )
-        if result.returncode == 0:
-            print("  Done.")
-        else:
-            print("  Warning:", result.stderr[-200:].strip())
+        print("Building dashboard from local vault state; no conversation scan or model calls.")
+        from harvest import generate_dashboard
+        generate_dashboard(VAULT)
     else:
         print("dashboard.html found — skipping startup harvest (use ⟳ to refresh)")
 
@@ -571,6 +630,8 @@ def main():
         daemon_threads = True
 
     server = ThreadedHTTPServer(("localhost", args.port), Handler)
+    from selfos_auth import AuthManager
+    server.auth=AuthManager(ROOT,VAULT)
     url = f"http://localhost:{args.port}"
     print(f"\nSelfOS running at {url}")
 

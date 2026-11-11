@@ -11,6 +11,7 @@ __pycache__/
 .pytest_cache/
 vault/.bootstrap_state.json
 .env
+.selfos-auth-required
 .selfos-model.json
 .selfos-model-*.tmp
 vault/.knowledge_backups/

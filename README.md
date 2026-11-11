@@ -12,7 +12,7 @@ SelfOS is a local, Markdown-based personal knowledge system. It organizes your C
 
 ## Quick start
 
-Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible Chat Completions API for organizing and chat. Local models need tool support. The application uses the Python standard library.
+Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible Chat Completions API for organizing and chat. Local models need tool support. Password hashing uses argon2-cffi; install it with `python -m pip install -r requirements.txt`.
 
 1. Clone the repository:
 
@@ -36,6 +36,7 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
     ```
 
     Open [http://localhost:7070](http://localhost:7070).
+    Log in before accessing the dashboard. Existing vaults require local password initialization with `python selfos_auth.py reset`; an empty installation can set its password on the login page. See [authentication](docs/authentication.md).
     Select **模型与网络** (Model and network) to choose the interface, Base URL, model, API key and proxy. Use **Save and test connection** before importing. See [model settings](docs/model-settings.md).
 
 4. Select your focus domains and detail level under **Choose what matters**, then click **Organize my knowledge**. When the operation completes, use **Browse knowledge** to explore records and their sources.
