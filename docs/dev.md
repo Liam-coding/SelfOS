@@ -6,10 +6,14 @@
 
 ## 项目结构
 
+Python 后端已拆分到可安装的 src/selfos 包。模块边界、依赖方向、资源路径及安装命令见[后端结构](backend-architecture.md)。下面的根目录命令保持兼容，其实现位于包内；前端模板和资源拆分由 #30 单独跟踪。
+
 ```
 SelfOS/
-├── harvest.py          # 核心：提取、评分、生成 dashboard、AI staging
-├── serve.py            # 本地 HTTP server：dashboard + chat proxy + staging API
+├── src/selfos/         # app / sources / knowledge / storage / providers / security / web
+├── harvest.py          # 兼容入口：调用包内 Harvest CLI
+├── knowledge.py        # 兼容入口：调用包内知识整理 CLI
+├── serve.py            # 兼容入口：调用包内 HTTP server
 ├── dashboard.html      # 生成产物（不在 git 中）
 ├── .env                # API keys（git-ignored）
 ├── vault/              # 个人知识库（Markdown + Git）
@@ -27,7 +31,7 @@ SelfOS/
 │   ├── 90_Inbox/       # session digest 原始输出（git-ignored）
 │   └── 91_Staging/     # AI 生成的待审核更新
 ├── tests/
-│   └── test_harvest.py # 123 个单元测试
+│   └── *.py            # 行为回归、模块边界、路径与 HTTP 集成测试
 └── docs/
     ├── dev.md          # 本文件
     └── agent-integration.md

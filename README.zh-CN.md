@@ -106,6 +106,7 @@ Markdown 和来源路径保存在本地。**整理和聊天会把脱敏后的文
 | [整理与恢复](docs/knowledge-import.md) | 保留规则、CLI、检查点、重试和备份 |
 | [Agent 接入](docs/agent-integration.md) | Claude Code、Codex 及其他 Agent 的设置 |
 | [开发文档](docs/dev.md) | 架构、接口和 Harvest 流程 |
+| [后端结构](docs/backend-architecture.md) | 模块职责、包安装、路径与兼容命令 |
 | [评测说明](evals/README.md) | 冻结验收案例和模型质量检查 |
 
 运行代码测试：
