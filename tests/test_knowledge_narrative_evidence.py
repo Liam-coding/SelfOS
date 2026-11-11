@@ -1,4 +1,4 @@
-from knowledge_evidence import input_evidence
+from selfos.knowledge.evidence import input_evidence
 
 
 def test_narrative_index_keeps_reasoning_after_large_code_without_changing_evidence():
@@ -25,7 +25,7 @@ def test_quoted_example_remains_untrusted_in_narrative_index():
 
 
 def test_reported_test_counts_survive_empty_model_result_without_becoming_verified():
-    from knowledge_evidence import preserve_reported_test_outcomes, resolve_evidence
+    from selfos.knowledge.evidence import preserve_reported_test_outcomes, resolve_evidence
     text = 'pytest tests/test_ledger.py finished: 41 passed, 2 skipped.'
     conversations, references = input_evidence([{'id':'m1','role':'assistant','text':text}], {'m1':'s1'})
     result = {'project':None,'lessons':[],'history':[]}
@@ -39,7 +39,7 @@ def test_reported_test_counts_survive_empty_model_result_without_becoming_verifi
 
 
 def test_reported_test_guard_ignores_code_quotes_predictions_and_non_test_counts():
-    from knowledge_evidence import preserve_reported_test_outcomes
+    from selfos.knowledge.evidence import preserve_reported_test_outcomes
     for text,provenance in [('```text\npytest: 41 passed\n```',''),('Example pytest: 41 passed','quoted_dialogue'),('We expect pytest to report 41 passed tomorrow.',''),('41 passed cars on the road.','')]:
         conversations,_ = input_evidence([{'id':'m1','role':'assistant','provenance':provenance,'text':text}], {'m1':'s1'})
         result = {'history':[]}

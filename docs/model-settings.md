@@ -1,6 +1,6 @@
 # Model and network settings
 
-Start `python serve.py`, open the dashboard, and select **⚙ Settings → Model and network**.
+Start `python -m selfos serve`, open the dashboard, and select **⚙ Settings → Model and network**.
 Language is available in the same settings dialog. New visitors default to English; saved language choices are retained.
 The configuration is shared by conversation imports, project refinement, optional AI staging
 and dashboard chat. Existing Anthropic `.env` settings work until settings are saved on the page.

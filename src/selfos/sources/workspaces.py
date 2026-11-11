@@ -99,7 +99,7 @@ source: harvest-discover-{date.today()}
 {chr(10).join(f'  - {p}' for p in discovered['all']) or '  (none found)'}
 
 ## Next step
-    python harvest.py --sessions --vault ./vault
+    python -m selfos harvest --sessions --vault ./vault
 """
 
 

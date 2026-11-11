@@ -1,16 +1,17 @@
+import selfos.web.server as _web_server
 import json,threading
 from http.server import ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
 import pytest
-import serve
-from selfos_auth import AuthManager
+
+from selfos.security.auth import AuthManager
 
 @pytest.fixture
 def http(tmp_path,monkeypatch):
-    monkeypatch.setattr(serve,'ROOT',tmp_path/'app');monkeypatch.setattr(serve,'VAULT',tmp_path/'app/vault')
-    server=ThreadingHTTPServer(('127.0.0.1',0),serve.Handler)
-    server.auth=AuthManager(serve.ROOT,serve.VAULT,directory=tmp_path/'private')
+    monkeypatch.setattr(_web_server,'ROOT',tmp_path/'app');monkeypatch.setattr(_web_server,'VAULT',tmp_path/'app/vault')
+    server=ThreadingHTTPServer(('127.0.0.1',0),_web_server.Handler)
+    server.auth=AuthManager(_web_server.ROOT,_web_server.VAULT,directory=tmp_path/'private')
     threading.Thread(target=server.serve_forever,daemon=True).start()
     def request(path,body=None,cookie=''):
         req=Request(f'http://127.0.0.1:{server.server_port}'+path,data=None if body is None else json.dumps(body).encode(),headers={'Content-Type':'application/json','Cookie':cookie})

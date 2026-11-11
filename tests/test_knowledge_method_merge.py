@@ -23,7 +23,7 @@ def responder(change=None):
 
 
 def merge(records,request,cancel=lambda:False):
-    from knowledge_method_merge import merge_reviewed_methods
+    from selfos.providers.reviews.methods import merge_reviewed_methods
     return merge_reviewed_methods(records,'test','https://example.test',open_request=request,cancel=cancel)
 
 
@@ -52,7 +52,7 @@ def test_distinct_methods_all_survive():
 
 @pytest.mark.parametrize('corrupt',['missing','duplicate','unknown','cross_domain','dangling'])
 def test_invalid_merge_is_rejected_without_losing_inputs(corrupt):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     records=source(2);records[1]['domain']='research';original=copy.deepcopy(records)
     def bad(values,items,attempt):
         if corrupt=='missing':values.pop()

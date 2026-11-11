@@ -29,7 +29,7 @@ ls vault/90_Inbox/ | sort | tail -5
 Read the most recent `*-sessions-digest.md` file.
 
 If no digest exists, tell the user:
-> "No digest found. Run `python harvest.py` first, then come back."
+> "No digest found. Run `python -m selfos harvest` first, then come back."
 > Stop here.
 
 ---

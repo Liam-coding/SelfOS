@@ -63,7 +63,7 @@ def _call_claude(messages, api_key, base_url):
 
 
 class Handler(AuthRoutes, ProtocolRoutes, DashboardRoutes, ActionsRoutes, BaseHTTPRequestHandler):
-    # Composition context; legacy globals remain injectable through serve.py.
+    # Composition context; routes receive the server runtime explicitly.
     runtime = sys.modules[__name__]
 
 

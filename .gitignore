@@ -12,6 +12,7 @@ build/
 dist/
 src/*.egg-info/
 .superpowers/
+dashboard.html
 .pytest_cache/
 vault/.bootstrap_state.json
 .env

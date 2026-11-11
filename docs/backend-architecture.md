@@ -1,6 +1,6 @@
 # Python backend architecture
 
-The backend lives in an installable package under src/selfos. Root Python files preserve existing commands and imports; new backend code imports the owning package module directly.
+The backend lives in an installable package under src/selfos. The repository root contains no Python scripts. Run the installed console commands or python -m selfos; backend modules and ordinary tests import owning package modules directly.
 
 | Package | Responsibility | Examples |
 | --- | --- | --- |
@@ -21,13 +21,13 @@ Source parsers normalize conversation records containing identity, role, text, t
 
 All package imports, including function-local imports, must be acyclic. The architecture tests enforce this direction. Function-local imports remain where a model factory or optional path benefits from deferred loading; they no longer hide circular dependencies.
 
-HTTP route mixins receive a runtime context from the server composition root. Background progress helpers accept explicit state, lock and heartbeat parameters; chat projection accepts an explicit vault. Existing serve module globals remain available through the compatibility facade. The giant dashboard string and existing browser assets remain in web/rendering; splitting those belongs to frontend Issue #30.
+HTTP route mixins receive a runtime context from the server composition root. Background progress helpers accept explicit state, lock and heartbeat parameters; chat projection accepts an explicit vault. Server state lives in selfos.web.server. The giant dashboard string and existing browser assets remain in web/rendering; splitting those belongs to frontend Issue #30.
 
 ## Paths and resources
 
 AppPaths owns the resolved project root, vault, dashboard, model configuration, environment file and authentication marker. The platform authentication directory is also defined in paths.py. Authentication hashes remain in their existing private OS directory; this refactor does not migrate or reset credentials.
 
-- Legacy script commands default to their checkout directory, even when launched from another working directory.
+- Install the checkout with python -m pip install -e . before using package commands.
 - Installed commands default to the working directory, or SELFOS_ROOT when set. Every command supports an explicit --root.
 - Knowledge also retains --vault for an independently selected vault.
 - Explicit --root selects model configuration even with an external --vault. Legacy --vault-only commands continue reading model configuration from the vault's parent.
@@ -41,10 +41,10 @@ Existing vault paths, source indexes, checkpoints, staging boundaries, journals 
 From a checkout:
 
     python -m pip install -e .
-    python serve.py --port 7070
-    python knowledge.py --help
-    python harvest.py --help
-    python selfos_auth.py reset
+    python -m selfos serve --port 7070
+    python -m selfos knowledge --help
+    python -m selfos harvest --help
+    python -m selfos auth reset
 
 Installed commands can use a separate data directory:
 
@@ -57,8 +57,12 @@ Equivalent module commands are python -m selfos serve, knowledge, harvest or aut
 
 ## Compatibility and verification
 
-Root modules are thin entry points. The isolated _compat and _legacy modules forward legacy symbols to their actual owners, including assignments used by existing integrations and tests. Internal package code never uses these facades. Prefer injecting the explicit parameters or patching the owning package in new tests.
+All root scripts and application compatibility facades have been removed. Use python -m selfos serve, harvest, knowledge or auth, or the installed console entry points. Former root helpers are no longer import entry points; use owning package modules. For tests, patch the module where the dependency is looked up.
 
-Run python -m pytest -q. Boundary tests cover import direction, cycles, legacy exports, foreign working directories, resource availability and package subprocess commands. HTTP regressions cover authentication, local-origin checks, progress, cancellation and resume. Knowledge regressions use synthetic conversations and temporary vaults; frozen evaluation files and original conversations are not rewritten.
+Generated dashboard.html stays local and is ignored by Git. A screenshot remains in docs/images for the README.
+
+The frozen acceptance contract and evaluator retain historical imports without modifying their bytes. Their isolated adapters live in evals/adapters. Test setup adds that directory for evaluation compatibility; invoke the frozen evaluator through python evals/run.py. Neither installed application code nor normal source modules depend on these adapters.
+
+Run python -m pytest -q. Boundary tests cover import direction, cycles, root layout, foreign working directories, resource availability and package subprocess commands. HTTP regressions cover authentication, local-origin checks, progress, cancellation and resume. Knowledge regressions use synthetic conversations and temporary vaults; frozen evaluation files and original conversations are not rewritten.
 
 Build a wheel with python -m pip wheel . --no-deps. Validate the installed artifact from a directory outside the checkout, including authentication resources and HTTP actions. Program regressions and model-quality evaluations remain separate; a backend refactor does not require a full production import.

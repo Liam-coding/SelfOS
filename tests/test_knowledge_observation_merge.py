@@ -21,7 +21,7 @@ def responder(change=None):
 
 
 def merge(records,request,cancel=lambda:False):
-    from knowledge_observation_merge import merge_project_observations
+    from selfos.providers.reviews.observations import merge_project_observations
     return merge_project_observations(records,'test','https://example.test',open_request=request,cancel=cancel)
 
 
@@ -43,7 +43,7 @@ def test_equivalent_project_observations_merge_without_rewriting_or_losing_sourc
     ('event_time','2026-10-01','2026-11-01'),('temporal','historical','current'),
     ('status','proposed','implemented')])
 def test_explicitly_different_project_conditions_cannot_be_merged(field,first,second):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     records=[observation('Same description','m0',**{field:first}),observation('Same description','m1',**{field:second})]
     request,calls=responder(join)
     with pytest.raises(ResponseFormatError,match='scope') as error:merge(records,request)
@@ -51,7 +51,7 @@ def test_explicitly_different_project_conditions_cannot_be_merged(field,first,se
 
 
 def test_different_numeric_results_cannot_disappear_in_canonical_text():
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     records=[observation('Trial used a 0.15 gap.','m0'),observation('Trial used a 0.20 gap.','m1')]
     request,_=responder(join)
     with pytest.raises(ResponseFormatError,match='numeric'):merge(records,request)
@@ -131,7 +131,7 @@ def test_incompatible_prior_clusters_remain_separate_with_all_measurements():
     ('Trial delta 0.0013.','Trial delta −0.0013.'),
     ('Run identifier 123456789012345678901234567890.','Run identifier 123456789012345678901234567891.')])
 def test_numeric_direction_and_long_identifiers_are_not_lost(first,second):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     records=[observation(first,'m0'),observation(second,'m1')]
     request,_=responder(join)
     with pytest.raises(ResponseFormatError,match='numeric'):merge(records,request)

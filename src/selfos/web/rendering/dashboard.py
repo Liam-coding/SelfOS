@@ -814,7 +814,7 @@ async function _sendChatSilent(text) {{
     appendMsg(reply, 'ai');
     chatHistory.push({{role:'assistant', content: reply}});
   }} catch(e) {{
-    thinking.textContent = lang === 'zh' ? '连接失败，请启动 serve.py' : 'Connection failed — run serve.py';
+    thinking.textContent = lang === 'zh' ? '连接失败，请运行 python -m selfos serve' : 'Connection failed — run python -m selfos serve';
   }}
 }}
 
@@ -1037,7 +1037,7 @@ async function sendChat() {{
     appendMsg(reply, 'ai');
     chatHistory.push({{role:'assistant', content: reply}});
   }} catch(e) {{
-    thinking.textContent = lang === 'zh' ? '连接失败，请启动 serve.py' : 'Connection failed — run serve.py';
+    thinking.textContent = lang === 'zh' ? '连接失败，请运行 python -m selfos serve' : 'Connection failed — run python -m selfos serve';
     thinking.classList.add('thinking');
   }}
   document.getElementById('chat-send').disabled = false;

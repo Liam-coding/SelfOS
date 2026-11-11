@@ -50,7 +50,7 @@ def login_page():
 <form id="auth-form" hidden><label><span data-auth-key="password"></span><input id="auth-password" type="password" autocomplete="current-password" required maxlength="1024"></label>
 <label id="auth-confirm-row" hidden><span data-auth-key="confirm"></span><input id="auth-confirm" type="password" autocomplete="new-password" maxlength="1024"></label>
 <p id="auth-length" data-auth-key="length" hidden></p><button id="auth-submit" type="submit" data-auth-key="login"></button></form>
-<section id="auth-recovery" hidden><p data-auth-key="recovery"></p><code>python selfos_auth.py reset</code></section>
+<section id="auth-recovery" hidden><p data-auth-key="recovery"></p><code>python -m selfos auth reset</code></section>
 <p id="auth-status" role="status"></p></main>'''+script()+r'''<script>
 let authMode='ready';
 document.body.classList.toggle('auth-dark',localStorage.getItem('selfos-theme')==='dark');

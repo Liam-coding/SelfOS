@@ -1,16 +1,17 @@
+import selfos.web.server as _web_server
 import json
 import threading
 from http.server import ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
 import pytest
-import serve
+
 from tests.test_knowledge_library import vault
 
 @pytest.fixture
 def http(vault,monkeypatch):
-    monkeypatch.setattr(serve,'VAULT',vault)
-    server=ThreadingHTTPServer(('127.0.0.1',0),serve.Handler)
+    monkeypatch.setattr(_web_server,'VAULT',vault)
+    server=ThreadingHTTPServer(('127.0.0.1',0),_web_server.Handler)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     def request(path,headers=None):
         try:response=urlopen(Request(f'http://127.0.0.1:{server.server_port}'+path,headers=headers or {}))

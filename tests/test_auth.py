@@ -1,6 +1,6 @@
 import json
 import pytest
-from selfos_auth import AuthManager
+from selfos.security.auth import AuthManager
 
 def manager(tmp_path):
     return AuthManager(tmp_path/'app',tmp_path/'app/vault',directory=tmp_path/'private')

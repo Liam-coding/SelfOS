@@ -1,6 +1,7 @@
+import selfos.app.pipeline as _app_pipeline
 import json
-import knowledge_pipeline as pipeline
-from knowledge_lesson_review import review_reusable_records
+
+from selfos.providers.reviews.lessons import review_reusable_records
 from tests.test_project_knowledge_contract import session,summary
 
 
@@ -9,7 +10,7 @@ def test_work_only_refinement_keeps_legacy_observation_in_work(tmp_path):
         result=summary(item)
         result['lessons']=[{'text':'This project used the 0.15 threshold.','source_ids':['m1'],'kind':'inference','domain':'work'}]
         return result
-    pipeline.consolidate_sessions(tmp_path,[session()],extract,settings={'domains':['work'],'detail':'balanced'})
+    _app_pipeline.consolidate_sessions(tmp_path,[session()],extract,settings={'domains':['work'],'detail':'balanced'})
     path=tmp_path/'.knowledge_pipeline.json';state=json.loads(path.read_text())
     state['lessons'][0].pop('domain')
     path.write_text(json.dumps(state),encoding='utf-8')
@@ -25,7 +26,7 @@ def test_work_only_refinement_keeps_legacy_observation_in_work(tmp_path):
     def refine(payload):
         return review_reusable_records({'project':payload['project'],'lessons':payload['lessons'],'observations':[]},
                                        'test','https://example.test',open_request=request)
-    pipeline.refine_projects(tmp_path,refine)
+    _app_pipeline.refine_projects(tmp_path,refine)
     current=json.loads(path.read_text())
     assert current['project_observations'][0]['domain']=='work'
     assert current['project_observations'][0]['text']=='This project used the 0.15 threshold.'

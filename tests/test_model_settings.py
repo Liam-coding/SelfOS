@@ -1,8 +1,8 @@
 import json
 import pytest
 from urllib.request import Request
-from model_settings import load_config, save_config, public_config, proxy_info
-from model_client import adapt_request, normalize_response
+from selfos.providers.settings import load_config, save_config, public_config, proxy_info
+from selfos.providers.client import adapt_request, normalize_response
 
 def test_settings_secret_preserved_and_not_public(tmp_path, monkeypatch):
     monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)

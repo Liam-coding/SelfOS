@@ -1,6 +1,6 @@
 import io
 import pytest
-from serve import Handler
+from selfos.web.server import Handler
 
 
 def handler():

@@ -57,7 +57,7 @@ class DashboardRoutes:
                     body=body.replace(b'</body>',CONTROLS.encode('utf-8')+b'</body>')
                 self._send(200, body, "text/html; charset=utf-8")
             else:
-                self._send_json(404, {"error": "dashboard.html not found — run harvest.py first"})
+                self._send_json(404, {"error": "dashboard.html not found — run python -m selfos harvest first"})
         elif self.path == "/__staging__":
             staging_dir = self.runtime.VAULT / "91_Staging"
             files = []
