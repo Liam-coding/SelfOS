@@ -107,7 +107,7 @@ def test_decision_history_uses_session_lineage(vault):
 
 
 def test_source_retrieval_requires_known_allowed_conversation_file(tmp_path,monkeypatch):
-    from knowledge import extract_conversations
+    from selfos.sources.conversations import extract_conversations
     api=library();sessions=tmp_path/'sessions';sessions.mkdir()
     path=sessions/'session.jsonl'
     path.write_text(json.dumps({'type':'user','timestamp':'2026-11-10T08:00:00Z','sessionId':'s1',

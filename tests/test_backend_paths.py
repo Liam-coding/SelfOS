@@ -1,3 +1,4 @@
+import selfos.web.server as _web_server
 import importlib.util
 import os
 from pathlib import Path
@@ -25,10 +26,6 @@ def test_auth_locales_are_package_resources():
     assert 'en' in value and 'zh' in value
     assert value['en']['login'] == 'Log in'
 
-def test_legacy_server_paths_stay_at_checkout_root():
-    import serve
-    assert serve.ROOT == ROOT
-    assert serve.VAULT == ROOT / 'vault'
 
 def test_installed_module_commands_accept_root_from_foreign_cwd(tmp_path):
     for command in ('serve', 'knowledge', 'harvest', 'auth'):

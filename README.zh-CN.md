@@ -19,6 +19,7 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
     ```bash
     git clone https://github.com/Liam-coding/SelfOS.git
     cd SelfOS
+    python -m pip install -e .
     ```
 
 2. 可选：为 Anthropic 创建 `.env`；也可以启动后直接在页面配置模型：
@@ -32,11 +33,11 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
 3. 启动本地页面：
 
     ```bash
-    python serve.py
+    python -m selfos serve
     ```
 
     打开 [http://localhost:7070](http://localhost:7070)。
-    登录后才能访问页面。已有知识库需在本机运行 `python selfos_auth.py reset` 初始化密码；空实例可在登录页面设置。详见[登录与恢复](docs/authentication.md)。
+    登录后才能访问页面。已有知识库需在本机运行 `python -m selfos auth reset` 初始化密码；空实例可在登录页面设置。详见[登录与恢复](docs/authentication.md)。
     点击 **模型与网络**，填写接口、Base URL、模型名称、密钥和代理，先点击 **保存并测试连接**。详见[模型设置](docs/model-settings.md)。
 
 4. 点击 **关注哪些内容**，选择领域和详细程度，再点击 **整理我的知识**。操作完成后，通过 **查看知识** 浏览内容和来源。
@@ -64,7 +65,7 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
 若只想扫描，不调用 API、不写知识库：
 
 ```bash
-python knowledge.py --dry-run
+python -m selfos knowledge --dry-run
 ```
 
 更多 CLI、来源校验、重试和存储说明见[整理与恢复指南](docs/knowledge-import.md)。
@@ -73,7 +74,7 @@ python knowledge.py --dry-run
 
 - **停止：**点击停止按钮。已发出的请求可能仍需完成保存；页面显示停止后再关闭服务。
 - **续跑：**再次点击整理，复用未变化的成功检查点。刷新或断线也会请求协作停止，页面接回的是当前保存或停止状态；下次点击才继续剩余工作。
-- **撤销：**使用页面撤销操作，或运行 `python knowledge.py --restore-last`。恢复会拒绝覆盖导入后的手工修改。
+- **撤销：**使用页面撤销操作，或运行 `python -m selfos knowledge --restore-last`。恢复会拒绝覆盖导入后的手工修改。
 
 修改保留设置后，下次整理自动按新规则重建。成功的暂存检查点和备份保留以便恢复，详细说明见[指南](docs/knowledge-import.md#stop-retry-and-restore)。
 
@@ -91,7 +92,7 @@ python knowledge.py --dry-run
 
 Claude Code、Codex 和其他可读文件的 Agent 都可以读取这些上下文，接入方式见[Agent 指南](docs/agent-integration.md)。手工编辑可采用提议和审核流程，一键整理使用上述自动写入、备份和恢复流程。
 
-原有 Harvest 流程仍可通过 `python harvest.py` 使用，提供对话摘要、staging 提议和七维度生活概览，详见[开发文档](docs/dev.md)。
+原有 Harvest 流程仍可通过 `python -m selfos harvest` 使用，提供对话摘要、staging 提议和七维度生活概览，详见[开发文档](docs/dev.md)。
 
 ## 数据使用与当前限制
 

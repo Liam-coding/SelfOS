@@ -6,7 +6,7 @@ import runpy
 ROOT = Path(__file__).resolve().parents[1]
 
 def test_root_contains_only_supported_python_commands():
-    assert {p.name for p in ROOT.glob('*.py')} == {'serve.py','knowledge.py','harvest.py','selfos_auth.py'}
+    assert not list(ROOT.glob('*.py'))
 
 def test_generated_dashboard_is_not_tracked():
     result = subprocess.run(['git','ls-files','--','dashboard.html'],cwd=ROOT,capture_output=True,text=True,check=True)

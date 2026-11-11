@@ -19,6 +19,7 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
     ```bash
     git clone https://github.com/Liam-coding/SelfOS.git
     cd SelfOS
+    python -m pip install -e .
     ```
 
 2. Optionally create `.env` for Anthropic, or configure your model on the dashboard after starting it:
@@ -32,11 +33,11 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
 3. Start the local dashboard:
 
     ```bash
-    python serve.py
+    python -m selfos serve
     ```
 
     Open [http://localhost:7070](http://localhost:7070).
-    Log in before accessing the dashboard. Existing vaults require local password initialization with `python selfos_auth.py reset`; an empty installation can set its password on the login page. See [authentication](docs/authentication.md).
+    Log in before accessing the dashboard. Existing vaults require local password initialization with `python -m selfos auth reset`; an empty installation can set its password on the login page. See [authentication](docs/authentication.md).
     Select **模型与网络** (Model and network) to choose the interface, Base URL, model, API key and proxy. Use **Save and test connection** before importing. See [model settings](docs/model-settings.md).
 
 4. Select your focus domains and detail level under **Choose what matters**, then click **Organize my knowledge**. When the operation completes, use **Browse knowledge** to explore records and their sources.
@@ -64,7 +65,7 @@ Three API workers process session parts by default; saves are serialized. Succes
 For a scan without API calls or knowledge writes:
 
 ```bash
-python knowledge.py --dry-run
+python -m selfos knowledge --dry-run
 ```
 
 See the [import and recovery guide](docs/knowledge-import.md) for CLI options, source validation, retries and storage details.
@@ -73,7 +74,7 @@ See the [import and recovery guide](docs/knowledge-import.md) for CLI options, s
 
 - **Stop:** click the stop button. Active requests may still finish saving; wait for the stopped status before closing the server.
 - **Resume:** click Organize my knowledge again. Unchanged successful checkpoints are reused. Refreshing or losing the stream also requests cooperative stopping; the page follows the existing saving/stopped task, and remaining work resumes on your next click.
-- **Undo:** use the dashboard's undo action or `python knowledge.py --restore-last`. Restore rejects later file edits so it does not overwrite newer changes.
+- **Undo:** use the dashboard's undo action or `python -m selfos knowledge --restore-last`. Restore rejects later file edits so it does not overwrite newer changes.
 
 On the next import, changed retention settings trigger a rebuild under the new policy. Completed staging work and backups remain available for recovery; see the [guide](docs/knowledge-import.md#stop-retry-and-restore).
 
@@ -91,7 +92,7 @@ Your vault combines generated knowledge with Markdown you maintain yourself:
 
 Claude Code, Codex and other file-reading agents can use these files as context. Follow the [agent integration guide](docs/agent-integration.md) for setup. Manual agent edits can use the proposal/review workflow; one-click imports use the automatic, backed-up flow described above.
 
-The separate Harvest workflow remains available with `python harvest.py` for conversation digests, staging proposals and the seven-dimension life overview. Details are in the [development guide](docs/dev.md).
+The separate Harvest workflow remains available with `python -m selfos harvest` for conversation digests, staging proposals and the seven-dimension life overview. Details are in the [development guide](docs/dev.md).
 
 ## Data use and current limits
 

@@ -1,3 +1,5 @@
+import selfos.storage.files as _storage_files
+import selfos.storage.pipeline as _storage_pipeline
 import copy,json
 from selfos.app.pipeline import consolidate_sessions
 from selfos.storage.pipeline import restore_pipeline_backup
@@ -95,11 +97,11 @@ def test_stop_after_local_rebuild_prevents_upgrade_write(tmp_path):
 
 
 def test_failed_history_upgrade_rolls_back_both_files(tmp_path,monkeypatch):
-    import knowledge,pytest
+    import pytest
     sessions,_=legacy_checkpoint(tmp_path)
     paths=[tmp_path/'.knowledge_pipeline.json',tmp_path/'knowledge/history.md']
     before={path:path.read_bytes() for path in paths}
-    original=knowledge._atomic_write
+    original=_storage_files._atomic_write
     failed=False
     def fail_history_once(path,content):
         nonlocal failed
@@ -107,7 +109,7 @@ def test_failed_history_upgrade_rolls_back_both_files(tmp_path,monkeypatch):
             failed=True
             raise OSError('simulated history write failure')
         return original(path,content)
-    monkeypatch.setattr(knowledge,'_atomic_write',fail_history_once)
+    monkeypatch.setattr(_storage_files,'_atomic_write',fail_history_once)
     with pytest.raises(OSError,match='simulated'):consolidate_sessions(tmp_path,sessions,no_model)
     assert {path:path.read_bytes() for path in paths}==before
     assert not (tmp_path/'.knowledge_pending.json').exists()

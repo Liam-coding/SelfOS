@@ -1,25 +1,27 @@
+import selfos.web.server as _web_server
+import subprocess as _subprocess
 import json,threading
 from http.server import ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
-import pytest,serve
+import pytest
 
 
 @pytest.fixture
 def local_http(tmp_path,monkeypatch):
-    monkeypatch.setattr(serve,'ROOT',tmp_path)
-    monkeypatch.setattr(serve,'VAULT',tmp_path/'vault')
-    monkeypatch.setattr(serve,'DASHBOARD',tmp_path/'dashboard.html')
+    monkeypatch.setattr(_web_server,'ROOT',tmp_path)
+    monkeypatch.setattr(_web_server,'VAULT',tmp_path/'vault')
+    monkeypatch.setattr(_web_server,'DASHBOARD',tmp_path/'dashboard.html')
     (tmp_path/'dashboard.html').write_text('local dashboard')
     staging=tmp_path/'vault/91_Staging';staging.mkdir(parents=True)
     (staging/'example.md').write_text('---\ntarget: vault/02_Work/result.md\n---\nExample content',encoding='utf-8')
     calls=[]
-    monkeypatch.setattr(serve,'_get_config',lambda:('fake','https://api.invalid'))
-    monkeypatch.setattr(serve,'_call_claude',lambda *args:calls.append('api') or 'test reply')
+    monkeypatch.setattr(_web_server,'_get_config',lambda:('fake','https://api.invalid'))
+    monkeypatch.setattr(_web_server,'_call_claude',lambda *args:calls.append('api') or 'test reply')
     class Completed:
         returncode=0;stdout='test complete';stderr=''
-    monkeypatch.setattr(serve.subprocess,'run',lambda *args,**kwargs:calls.append('harvest') or Completed())
-    server=ThreadingHTTPServer(('127.0.0.1',0),serve.Handler)
+    monkeypatch.setattr(_subprocess,'run',lambda *args,**kwargs:calls.append('harvest') or Completed())
+    server=ThreadingHTTPServer(('127.0.0.1',0),_web_server.Handler)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     def request(path,body=None,headers=None,method=None):
         req=Request(f'http://127.0.0.1:{server.server_port}'+path,

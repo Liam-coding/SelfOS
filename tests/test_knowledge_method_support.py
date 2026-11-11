@@ -56,7 +56,7 @@ def test_project_only_measurement_returns_to_context_without_losing_basis():
 
 @pytest.mark.parametrize('bad',['missing','unknown_evidence','wrong_method_evidence','empty_rewrite','retain_with_new_text'])
 def test_invalid_support_response_is_rejected_without_mutating_result(bad):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     result,basis=fixture(2);original=copy.deepcopy(result)
     def corrupt(values,prompt,attempt):
         if bad=='missing':values.pop()
@@ -123,7 +123,7 @@ def test_same_corrected_text_in_different_domains_stays_separate():
     ('需要重复运行实验后汇总结果。','单个样本结论不可靠，需要汇总多个会话样本。'),
     ('将检索状态与模型执行解耦来分析随机性。','检索输入相同但模型输出不同，可分析模型随机性。')])
 def test_known_unsupported_assumptions_cannot_pass_a_retain_verdict(method,basis_text):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     result,basis=fixture();result['lessons'][0]['text']=method;basis[0]['text']=basis_text
     def retain(values,prompt,attempt):values[0].update(action='retain',text='')
     request,calls=responder(retain)

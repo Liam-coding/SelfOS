@@ -1,3 +1,6 @@
+import selfos.providers.knowledge as _providers_knowledge
+import urllib.request as _urllib_request
+import selfos.web.server as _web_server
 import selfos.app.pipeline as _app_pipeline
 import selfos.knowledge.filtering as _knowledge_filtering
 import selfos.knowledge.projects as _knowledge_projects
@@ -7,7 +10,7 @@ import copy
 import json
 import pytest
 
-import serve
+
 from tests.test_project_knowledge_contract import message, session, summary, card
 
 @pytest.mark.parametrize('text',['Continue. Retry. Thanks.','继续。重试。谢谢。','ok; continue; retry','Thanks, continue.'])
@@ -20,11 +23,11 @@ def test_transient_prefix_does_not_erase_meaningful_context(text):
     assert _knowledge_filtering.compact_message(message(text)) is not None
 
 def test_summarizer_does_not_call_model_for_transient_only_input(tmp_path,monkeypatch):
-    import knowledge
-    monkeypatch.setattr(knowledge,'_get_api_config',lambda root:('test-key','http://unused'))
-    monkeypatch.setattr(knowledge,'urlopen',lambda *args,**kwargs:pytest.fail('Noise must not reach model'))
-    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
-    result=knowledge.api_summarizer(tmp_path)(session('Continue. Retry. Thanks.'))
+
+    monkeypatch.setattr(_providers_knowledge,'_get_api_config',lambda root:('test-key','http://unused'))
+    monkeypatch.setattr(_urllib_request,'urlopen',lambda *args,**kwargs:pytest.fail('Noise must not reach model'))
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: _urllib_request.urlopen)
+    result=_providers_knowledge.api_summarizer(tmp_path)(session('Continue. Retry. Thanks.'))
     assert result=={'project':None,'lessons':[],'personal_facts':[],'preferences':[],'history':[]}
 
 @pytest.mark.parametrize("text", [
@@ -94,11 +97,11 @@ def test_decision_lineage_preserves_original_time_and_sources():
     assert record['observed_at']=='2026-11-01T08:00:00Z'
 
 def test_structured_chat_context_keeps_next_steps_and_omits_source_hashes(tmp_path, monkeypatch):
-    monkeypatch.setattr(serve, "VAULT", tmp_path)
+    monkeypatch.setattr(_web_server, "VAULT", tmp_path)
     c = card(decisions=["Historical implementation detail " * 200] * 100,
              next_steps=["Benchmark the repaired importer"], source_ids=["abcdef" * 100])
     (tmp_path / ".knowledge_pipeline.json").write_text(json.dumps({"cards": {c["project_id"]: c}, "lessons": []}))
-    text = serve._load_vault_context()
+    text = _web_server._load_vault_context()
     assert "Benchmark the repaired importer" in text
     assert "abcdef" * 100 not in text
 
@@ -288,10 +291,10 @@ def test_rebuild_preserves_unmanaged_manual_lessons(tmp_path):
     assert "Manual learning note: check assumptions." in (vault/"05_Life/lessons.md").read_text(encoding="utf-8")
 
 def test_chat_keeps_long_next_step_outcome(tmp_path,monkeypatch):
-    monkeypatch.setattr(serve,"VAULT",tmp_path)
+    monkeypatch.setattr(_web_server,"VAULT",tmp_path)
     c=card(next_steps=["Review the imported sources. " * 20+"Then benchmark source coverage."])
     (tmp_path/".knowledge_pipeline.json").write_text(json.dumps({"cards":{"alpha":c},"lessons":[]}))
-    assert "Then benchmark source coverage." in serve._load_vault_context()
+    assert "Then benchmark source coverage." in _web_server._load_vault_context()
 
 def test_agent_wakeup_command_is_not_a_project_next_step():
     item=session()

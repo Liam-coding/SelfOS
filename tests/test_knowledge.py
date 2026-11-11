@@ -1,3 +1,10 @@
+import selfos.storage.files as _storage_files
+import selfos.storage.legacy as _storage_legacy
+import selfos.sources.conversations as _sources_conversations
+import selfos.app.legacy_knowledge as _app_legacy_knowledge
+import subprocess as _subprocess
+import selfos.web.server as _web_server
+import selfos.app.knowledge_cli as _app_knowledge_cli
 import json
 import sys
 from pathlib import Path
@@ -5,7 +12,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import knowledge
+
 
 
 def messages():
@@ -33,12 +40,12 @@ def test_extracts_both_roles_skips_tools_and_survives_bad_lines(tmp_path):
         {'type': 'response_item', 'payload': {'type': 'function_call_output', 'role': 'assistant', 'content': 'tool secrets'}},
     ]
     path.write_text('broken json\n' + '\n'.join(json.dumps(x) for x in rows), encoding='utf-8')
-    result = knowledge.extract_conversations([tmp_path])
+    result = _sources_conversations.extract_conversations([tmp_path])
     assert [x['role'] for x in result] == ['user', 'assistant']
     assert result[1]['text'] == 'Try a weekly research review.'
     assert result[0]['path'] == str(path)
     (tmp_path / 'copy.jsonl').write_bytes(path.read_bytes())
-    assert len(knowledge.extract_conversations([tmp_path])) == 2
+    assert len(_sources_conversations.extract_conversations([tmp_path])) == 2
 
 
 def test_extracts_claude_assistant_text_and_redacts_secrets(tmp_path):
@@ -46,7 +53,7 @@ def test_extracts_claude_assistant_text_and_redacts_secrets(tmp_path):
         'content': [{'type': 'thinking', 'thinking': 'private reasoning'},
                     {'type': 'text', 'text': 'My email is person@example.com, review the research plan.'}]}}
     (tmp_path / 'claude.jsonl').write_text(json.dumps(row), encoding='utf-8')
-    result = knowledge.extract_conversations([tmp_path])
+    result = _sources_conversations.extract_conversations([tmp_path])
     assert len(result) == 1
     assert 'person@example.com' not in result[0]['text']
     assert 'private reasoning' not in result[0]['text']
@@ -60,7 +67,7 @@ def test_codex_analysis_is_not_imported_as_conversation(tmp_path):
          'channel': 'final', 'content': [{'type': 'output_text', 'text': 'A weekly review could help.'}]}},
     ]
     (tmp_path / 'codex.jsonl').write_text('\n'.join(json.dumps(x) for x in rows), encoding='utf-8')
-    assert [x['text'] for x in knowledge.extract_conversations([tmp_path])] == ['A weekly review could help.']
+    assert [x['text'] for x in _sources_conversations.extract_conversations([tmp_path])] == ['A weekly review could help.']
 
 
 def test_growing_vault_context_is_bounded_without_truncating_saved_knowledge(tmp_path):
@@ -69,14 +76,14 @@ def test_growing_vault_context_is_bounded_without_truncating_saved_knowledge(tmp
     def generate(batch, context):
         assert len(context['GOALS.md']) < 5000
         return proposal(batch, context)
-    knowledge.import_knowledge(tmp_path, messages(), generate=generate)
+    _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=generate)
     assert (tmp_path / 'GOALS.md').read_text(encoding='utf-8').startswith(original.rstrip())
 
 
 def test_batches_preserve_long_message_tail():
     items = messages()
     items[0]['text'] = 'a' * 30000 + 'TAIL'
-    batches = knowledge.build_batches(items, max_chars=4000)
+    batches = _sources_conversations.build_batches(items, max_chars=4000)
     assert len(batches) > 1
     assert ''.join(m['text'] for batch in batches for m in batch) == items[0]['text']
     assert all(sum(len(m['text']) for m in batch) <= 4000 for batch in batches)
@@ -86,7 +93,7 @@ def test_direct_write_preserves_original_backs_up_and_deduplicates(tmp_path):
     vault = tmp_path / 'vault'
     vault.mkdir()
     (vault / 'GOALS.md').write_text('# Goals\nExisting confirmed goal.\n', encoding='utf-8')
-    result = knowledge.import_knowledge(vault, messages(), generate=proposal)
+    result = _app_legacy_knowledge.import_knowledge(vault, messages(), generate=proposal)
     text = (vault / 'GOALS.md').read_text(encoding='utf-8')
     assert 'Existing confirmed goal.' in text
     assert 'Finish research this month.' in text
@@ -95,7 +102,7 @@ def test_direct_write_preserves_original_backs_up_and_deduplicates(tmp_path):
     saved = list((vault / '.knowledge_backups' / result['run_id']).rglob('GOALS.md'))
     assert len(saved) == 1
     assert saved[0].read_text(encoding='utf-8') == '# Goals\nExisting confirmed goal.\n'
-    again = knowledge.import_knowledge(vault, messages(), generate=proposal)
+    again = _app_legacy_knowledge.import_knowledge(vault, messages(), generate=proposal)
     assert again['facts'] == 0
     assert (vault / 'GOALS.md').read_text(encoding='utf-8') == text
 
@@ -106,7 +113,7 @@ def test_rejects_invalid_targets_before_any_write(tmp_path, target):
         return proposal(batch, context) + [{'target': target, 'facts': [{
             'text': 'Bad change', 'source_ids': ['source-1'], 'kind': 'user_fact'}]}]
     with pytest.raises(ValueError):
-        knowledge.import_knowledge(tmp_path, messages(), generate=invalid)
+        _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=invalid)
     assert not (tmp_path / 'GOALS.md').exists()
     assert not (tmp_path / '.knowledge_state.json').exists()
 
@@ -117,14 +124,14 @@ def test_rejects_untraceable_fact(tmp_path):
         result[0]['facts'][0]['source_ids'] = ['unknown']
         return result
     with pytest.raises(ValueError):
-        knowledge.import_knowledge(tmp_path, messages(), generate=invalid)
+        _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=invalid)
     assert not (tmp_path / 'GOALS.md').exists()
 
 
 def test_assistant_statement_cannot_become_confirmed_user_fact(tmp_path):
     items = messages()
     items[0]['role'] = 'assistant'
-    knowledge.import_knowledge(tmp_path, items, generate=proposal)
+    _app_legacy_knowledge.import_knowledge(tmp_path, items, generate=proposal)
     assert '[assistant-suggestion]' in (tmp_path / 'GOALS.md').read_text(encoding='utf-8')
 
 
@@ -132,22 +139,22 @@ def test_api_failure_is_retryable(tmp_path):
     def fail(batch, context):
         raise RuntimeError('API unavailable')
     with pytest.raises(RuntimeError):
-        knowledge.import_knowledge(tmp_path, messages(), generate=fail)
+        _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=fail)
     assert not (tmp_path / '.knowledge_state.json').exists()
-    assert knowledge.import_knowledge(tmp_path, messages(), generate=proposal)['facts'] == 1
+    assert _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)['facts'] == 1
 
 
 def test_restore_returns_original_and_allows_reimport(tmp_path):
     (tmp_path / 'GOALS.md').write_text('original', encoding='utf-8')
-    result = knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
-    knowledge.restore_backup(tmp_path, result['run_id'])
+    result = _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
+    _storage_legacy.restore_backup(tmp_path, result['run_id'])
     assert (tmp_path / 'GOALS.md').read_text(encoding='utf-8') == 'original'
-    assert knowledge.import_knowledge(tmp_path, messages(), generate=proposal)['facts'] == 1
+    assert _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)['facts'] == 1
 
 
 def test_restore_removes_newly_created_files(tmp_path):
-    result = knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
-    knowledge.restore_backup(tmp_path, result['run_id'])
+    result = _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
+    _storage_legacy.restore_backup(tmp_path, result['run_id'])
     assert not (tmp_path / 'GOALS.md').exists()
 
 
@@ -160,37 +167,37 @@ def test_later_batch_failure_preserves_completed_batch_and_retries_only_tail(tmp
             raise RuntimeError('network failure')
         return proposal(batch, context)
     with pytest.raises(RuntimeError):
-        knowledge.import_knowledge(tmp_path, items, generate=fail_second)
+        _app_legacy_knowledge.import_knowledge(tmp_path, items, generate=fail_second)
     assert 'Finish research this month.' in (tmp_path / 'GOALS.md').read_text(encoding='utf-8')
     def retry(batch, context):
         assert [x['id'] for x in batch] == ['source-2']
         return [{'target': 'GOALS.md', 'facts': [{
             'text': 'Second goal.', 'source_ids': ['source-2'], 'kind': 'user_fact'}]}]
-    result = knowledge.import_knowledge(tmp_path, items, generate=retry)
+    result = _app_legacy_knowledge.import_knowledge(tmp_path, items, generate=retry)
     assert result['facts'] == 1
     assert (tmp_path / 'GOALS.md').read_text(encoding='utf-8').count('Finish research this month.') == 1
 
 
 def test_disk_failure_rolls_back_canonical_writes(tmp_path, monkeypatch):
     (tmp_path / 'GOALS.md').write_text('original', encoding='utf-8')
-    real = knowledge._atomic_write
+    real = _storage_files._atomic_write
     def fail_state(path, data):
         if path == tmp_path / '.knowledge_state.json':
             raise OSError('disk full')
         return real(path, data)
-    monkeypatch.setattr(knowledge, '_atomic_write', fail_state)
+    monkeypatch.setattr(_storage_legacy, '_atomic_write', fail_state)
     with pytest.raises(OSError):
-        knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
+        _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
     assert (tmp_path / 'GOALS.md').read_text(encoding='utf-8') == 'original'
     assert not (tmp_path / '.knowledge_state.json').exists()
     assert not (tmp_path / '.knowledge.lock').exists()
 
 
 def test_restore_refuses_to_overwrite_later_manual_edit(tmp_path):
-    result = knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
+    result = _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
     (tmp_path / 'GOALS.md').write_text('manual change', encoding='utf-8')
     with pytest.raises(ValueError, match='changed after'):
-        knowledge.restore_backup(tmp_path, result['run_id'])
+        _storage_legacy.restore_backup(tmp_path, result['run_id'])
     assert (tmp_path / 'GOALS.md').read_text(encoding='utf-8') == 'manual change'
 
 
@@ -198,7 +205,7 @@ def test_missing_credentials_fails_before_scanning(tmp_path, monkeypatch, capsys
     monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
     monkeypatch.setattr(sys, 'argv', ['knowledge.py', '--vault', str(tmp_path / 'vault')])
     with pytest.raises(SystemExit) as failure:
-        knowledge.main()
+        _app_knowledge_cli.main()
     assert failure.value.code == 1
     assert 'ANTHROPIC_API_KEY is missing' in capsys.readouterr().out
     assert not (tmp_path / 'vault').exists()
@@ -207,7 +214,7 @@ def test_missing_credentials_fails_before_scanning(tmp_path, monkeypatch, capsys
 def test_concurrent_import_does_not_remove_existing_lock(tmp_path):
     (tmp_path / '.knowledge.lock').write_text('another process', encoding='utf-8')
     with pytest.raises(RuntimeError, match='already running'):
-        knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
+        _app_legacy_knowledge.import_knowledge(tmp_path, messages(), generate=proposal)
     assert (tmp_path / '.knowledge.lock').read_text(encoding='utf-8') == 'another process'
 
 
@@ -216,7 +223,7 @@ def test_http_knowledge_stream_runs_pipeline_and_reports_exit(monkeypatch):
     import threading
     from http.server import HTTPServer
     from urllib.request import urlopen
-    import serve
+
     class Process:
         returncode = 0
         stdout = io.StringIO('Knowledge complete: 1 facts, 1 files\n')
@@ -228,8 +235,8 @@ def test_http_knowledge_stream_runs_pipeline_and_reports_exit(monkeypatch):
         assert '--stop-file' in cmd
         assert '-u' in cmd
         return Process()
-    monkeypatch.setattr(serve.subprocess, 'Popen', launch)
-    server = HTTPServer(('127.0.0.1', 0), serve.Handler)
+    monkeypatch.setattr(_subprocess, 'Popen', launch)
+    server = HTTPServer(('127.0.0.1', 0), _web_server.Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:

@@ -2,14 +2,14 @@
 
 Install the dependency before starting SelfOS:
 
-    python -m pip install -r requirements.txt
-    python serve.py
+    python -m pip install -e .
+    python -m selfos serve
 
 SelfOS is a single-user local application. A genuinely empty installation can set its password
 in the login page. An existing vault, including nonempty Markdown templates/manual notes, is
 conservatively treated as existing data: initialize or recover the password in the local terminal:
 
-    python selfos_auth.py reset
+    python -m selfos auth reset
 
 Type RESET and enter/confirm the new password through the hidden terminal prompts. Do not put
 passwords in command arguments. The command preserves knowledge and invalidates existing

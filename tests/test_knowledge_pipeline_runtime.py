@@ -1,5 +1,9 @@
-import selfos.app.pipeline as _app_pipeline
+import selfos.providers.knowledge as _providers_knowledge
+import urllib.request as _urllib_request
+import selfos.storage.files as _storage_files
 import selfos.storage.pipeline as _storage_pipeline
+import selfos.sources.conversations as _sources_conversations
+import selfos.app.pipeline as _app_pipeline
 import selfos.knowledge.projects as _knowledge_projects
 import selfos.knowledge.filtering as _knowledge_filtering
 import selfos.sources.compaction as _sources_compaction
@@ -8,7 +12,7 @@ import threading
 import pytest
 
 from tests.test_project_knowledge_contract import session, summary, card
-import knowledge
+
 
 
 def test_stop_does_not_schedule_next_session_and_resume_keeps_completed(tmp_path):
@@ -61,7 +65,7 @@ def test_extractor_preserves_canonical_project_and_original_session(tmp_path):
             {"type": "response_item", "payload": {"type": "message", "role": "user",
              "content": [{"type": "input_text", "text": "Build reliable project import."}]}}]
     (tmp_path / "export.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
-    result = knowledge.extract_conversations([tmp_path])[0]
+    result = _sources_conversations.extract_conversations([tmp_path])[0]
     assert result["session_id"] == "original-session"
     assert result["project_id"] == "C:/client-a/app"
 
@@ -79,10 +83,10 @@ def test_summary_api_maps_aliases_and_does_not_send_local_paths(monkeypatch):
     def request(req, **kwargs):
         captured.append(json.loads(req.data))
         return Response()
-    monkeypatch.setattr(knowledge, "_get_api_config", lambda _: ("test-key", "https://example.test"))
-    monkeypatch.setattr(knowledge, "urlopen", request)
-    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: knowledge.urlopen)
-    result = knowledge.api_summarizer(None)(item)
+    monkeypatch.setattr(_providers_knowledge, "_get_api_config", lambda _: ("test-key", "https://example.test"))
+    monkeypatch.setattr(_urllib_request, "urlopen", request)
+    monkeypatch.setattr(__import__('selfos.providers.client', fromlist=['*']), 'request_opener', lambda root: _urllib_request.urlopen)
+    result = _providers_knowledge.api_summarizer(None)(item)
     assert result["project"]["source_ids"] == ["m1"]
     assert result["project"]["project_id"] == "C:/projects/alpha"
     assert "C:/projects/alpha" not in json.dumps(captured)
@@ -90,13 +94,13 @@ def test_summary_api_maps_aliases_and_does_not_send_local_paths(monkeypatch):
 
 
 def test_partial_write_is_recovered_and_retry_does_not_skip_session(tmp_path, monkeypatch):
-    real = knowledge._atomic_write
+    real = _storage_files._atomic_write
     def fail(path, data):
         if path.name == ".knowledge_pipeline.json":
             raise OSError("disk failure")
         real(path, data)
     with monkeypatch.context() as scoped:
-        scoped.setattr(knowledge, "_atomic_write", fail)
+        scoped.setattr(_storage_files, "_atomic_write", fail)
         with pytest.raises(OSError):
             _app_pipeline.consolidate_sessions(tmp_path, [session()], summary)
     assert not list((tmp_path / "02_Work/projects").glob("*.md"))
@@ -137,7 +141,7 @@ def test_bulk_unfenced_json_keeps_purpose_and_tail():
 
 
 def test_scanning_and_preparation_can_be_cancelled(tmp_path):
-    assert knowledge.extract_conversations([tmp_path], cancel=lambda: True) == []
+    assert _sources_conversations.extract_conversations([tmp_path], cancel=lambda: True) == []
     assert _sources_compaction.prepare_sessions([session()["messages"][0]], cancel=lambda: True) == []
 
 

@@ -7,14 +7,14 @@ SelfOS turns local AI conversations into traceable personal knowledge. The dashb
 Use Python 3.10 or later and install `requirements.txt` for Argon2id password hashing. Install pytest separately to run tests. See [authentication](authentication.md) for login and local recovery.
 
 ```powershell
-python serve.py
+python -m selfos serve
 # Open http://localhost:7070
-python knowledge.py --dry-run    # Scan/filter/compact; no model calls or knowledge writes
-python knowledge.py             # Incremental import
-python knowledge.py --workers 1  # Lower concurrent API demand
-python knowledge.py --rebuild    # Explicit rebuild under the current policy
-python knowledge.py --restore-last
-python knowledge.py --restore RUN_ID
+python -m selfos knowledge --dry-run    # Scan/filter/compact; no model calls or knowledge writes
+python -m selfos knowledge             # Incremental import
+python -m selfos knowledge --workers 1  # Lower concurrent API demand
+python -m selfos knowledge --rebuild    # Explicit rebuild under the current policy
+python -m selfos knowledge --restore-last
+python -m selfos knowledge --restore RUN_ID
 ```
 
 Configure your model and proxy on the dashboard under **模型与网络**, or use ANTHROPIC_API_KEY and optional ANTHROPIC_BASE_URL in .env. See [model settings](model-settings.md) for available interfaces. The configured endpoint receives redacted input and relevant knowledge context. Redaction is a safeguard, not a guarantee that every sensitive detail is removed. Review the source material and choose an endpoint appropriate for it.
@@ -63,8 +63,8 @@ cards and reusable lessons keep their existing locations. Current personal
 records require quoted user evidence; suggestions become historical context.
 Conflicting facts remain explicitly marked.
 
-Run python knowledge.py to import incrementally. A changed policy automatically
-rebuilds; python knowledge.py --rebuild explicitly rebuilds. Both use staging
+Run python -m selfos knowledge to import incrementally. A changed policy automatically
+rebuilds; python -m selfos knowledge --rebuild explicitly rebuilds. Both use staging
 and replace canonical knowledge only after successful completion. Retries reuse
 completed checkpoints when input, policy and canonical state are unchanged.
 Original conversations are never changed. Three workers handle summaries;
@@ -105,7 +105,7 @@ The dashboard queries /__knowledge_run__ after a stream disconnect and on reload
 to attach to a live task. It blocks duplicate imports until the current child
 has finished saving. Only successful completion displays 100%.
 
-Run python knowledge.py --restore-last or use the dashboard undo button to
+Run python -m selfos knowledge --restore-last or use the dashboard undo button to
 restore the whole last operation. Undo validates all files first and refuses to
 overwrite subsequent manual changes. Existing --restore RUN_ID remains usable
 for older backups. Manual notes outside managed sections survive rebuilding.

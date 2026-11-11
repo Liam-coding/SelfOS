@@ -1,13 +1,14 @@
+import selfos.web.server as _web_server
 import json
 import threading
 from http.server import ThreadingHTTPServer
 from urllib.request import Request, urlopen
-import serve
+
 
 
 def test_stop_endpoint_signals_running_import_and_idle_is_harmless(tmp_path, monkeypatch):
-    monkeypatch.setattr(serve, "KNOWLEDGE_RUN", {"stop_file": None})
-    server = ThreadingHTTPServer(("127.0.0.1", 0), serve.Handler)
+    monkeypatch.setattr(_web_server, "KNOWLEDGE_RUN", {"stop_file": None})
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _web_server.Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -17,7 +18,7 @@ def test_stop_endpoint_signals_running_import_and_idle_is_harmless(tmp_path, mon
                 return json.loads(response.read())
         assert stop()["running"] is False
         marker = tmp_path / "stop"
-        serve.KNOWLEDGE_RUN["stop_file"] = marker
+        _web_server.KNOWLEDGE_RUN["stop_file"] = marker
         assert stop()["running"] is True
         assert marker.exists()
     finally:
@@ -26,12 +27,12 @@ def test_stop_endpoint_signals_running_import_and_idle_is_harmless(tmp_path, mon
 
 
 def test_chat_context_includes_project_summaries_and_lessons(tmp_path, monkeypatch):
-    monkeypatch.setattr(serve, "VAULT", tmp_path)
+    monkeypatch.setattr(_web_server, "VAULT", tmp_path)
     projects = tmp_path / "02_Work/projects"
     projects.mkdir(parents=True)
     (projects / "alpha.md").write_text("Alpha blocked by quota", encoding="utf-8")
     (tmp_path / "05_Life").mkdir()
     (tmp_path / "05_Life/lessons.md").write_text("Use bounded retries", encoding="utf-8")
-    text = serve._load_vault_context()
+    text = _web_server._load_vault_context()
     assert "Alpha blocked by quota" in text
     assert "Use bounded retries" in text

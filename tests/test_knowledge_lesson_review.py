@@ -42,7 +42,7 @@ def test_routes_candidates_with_original_sources_and_without_mutating_input():
 
 
 def test_missing_or_duplicate_verdict_is_rejected():
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     for transform in [lambda values:values[:-1],lambda values:[values[0]]*len(values)]:
         request,_=responder(transform)
         with pytest.raises(ResponseFormatError):review()(records(),'test','https://example.test',open_request=request)
@@ -56,7 +56,7 @@ def test_review_batches_cover_every_candidate_without_final_quota():
 
 
 def test_inconsistent_routing_is_rejected_and_failed_call_count_is_kept():
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     def inconsistent(values):
         values[0]['action']='lesson'
         return values
@@ -101,7 +101,7 @@ def test_group_member_can_reference_leader_without_repeating_method_text():
 
 
 def test_empty_group_leader_is_rejected():
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     def group(values):
         values[1]['lesson_text']='';values[1]['lesson_group']='c1'
         return values
@@ -122,7 +122,7 @@ def test_both_group_member_keeps_its_observation_and_inherits_method():
 
 
 def test_failed_cross_batch_grouping_includes_all_call_costs(monkeypatch):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     def distinct(values):
         for value in values:
             if value['action']=='lesson':value['lesson_text']+=' '+value['id']
@@ -138,7 +138,7 @@ def test_failed_cross_batch_grouping_includes_all_call_costs(monkeypatch):
 
 
 def test_semantic_group_cannot_point_to_unknown_candidate():
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     def group(values):
         values[1]['lesson_group']='unknown'
         return values

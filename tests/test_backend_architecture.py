@@ -1,3 +1,8 @@
+import selfos.providers.knowledge as _providers_knowledge
+import selfos.storage.files as _storage_files
+import selfos.sources.conversations as _sources_conversations
+import selfos.sources.text as _sources_text
+import selfos.web.server as _web_server
 import ast
 import importlib
 from pathlib import Path
@@ -11,37 +16,14 @@ def test_backend_has_separate_packages():
     for area in ('sources', 'knowledge', 'storage', 'providers', 'app', 'security', 'web'):
         assert (PACKAGE / area / '__init__.py').is_file(), area
 
-def test_legacy_imports_reach_the_owning_module():
-    assert PACKAGE.exists(), 'backend package is missing'
-    import knowledge, harvest
-    from selfos.storage.files import _atomic_write
-    from selfos.sources.conversations import extract_conversations
-    from selfos.sources.text import redact
-    assert knowledge._atomic_write is _atomic_write
-    assert knowledge.extract_conversations is extract_conversations
-    assert harvest.redact is redact
 
 def test_http_methods_have_separate_route_owners():
-    import serve
-    assert serve.Handler._auth.__module__ == 'selfos.web.routes.auth'
-    assert serve.Handler.do_GET.__module__ == 'selfos.web.routes.dashboard'
-    assert serve.Handler.do_POST.__module__ == 'selfos.web.routes.actions'
 
-def test_legacy_assignment_reaches_loaded_consumers(monkeypatch):
-    import knowledge
-    from selfos.providers import knowledge as providers
-    from selfos.providers import config
-    replacement = lambda _: ('fixture', 'https://example.invalid')
-    monkeypatch.setattr(knowledge, '_get_api_config', replacement)
-    assert config._get_api_config is replacement
-    assert providers._get_api_config is replacement
+    assert _web_server.Handler._auth.__module__ == 'selfos.web.routes.auth'
+    assert _web_server.Handler.do_GET.__module__ == 'selfos.web.routes.dashboard'
+    assert _web_server.Handler.do_POST.__module__ == 'selfos.web.routes.actions'
 
-def test_all_legacy_public_exports_remain_available():
-    from selfos._legacy import EXPORTS
-    for name, symbols in EXPORTS.items():
-        module = importlib.import_module(name)
-        for symbol in symbols:
-            assert getattr(module, symbol) is not None, (name, symbol)
+
 
 def test_package_dependencies_are_one_way_and_acyclic():
     assert PACKAGE.exists(), 'backend package is missing'

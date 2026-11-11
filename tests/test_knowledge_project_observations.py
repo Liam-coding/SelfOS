@@ -75,7 +75,7 @@ def test_repaired_review_has_a_persisted_redacted_diagnostic(tmp_path):
 
 
 def test_failed_project_synthesis_has_diagnostics_and_preserves_state(tmp_path):
-    from knowledge import ResponseFormatError
+    from selfos.knowledge.contracts import ResponseFormatError
     _app_pipeline.consolidate_sessions(tmp_path,[session()],summary)
     previous=(tmp_path/'.knowledge_pipeline.json').read_bytes()
     def refine(payload):raise ResponseFormatError('Invalid merge','Bad model output')
