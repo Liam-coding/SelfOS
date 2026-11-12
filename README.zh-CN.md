@@ -4,8 +4,6 @@
 
 [![README views](https://hits.sh/github.com/Liam-coding/SelfOS.svg?style=flat&label=README%20views&color=2563eb)](https://hits.sh/github.com/Liam-coding/SelfOS/)
 
-*统计 README 徽章请求次数，不代表独立真人访客或 Git clone 次数；缓存和机器人可能影响计数。*
-
 **把 AI 对话变成可以再次使用的知识。**
 
 SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claude Code 和 Codex 对话整理为事实、偏好、项目上下文和可复用经验，让 AI 助手跨会话了解你正在做什么。
