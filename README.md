@@ -48,7 +48,9 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
 
     The interface defaults to English. Choose **Settings > Language** for Simplified Chinese.
 
-4. Select your focus domains and detail level under **Choose what matters**, then click **Organize my knowledge**. When the operation completes, use **Browse knowledge** to explore records and their sources.
+4. On a fresh knowledge profile, select **Get started** to choose sources/exclusions, configure your model and inspect a bounded local preview. **Start sample** processes at most 2 compact parts with a cumulative 12-request allowance. Stop/resume preserves progress and remaining requests. Existing users can reopen it through **Settings > Resume setup**. See [first-run setup](docs/first-run-onboarding.md).
+
+   **Preview more conversations** offers a separate larger preview without launching all history. The ordinary organizer remains available under **Choose what matters**. Use **Browse knowledge** for published records and original sources.
 
 Before using the vault as agent context, review `vault/PROFILE.md`, `vault/NOW.md` and `vault/GOALS.md` and personalize their contents.
 

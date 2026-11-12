@@ -1,5 +1,7 @@
 # Knowledge import and recovery
 
+For a bounded initial preview with custom sources, exclusions and a cumulative request allowance, use the [first-run guide](first-run-onboarding.md). The ordinary import flow below remains available separately.
+
 SelfOS turns local AI conversations into traceable personal knowledge. The dashboard screenshot uses synthetic example records; it contains no personal conversation content.
 
 ## Run locally
