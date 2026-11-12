@@ -40,6 +40,7 @@ const fixture={items:[row],total:2,counts:{preferences:2},filtered_counts:{prefe
  filters:{projects:[{id:'project1',title:'Alpha'}],sources:['codex']}};
 let urls=[],failMore=true;
 global.fetch=async url=>{urls.push(String(url));const params=new URL(url,'http://fixture').searchParams;
+ if(String(url).startsWith('/__knowledge_corrections__'))return {ok:true,json:async()=>({actions:[]})};
  if(params.get('offset')==='1'&&failMore){failMore=false;return {ok:false,json:async()=>({code:'unavailable',error:'backend error'})};}
  return {ok:true,json:async()=>fixture};};
 SCRIPT
@@ -51,12 +52,13 @@ const el=id=>document.getElementById(id),tick=()=>new Promise(resolve=>setImmedi
  if(!el('kb-status').textContent.includes('Showing 1 of 2 records')||!el('kb-list').textContent.includes('0 sources'))throw Error('Localized counts were not interpolated');
  el('kb-project').value='project1';el('kb-source-filter').value='codex';el('kb-date-from').value='2026-11-10';
  el('kb-project').onchange();await tick();
- const params=new URL(urls.at(-1),'http://fixture').searchParams;
+ const searchRequests=()=>urls.filter(url=>url.startsWith('/__knowledge__?'));
+ const params=new URL(searchRequests().at(-1),'http://fixture').searchParams;
  if(params.get('project')!=='project1'||params.get('source')!=='codex'||params.get('date_from')!=='2026-11-10')throw Error('Filters not sent');
  el('kb-more').onclick();await tick();
  if(el('kb-more').hidden||el('kb-more').disabled)throw Error('Failed pagination must be retryable');
  el('kb-more').onclick();await tick();
- if(new URL(urls.at(-1),'http://fixture').searchParams.get('offset')!=='1')throw Error('Failed page skipped');
+ if(new URL(searchRequests().at(-1),'http://fixture').searchParams.get('offset')!=='1')throw Error('Failed page skipped');
  el('kb-search').value='atomic';el('kb-search').focus();selfosI18n.setLocale('zh');
  for(const handler of events.get('selfos-language')||[])handler();await tick();
  if(el('kb-search').value!=='atomic'||el('kb-project').value!=='project1'||document.activeElement!==el('kb-search'))throw Error('Translation changed user input or focus');

@@ -109,4 +109,8 @@ def history_records(state):
                     'domain':domain,'source_ids':record.get('source_ids',card.get('source_ids',[])),
                     'observed_at':record.get('observed_at',''),'original_category':'projects',
                     'source_scope':record.get('source_scope','project_context')})
+    if state.get('_correction_hidden_history'):
+        from selfos.knowledge.identity import record_version
+        hidden=set(state['_correction_hidden_history'])
+        history=[record for record in history if record_version('history',record) not in hidden]
     return history

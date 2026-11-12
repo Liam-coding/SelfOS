@@ -11,6 +11,10 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path=='/__knowledge_corrections__':
+            from selfos.app.corrections import correction_metadata
+            try:return self._send_json(200,correction_metadata(self.runtime.VAULT))
+            except (ValueError,OSError):return self._send_json(503,{'code':'correction_unavailable'})
         if parsed_path.path == '/__knowledge_run__':
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':

@@ -24,8 +24,13 @@ def _view(vault):
     vault=Path(vault).resolve();path=vault/'.knowledge_pipeline.json'
     if not path.resolve().is_relative_to(vault):raise ValueError('Knowledge state escapes vault')
     stat=path.stat() if path.exists() else None
+    from selfos.storage.pipeline import safe_path
+    correction_path=safe_path(vault,'.knowledge_corrections.json')
+    correction_stat=correction_path.stat() if correction_path.exists() else None
+    correction_signature=(correction_stat.st_mtime_ns,correction_stat.st_ctime_ns,correction_stat.st_size) if correction_stat else None
     clock=datetime.now(timezone.utc).strftime('%Y%m%d%H%M')
     signature=(str(path),stat.st_mtime_ns,stat.st_ctime_ns,stat.st_size,stat.st_ino,clock) if stat else (str(path),None,clock)
+    signature=signature+(correction_signature,)
     with _VIEW_LOCK:
         if signature not in _VIEWS:
             state=_state(vault)
@@ -42,7 +47,10 @@ def _view(vault):
 def _state(vault):
     vault=Path(vault).resolve();path=vault/'.knowledge_pipeline.json'
     if not path.resolve().is_relative_to(vault):raise ValueError('Knowledge state escapes vault')
-    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    state=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    from selfos.storage.corrections import load_corrections
+    from selfos.knowledge.corrections import apply_corrections
+    return apply_corrections(state,load_corrections(vault))
 
 
 def knowledge_counts(state):
@@ -65,15 +73,8 @@ def _sources(state,ids):
 
 
 def _record_identity(category, record):
-    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
-        from selfos.knowledge.preferences import normalize_scope
-        record=normalize_scope(copy.deepcopy(record))
-    text = record.get('intent', '') if category == 'projects' else record.get('text', '')
-    fields = [category, record.get('project_id'), record.get('key'), record.get('value'),
-              text, record.get('source_ids', []), record.get('domain')]
-    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
-        fields.extend([record.get('scope_type','unknown'), record.get('scope','unknown')])
-    return digest(fields)
+    from selfos.knowledge.identity import record_version
+    return record_version(category,record)
 
 
 def _records(state):
@@ -83,7 +84,8 @@ def _records(state):
     metadata={}
     aliases=state.get('project_aliases',{})
     def project_identity(identity):
-        return aliases.get(identity,identity) if isinstance(identity,str) and isinstance(aliases,dict) else identity
+        from selfos.knowledge.identity import resolve_project_alias
+        return resolve_project_alias(identity,aliases) if isinstance(identity,str) and isinstance(aliases,dict) else identity
     def sources_for(ids):
         missing=[identity for identity in ids if identity not in metadata]
         for source in _sources(state,missing):metadata[source['id']]=source
@@ -144,6 +146,9 @@ def _records(state):
             details['revision']={k:redact(str(record['revision'].get(k,'')))
                                  for k in ('previous_value','effective_at','evidence','source_id')}
         details['user_corrected']=bool(record.get('manual_correction'))
+        if record.get('proposed_revision'):
+            details['proposed_revision']={'intent':redact(str(record['proposed_revision'].get('intent',''))),
+                                          'source_ids':list(record['proposed_revision'].get('source_ids',[]))}
         details['scheduled']=bool(record.get('scheduled'))
         details['validity_conflict']=bool(record.get('validity_conflict'))
         search=' '.join([row['title'],row['summary'],row['domain'],*details['decisions'],
@@ -207,8 +212,9 @@ def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
     for row,details,sources,_ in _view(vault)[0]:
         if row['id']==identity:
             sources=sorted(sources,key=lambda s:s['timestamp'],reverse=True)
+            from selfos.app.corrections import correction_metadata
             return copy.deepcopy({'item':details,'sources':sources[source_offset:source_offset+source_limit],
-                    'source_count':len(sources),'source_offset':source_offset})
+                    'source_count':len(sources),'source_offset':source_offset,'corrections':correction_metadata(vault,identity)})
     raise KeyError('Knowledge item not found; it may have changed after organizing')
 
 

@@ -7,6 +7,13 @@ def render_card(card):
     lines = ["# " + card["title"], "", "[ai-inference] Project summary",
              "Project: " + card["project_id"], "Updated: " + card["updated_at"],
              "Status: " + card["status"], "Verified: " + str(card["verified"]), "", card["intent"]]
+    if card.get('manual_correction'):
+        lines[2]='[user_correction] Project purpose; status and next steps remain generated'
+        lines.extend(['','Correction: '+card['manual_correction']['action_id'],
+                      'Original sources are context for the correction, not proof of the edited purpose.'])
+    if card.get('proposed_revision'):
+        lines.extend(['','Unverified new purpose candidate: '+card['proposed_revision']['intent'],
+                      'Candidate sources: '+', '.join(card['proposed_revision']['source_ids'])])
     for field in ("blockers", "next_steps", "decisions"):
         lines.extend(["", "## " + field, *["- " + v for v in card[field]]])
     lines.extend(["", "Sources stored in .knowledge_pipeline.json: " + str(len(card["source_ids"])),

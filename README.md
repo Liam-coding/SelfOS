@@ -118,6 +118,7 @@ Source references make records traceable; AI summaries and candidate reviews do 
 | --- | --- |
 | [Import and recovery](docs/knowledge-import.md) | Retention rules, CLI, checkpoints, retries and backups |
 | [Project timelines](docs/project-timelines.md) | Trace goals, decisions, progress and blockers to recorded conversations |
+| [Knowledge corrections](docs/knowledge-corrections.md) | Edit, delete, merge and undo while preserving sources and respecting later imports |
 | [Agent integration](docs/agent-integration.md) | Connecting Claude Code, Codex and other agents |
 | [Development](docs/dev.md) | Architecture, endpoints and Harvest workflows |
 | [Backend package](docs/backend-architecture.md) | Module boundaries, installation, paths and compatible commands |

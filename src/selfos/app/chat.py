@@ -1,5 +1,6 @@
 """Task-relevant vault projection and chat model transport."""
 import json
+import re
 from urllib.request import Request
 
 _CONTEXT_FILES = [
@@ -38,8 +39,12 @@ def load_vault_context(vault) -> str:
     state_path = vault / ".knowledge_pipeline.json"
     if state_path.exists():
         state = json.loads(state_path.read_text(encoding="utf-8"))
+        generated_lessons=state.get('lessons',[])
+        from selfos.knowledge.corrections import apply_corrections
+        from selfos.storage.corrections import load_corrections
+        state=apply_corrections(state,load_corrections(vault))
         for category in ('personal_facts', 'preferences'):
-            records = [{k: r.get(k) for k in ('text', 'domain', 'conflict', 'observed_at')}
+            records = [{k: r.get(k) for k in ('text', 'domain', 'conflict', 'observed_at','kind','manual_correction')}
                        for r in state.get(category, [])]
             if records:
                 parts.append('## ' + category + '\n' + json.dumps(records, ensure_ascii=False))
@@ -55,7 +60,17 @@ def load_vault_context(vault) -> str:
         for card in cards[:20]:
             parts.append("## Project summary\n" + card.read_text(encoding="utf-8")[:4000])
     lessons = vault / "05_Life/lessons.md"
-    if lessons.exists():
+    if state_path.exists():
+        retained=[{k:r.get(k) for k in ('text','domain','kind','manual_correction','conflict')} for r in state.get('lessons',[])]
+        if retained:parts.append('## Reusable lessons'+chr(10)+json.dumps(retained,ensure_ascii=False))
+        if lessons.exists():
+            notes=lessons.read_text(encoding='utf-8')
+            notes=re.sub(r'<!-- selfos-managed-lessons -->.*?<!-- /selfos-managed-lessons -->','',notes,flags=re.S)
+            for lesson in generated_lessons:
+                block='- ['+lesson.get('kind','inference')+'] '+lesson['text']+'\n  Source: '+', '.join(lesson.get('source_ids',[]))
+                notes=notes.replace(block,'')
+            if notes.strip():parts.append('## Personal lesson notes\n'+notes.strip()[-8000:])
+    elif lessons.exists():
         parts.append("## Reusable lessons\n" + lessons.read_text(encoding="utf-8")[-8000:])
     return "\n\n---\n\n".join(parts)
 

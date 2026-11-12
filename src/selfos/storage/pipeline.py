@@ -7,7 +7,7 @@ import base64
 
 def safe_path(vault, name):
     vault = Path(vault).resolve()
-    if name not in (".knowledge_pipeline.json","05_Life/lessons.md","knowledge/personal_facts.md","knowledge/preferences.md","knowledge/history.md") and not re.fullmatch(r"02_Work/projects/[a-f0-9]{64}\.md", name):
+    if name not in (".knowledge_pipeline.json",".knowledge_corrections.json","05_Life/lessons.md","knowledge/personal_facts.md","knowledge/preferences.md","knowledge/history.md") and not re.fullmatch(r"02_Work/projects/[a-f0-9]{64}\.md", name):
         raise ValueError("unsupported pipeline path")
     path = vault / name
     if not path.resolve().is_relative_to(vault):

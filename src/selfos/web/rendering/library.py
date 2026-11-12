@@ -8,8 +8,9 @@ LOCALES = namespace_messages('search')
 STYLE = frontend_text('templates/knowledge-browser-style.html')
 
 _HTML = frontend_text('templates/knowledge-browser.html')
+_HTML = _HTML.replace('</section>','<style data-selfos-corrections>'+frontend_text('styles/knowledge-corrections.css')+'</style></section>',1)
 
-_SCRIPT = frontend_text('scripts/knowledge-browser.js')
+_SCRIPT = frontend_text('scripts/knowledge-corrections.js') + '\n' + frontend_text('scripts/knowledge-browser.js')
 
 HTML = _HTML + '<script>' + _SCRIPT + '</script>'
 

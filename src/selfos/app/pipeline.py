@@ -218,12 +218,23 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
             source_ids = unique(current["source_ids"] + [i for l in lessons for i in l["source_ids"]])
             payload = {"project": copy.deepcopy(current), "lessons": copy.deepcopy(lessons),
                        "sources": {i: state["sources"][i] for i in source_ids}}
+            from selfos.storage.corrections import load_corrections
+            ledger=load_corrections(vault)
+            if any(action.get('active',True) for action in ledger['actions']):
+                from selfos.knowledge.corrections import apply_corrections
+                projection=apply_corrections(state,ledger)
+                payload['user_corrections']={
+                    'project':projection.get('cards',{}).get(project_id),
+                    'lessons':[l for l in projection.get('lessons',[]) if any(
+                        state['sources'].get(i,{}).get('project_id')==project_id for i in l.get('source_ids',[]))],
+                    'notice':'User corrections are separate from original source evidence. Do not silently overwrite them.'}
             payload['policy']=state.get('policy',DEFAULT_SETTINGS)
             payload["intent_history"] = [{"title": c["project"]["title"], "intent": c["project"]["intent"]}
                 for c in state.get("summaries",{}).values() if c.get("project") and c["project"]["project_id"] == project_id]
             fingerprint = digest({'synthesis_version':SYNTHESIS_VERSION,"history":current.get("decision_history",current["decisions"]),
                 "state": {k:current.get(k) for k in ("status","blockers","next_steps","updated_at")},
                 "lessons": lessons, "sources": source_ids, "intent_history":payload["intent_history"], 'policy':payload['policy']})
+            if 'user_corrections' in payload:fingerprint=digest([fingerprint,payload['user_corrections']])
             if state["refined"].get(project_id) == fingerprint:
                 continue
             progress("Refining project: " + current["title"])
@@ -379,6 +390,13 @@ def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_po
                         outside=re.sub(r'<!-- selfos-managed-'+re.escape(tag)+r' -->.*?<!-- /selfos-managed-'+re.escape(tag)+r' -->','',target.read_text(encoding='utf-8'),flags=re.S)
                         text=outside.rstrip()+'\n\n'+text[text.index('<!-- selfos-managed-'):]
                 writes[name]=text.encode()
+        from selfos.storage.corrections import load_corrections
+        ledger=load_corrections(vault)
+        if ledger['actions']:
+            from selfos.storage.records import record_writes
+            # Rebuild outputs can predate a user action. Project the latest local
+            # ledger under this same lock without rewriting generated state.
+            writes.update(record_writes(vault,new,corrections=ledger))
         commit(vault, writes, run_id, 1)
     return run_id
 

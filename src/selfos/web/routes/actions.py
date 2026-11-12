@@ -7,6 +7,22 @@ class ActionsRoutes:
     def do_POST(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
+        if self.path=='/__knowledge_correct__':
+            with self.runtime.KNOWLEDGE_RUN_LOCK:
+                if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409,{'code':'correction_import_active'})
+                try:
+                    size=int(self.headers.get('Content-Length','0'))
+                    if not 0<size<=65536:raise ValueError('Invalid correction request size')
+                    body=json.loads(self._read_body())
+                    from selfos.app.corrections import correct_knowledge
+                    return self._send_json(200,correct_knowledge(self.runtime.VAULT,body))
+                except (ValueError,TypeError,KeyError) as error:
+                    message=str(error)
+                    code='correction_stale' if 'version' in message else 'correction_dependency' if 'dependent' in message else 'invalid_correction'
+                    return self._send_json(409 if code!='invalid_correction' else 400,{'code':code})
+                except OSError:
+                    return self._send_json(503,{'code':'correction_unavailable'})
         if self.path in ('/__model_settings__','/__model_test__'):
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:

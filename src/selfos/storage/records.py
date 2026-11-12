@@ -34,9 +34,14 @@ def managed_content(old,title,records,marker):
     return (outside+'\n\n'+start+'\n'+'\n'.join(lines)+'\n'+end+'\n').encode()
 
 
-def record_writes(vault,state):
+def record_writes(vault,state,*,corrections=None):
     from selfos.knowledge.preferences import preference_snapshot
     state=preference_snapshot(state)
+    from selfos.knowledge.corrections import apply_corrections
+    from selfos.storage.corrections import load_corrections
+    ledger=load_corrections(vault) if corrections is None else corrections
+    generated=state
+    state=apply_corrections(state,ledger)
     from selfos.storage.pipeline import safe_path
     writes={}
     for category,path in FILES.items():
@@ -47,4 +52,29 @@ def record_writes(vault,state):
             records=history_records(state)
         old=actual.read_text(encoding='utf-8') if actual.exists() else ''
         writes[path]=managed_content(old,category.replace('_',' ').title(),records,category)
+    if any(action.get('category')=='lessons' for action in ledger.get('actions',[])):
+        path='05_Life/lessons.md'
+        actual=safe_path(Path(vault).resolve(),path)
+        old=actual.read_text(encoding='utf-8') if actual.exists() else '# Reusable lessons'
+        if '<!-- selfos-managed-lessons -->' not in old:
+            # Remove only exact generator blocks; preserve unrelated manual prose.
+            for lesson in generated.get('lessons',[]):
+                block='- ['+lesson.get('kind','inference')+'] '+lesson['text']+chr(10)+'  Source: '+', '.join(lesson.get('source_ids',[]))
+                old=old.replace(block,'')
+        writes[path]=managed_content(old,'Reusable lessons',state.get('lessons',[]),'lessons')
+    project_ids={original['project_id'] for action in ledger.get('actions',[]) if action.get('category')=='projects'
+                 for original in action.get('originals',[]) if original.get('project_id')}
+    from selfos.knowledge.identity import resolve_project_alias
+    project_ids={resolve_project_alias(identity,generated.get('project_aliases',{})) for identity in project_ids}
+    if project_ids:
+        from selfos.storage.documents import render_project_document, _project_unmanaged
+        from selfos.knowledge.identity import digest
+        for identity in project_ids:
+            original=generated.get('cards',{}).get(identity)
+            current=state.get('cards',{}).get(identity)
+            name='02_Work/projects/'+digest(identity)+'.md'
+            if current:writes[name]=render_project_document(Path(vault).resolve(),current,original)
+            else:
+                notes=_project_unmanaged(Path(vault).resolve(),identity,original)
+                writes[name]=notes.encode('utf-8') if notes.strip() else None
     return writes

@@ -1,5 +1,6 @@
 /* Read-only fictional fixture adapter: requests never reach a server or model. */
 (() => {
+ window.selfosReadOnlyDemo=true;
  const data=__DEMO_DATA__;
  try{localStorage.setItem('selfos-lang','__DEMO_LOCALE__');localStorage.setItem('selfos-theme','light');}catch(e){}
  const answer=(value,status=200)=>Promise.resolve(new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}}));
