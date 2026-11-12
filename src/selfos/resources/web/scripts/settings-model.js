@@ -22,15 +22,22 @@ async function modelRequest(url,body) {
   const r=await fetch(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data=await r.json();if(!r.ok)throw new Error('model_request_failed');return data;
 }
+let modelSettingsGeneration=0;
 async function openModelSettings() {
+  const generation=++modelSettingsGeneration;
   document.getElementById('model-settings').showModal();
+  const controls=[...document.querySelector('#model-settings form').querySelectorAll('input,select,button:not([data-i18n="ui.model.close"])')];
+  controls.forEach(control=>control.disabled=true);
+  window.selfosI18n.bindText('model-status','ui.import_settings.loading_settings');
   try {
     const c=await modelRequest('/__model_settings__');
+    if(generation!==modelSettingsGeneration||!document.getElementById('model-settings').open)return;
     for(const [id,key] of [['model-provider','provider'],['model-base','base_url'],['model-name','model'],['model-proxy-mode','proxy_mode'],['model-proxy-url','proxy_url']])document.getElementById(id).value=c[key];
     document.getElementById('model-name').value=c.model||(c.provider==='anthropic'?'claude-haiku-4-5-20251001':'');
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
     updateModelProxy();showCurrentModel(c);
-  }catch(e){modelStatus('request_failed');}
+  }catch(e){if(generation===modelSettingsGeneration)modelStatus('request_failed');}
+  finally{if(generation===modelSettingsGeneration)controls.forEach(control=>control.disabled=false);}
 }
 async function saveModelSettings(test) {
   const form=document.querySelector('#model-settings form');if(!form.reportValidity())return;
