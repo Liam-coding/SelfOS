@@ -8,7 +8,7 @@ function toggleChat(e) {
   document.getElementById('chat-panel').classList.toggle('collapsed', chatCollapsed);
   localStorage.setItem('selfos-chat-open', String(!chatCollapsed));
   document.getElementById('chat-collapse-btn').setAttribute('aria-expanded', String(!chatCollapsed));
-  document.getElementById('chat-collapse-btn').setAttribute('aria-label', chatCollapsed ? '展开聊天' : '收起聊天');
+  updateChatLabel();
 }
 
 // ── Chat ──
@@ -33,7 +33,8 @@ async function sendChat() {
   appendMsg(text, 'user');
   chatHistory.push({role:'user', content: text});
 
-  const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
+  const thinking = appendMsg('', 'ai');
+  window.selfosI18n.bindText(thinking,'ui.chat.thinking');
   thinking.classList.add('thinking');
 
   try {
@@ -43,12 +44,13 @@ async function sendChat() {
       body: JSON.stringify({messages: chatHistory})
     });
     const data = await res.json();
+    if(!res.ok||typeof data.reply!=='string'||!data.reply.trim())throw Error('chat_failed');
     thinking.remove();
-    const reply = data.reply || data.error || 'Error';
+    const reply = data.reply;
     appendMsg(reply, 'ai');
     chatHistory.push({role:'assistant', content: reply});
   } catch(e) {
-    thinking.textContent = lang === 'zh' ? '连接失败，请运行 python -m selfos serve' : 'Connection failed — run python -m selfos serve';
+    window.selfosI18n.bindText(thinking,'ui.chat.failed');
     thinking.classList.add('thinking');
   }
   document.getElementById('chat-send').disabled = false;
@@ -62,3 +64,6 @@ document.getElementById('chat-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
 });
 
+function updateChatLabel(){const button=document.getElementById('chat-collapse-btn');button.dataset.i18nAriaLabel=chatCollapsed?'ui.chat.expand':'ui.chat.collapse';button.setAttribute('aria-label',window.selfosI18n.t(button.dataset.i18nAriaLabel));}
+document.addEventListener('selfos-language',updateChatLabel);
+updateChatLabel();

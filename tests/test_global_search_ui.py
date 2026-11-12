@@ -5,8 +5,9 @@ import subprocess
 from selfos.web.rendering import library
 
 
-def test_search_client_default_filters_highlights_retry_and_language():
-    script = library.HTML.split('<script>', 1)[1].split('</script>', 1)[0]
+def test_search_client_default_filters_highlights_retry_and_language(tmp_path):
+    from selfos.web.i18n import runtime
+    script = runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0] + library.HTML.split('<script>', 1)[1].split('</script>', 1)[0]
     node = shutil.which('node')
     assert node, 'Node is required for JavaScript regression testing'
     harness = r'''
@@ -30,7 +31,7 @@ global.document={documentElement:{lang:'en'},activeElement:null,
  querySelector(selector){return this.getElementById(selector==='.kb-tabs'?'kb-tabs':selector);},
  querySelectorAll(){return this.getElementById('kb-tabs').children;},
  addEventListener(key,handler){if(!events.has(key))events.set(key,[]);events.get(key).push(handler);}};
-global.window=global;global.matchMedia=()=>({matches:true});
+global.window=global;global.localStorage={getItem:()=>null,setItem(){}};document.dispatchEvent=e=>{for(const fn of events.get(e.type)||[])fn(e);};global.matchMedia=()=>({matches:true});
 const row={id:'record1',category:'preferences',title:'Concise updates',summary:'Prefer atomic updates',
  match_excerpt:'Snippet atomic <img src=x>',match_ranges:[[8,14]],match_field:'summary',
  project_contexts:[{id:'project1',title:'Alpha'}],source_count:0,missing_source_count:1,
@@ -56,7 +57,7 @@ const el=id=>document.getElementById(id),tick=()=>new Promise(resolve=>setImmedi
  if(el('kb-more').hidden||el('kb-more').disabled)throw Error('Failed pagination must be retryable');
  el('kb-more').onclick();await tick();
  if(new URL(urls.at(-1),'http://fixture').searchParams.get('offset')!=='1')throw Error('Failed page skipped');
- el('kb-search').value='atomic';el('kb-search').focus();document.documentElement.lang='zh';
+ el('kb-search').value='atomic';el('kb-search').focus();selfosI18n.setLocale('zh');
  for(const handler of events.get('selfos-language')||[])handler();await tick();
  if(el('kb-search').value!=='atomic'||el('kb-project').value!=='project1'||document.activeElement!==el('kb-search'))throw Error('Translation changed user input or focus');
  let sourceAttempt=0;
@@ -71,13 +72,14 @@ const el=id=>document.getElementById(id),tick=()=>new Promise(resolve=>setImmedi
  if(!el('kb-sources').textContent.includes('原始来源已丢失或移动'))throw Error('Source error must be localized');
  sourceButton().onclick();await tick();sourceButton().onclick();await tick();
  if(!el('kb-sources').textContent.includes('parttail'))throw Error('Original source pages missing');
- document.documentElement.lang='en';for(const handler of events.get('selfos-language')||[])handler();
+ selfosI18n.setLocale('en');for(const handler of events.get('selfos-language')||[])handler();
  if(!el('kb-sources').textContent.includes('parttail'))throw Error('Language switch discarded original text');
  console.log('search UI passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''
     harness = harness.replace('SCRIPT', script)
-    result = subprocess.run([node, '-e', harness], capture_output=True, text=True, encoding='utf-8')
+    path=tmp_path/'search.js';path.write_text(harness,encoding='utf-8')
+    result = subprocess.run([node, str(path)], capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 0, result.stderr
 
 
@@ -94,5 +96,6 @@ def test_cached_library_refresh_preserves_surrounding_content():
     updated = library.refresh_library(old)
     assert 'Existing private dashboard' in updated and 'Existing scores and notes' in updated
     assert 'oldSearch' not in updated and 'id="kb-project"' in updated
-    assert updated.count('const searchLocales') == 1
+    assert updated.count("const categories=['all','projects','lessons','personal_facts','preferences','history']") == 1
+    assert 'const searchLocales' not in updated
     assert library.refresh_library(updated) == updated

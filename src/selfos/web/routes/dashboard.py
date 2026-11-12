@@ -50,21 +50,8 @@ class DashboardRoutes:
         if self.path in ("/", "/dashboard.html"):
             if self.runtime.DASHBOARD.exists():
                 body = self.runtime.DASHBOARD.read_bytes()
-                from selfos.web.rendering.overall import STYLE, integrate_overall
-                page=body.decode('utf-8')
-                from selfos.web.rendering.knowledge import refresh_controls
-                page=refresh_controls(page)
-                from selfos.web.rendering.library import refresh_library
-                page=refresh_library(page)
-                page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:STYLE,page,count=1,flags=re.S)
-                body=integrate_overall(page).encode('utf-8')
-                from selfos.web.rendering.auth import ACCOUNT_CONTROLS
-                body=body.replace(b'</body>',ACCOUNT_CONTROLS.encode('utf-8')+b'</body>')
-                body=body.replace(b"let lang = localStorage.getItem('selfos-lang') === 'en' ? 'en' : 'zh';",
-                                  b"let lang = localStorage.getItem('selfos-lang') === 'zh' ? 'zh' : 'en';")
-                from selfos.web.rendering.model import CONTROLS
-                if b'id="model-settings-entry"' not in body:
-                    body=body.replace(b'</body>',CONTROLS.encode('utf-8')+b'</body>')
+                from selfos.web.rendering.refresh import refresh_dashboard
+                body=refresh_dashboard(body.decode('utf-8')).encode('utf-8')
                 self._send(200, body, "text/html; charset=utf-8")
             else:
                 self._send_json(404, {"error": "dashboard.html not found — run python -m selfos harvest first"})

@@ -14,9 +14,10 @@ def test_timeline_resources_and_cached_dashboard_refresh():
     assert library.refresh_library(updated) == updated
 
 
-def test_actual_timeline_script_handles_filters_sources_retries_and_language():
+def test_actual_timeline_script_handles_filters_sources_retries_and_language(tmp_path):
     from selfos.web.rendering.timeline import HTML
-    script = HTML.split('<script>', 1)[1].split('</script>', 1)[0]
+    from selfos.web.i18n import runtime
+    script = runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0] + HTML.split('<script>', 1)[1].split('</script>', 1)[0]
     harness = r"""
 const elements=new Map(),events=new Map();
 class Element {
@@ -29,7 +30,7 @@ class Element {
  showModal(){this.open=true;}close(){this.open=false;this.handlers.close?.();}focus(){}
 }
 global.document={documentElement:{lang:'en'},getElementById(id){if(!elements.has(id)){const e=new Element();e.id=id;}return elements.get(id);},createElement(t){return new Element(t);},querySelectorAll(){return [];},addEventListener(k,h){events.set(k,h);}};
-global.window=global;let urls=[],fail=true;
+global.window=global;global.localStorage={getItem:()=>null,setItem(){}};document.dispatchEvent=e=>events.get(e.type)?.();let urls=[],fail=true;
 const entry={id:'e1',type:'goals',text:'Goal <img src=x>',status:'',blockers:[],next_steps:[],event_time:'',observed_at:'2026-01-01',source_times:['2026-01-01'],imported_at:'',ordering_basis:'observation',source_scope:'session_context',superseded:false,sources:[{id:'s1',source:'codex',file:'session.jsonl',timestamp:'2026-01-01'}],unavailable_source_count:1};
 global.fetch=async url=>{urls.push(String(url));if(String(url).includes('__knowledge_source__')){const offset=new URL(url,'http://test').searchParams.get('offset');return {ok:true,json:async()=>offset==='24000'?{text:' retained tail',text_total:24014,next_offset:null}:{text:'Original <script>text</script>'.padEnd(24000,'x'),text_total:24014,next_offset:24000}};}
  if(new URL(url,'http://test').searchParams.get('offset')==='1'&&fail){fail=false;return {ok:false,json:async()=>({error:'SECRET PATH'})};}
@@ -50,7 +51,7 @@ const el=id=>document.getElementById(id),tick=()=>new Promise(r=>setImmediate(r)
  if(!el('pt-list').textContent.includes('Original <script>text</script>'))throw Error('Original missing');
  const moreSource=el('pt-list').children[0].children.find(c=>c.tagName==='button');if(!moreSource)throw Error('Paginated original was silently truncated');await moreSource.onclick();await tick();
  if(!el('pt-list').textContent.includes('retained tail')||new URL(urls.at(-1),'http://test').searchParams.get('offset')!=='24000')throw Error('Source continuation missing');
- document.documentElement.lang='zh';events.get('selfos-language')();
+ const priorCurrent=el('pt-current').children[0],priorSource=el('pt-list').children[0];selfosI18n.setLocale('zh');if(el('pt-current').children[0]!==priorCurrent||el('pt-list').children[0]!==priorSource)throw Error('Language switch replaced timeline DOM');
  if(el('pt-filter').value!=='blockers'||!el('pt-list').textContent.includes('Original <script>text</script>'))throw Error('Language discarded state');
  global.fetch=async url=>{urls.push(String(url));return {ok:true,json:async()=>({revision:'b'.repeat(64),reset_required:true,offset:0,current:{title:'Alpha',intent:'Updated goal',status:'paused',decisions:[],blockers:[],next_steps:[]},items:[{...entry,id:'new',text:'New older observation'}],total:1})};};
  el('pt-more').onclick();await tick();
@@ -61,5 +62,6 @@ const el=id=>document.getElementById(id),tick=()=>new Promise(r=>setImmediate(r)
 """
     node = shutil.which('node')
     assert node
-    result = subprocess.run([node, '-e', harness.replace('SCRIPT', script)], capture_output=True, text=True, encoding='utf-8')
+    path=tmp_path/'timeline.js';path.write_text(harness.replace('SCRIPT',script),encoding='utf-8')
+    result = subprocess.run([node, str(path)], capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 0, result.stderr

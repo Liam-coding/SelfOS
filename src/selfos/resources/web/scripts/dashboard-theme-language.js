@@ -16,23 +16,18 @@ function toggleTheme() {
 }
 
 // ── Language ──
-let lang = localStorage.getItem('selfos-lang') === 'zh' ? 'zh' : 'en';
-document.documentElement.lang = lang;
+let lang = window.selfosI18n.documentTag;
 function applyLanguage() {
-  document.getElementById('lang-toggle').textContent = lang === 'zh' ? 'EN' : '中文';
-  document.documentElement.lang = lang;
-  localStorage.setItem('selfos-lang', lang);
-  document.dispatchEvent(new Event('selfos-language'));
-  updateKnowledgeOverview();
-  document.querySelectorAll('[data-zh][data-en]').forEach(el => {
-    el.textContent = el.dataset[lang];
-  });
-  const inp = document.getElementById('chat-input');
-  inp.placeholder = lang === 'zh' ? '输入消息…' : 'Type a message…';
+ lang=window.selfosI18n.documentTag;
+ window.selfosI18n.translate();
+ const recordedDate=document.getElementById('overall-date');
+ if(recordedDate&&recordedDate.dataset.date)window.selfosI18n.bindText(recordedDate,'ui.dashboard.updated',()=>({date:window.selfosI18n.date(recordedDate.dataset.date)}));
+ const button=document.getElementById('lang-toggle');
+ if(button)button.textContent=window.selfosI18n.locale;
 }
 function toggleLang() {
-  lang = lang === 'zh' ? 'en' : 'zh';
-  applyLanguage();
+ const ids=Object.keys(window.selfosI18n.locales);
+ window.selfosI18n.setLocale(ids[(ids.indexOf(window.selfosI18n.locale)+1)%ids.length]);
 }
-document.addEventListener('DOMContentLoaded', applyLanguage);
-
+document.addEventListener('selfos-language',applyLanguage);
+document.addEventListener('DOMContentLoaded',applyLanguage);

@@ -22,7 +22,7 @@ def integrate_overall(html):
     html=html.replace('<div class="grid">', '<div class="grid" id="dimension-cards" tabindex="-1">', 1)
     html=re.sub(r'<div class="knowledge-orbit"[^>]*>.*?<div class="knowledge-orbit-core">.*?</div>\s*</div>',lambda _:card,html,count=1,flags=re.S)
     if greeting:
-        html=html.replace('<div class="knowledge-eyebrow">',greeting[0]+'<div class="knowledge-eyebrow">',1)
+        html=html.replace('<div class="knowledge-eyebrow" data-i18n="ui.overview.eyebrow">',greeting[0]+'<div class="knowledge-eyebrow" data-i18n="ui.overview.eyebrow">',1)
     return html
 
 

@@ -1,3 +1,4 @@
+function progressStatus(key){window.selfosI18n.bindText('progress-title',key);}
 // ── Harvest modal ──
 function openHarvestModal() {
   document.getElementById('harvest-modal').classList.add('open');
@@ -19,7 +20,7 @@ function recoverKnowledgeRun() {
   doneBtn.style.display = 'none';
   stopBtn.style.display = 'block';
   stopBtn.disabled = false;
-  title.textContent = lang === 'zh' ? '正在核实整理任务状态…' : 'Checking knowledge task status…';
+  progressStatus('ui.import.checking_knowledge_task_status');
   async function recover() {
     try {
       const response = await fetch('/__knowledge_run__', {cache: 'no-store'});
@@ -29,9 +30,7 @@ function recoverKnowledgeRun() {
       if (state.total) bar.style.width = Math.max(parseFloat(bar.style.width) || 0,
         10 + Math.round(80 * state.completed / state.total)) + '%';
       if (state.running) {
-        title.textContent = state.phase === 'stopping'
-          ? (lang === 'zh' ? '正在停止并保存进度…' : 'Stopping and saving progress…')
-          : (lang === 'zh' ? '整理任务仍在运行，正在同步状态…' : 'Task is running; syncing status…');
+        progressStatus(state.phase==='stopping'?'ui.import.stopping_and_saving_progress':'ui.import.task_is_running_syncing_status');
         setTimeout(recover, 1500);
         return;
       }
@@ -40,17 +39,14 @@ function recoverKnowledgeRun() {
       stopBtn.style.display = 'none';
       if (result.ok && !result.cancelled) bar.style.width = '100%';
       icon.textContent = result.ok && !result.cancelled ? '✅' : '⚠️';
-      title.textContent = result.cancelled
-        ? (lang === 'zh' ? '已停止，已保存进度，可继续整理' : 'Stopped; progress saved, resume available')
-        : result.ok ? (lang === 'zh' ? '知识库整理完成' : 'Knowledge complete')
-        : (lang === 'zh' ? '整理未完成，可重试' : 'Incomplete; retry available');
+      progressStatus(result.cancelled?'ui.import.stopped_progress_saved_resume_available':result.ok?'ui.import.knowledge_complete':'ui.import.incomplete_retry_available');
       doneBtn.style.display = 'block';
-      doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
+      window.selfosI18n.bindText(doneBtn,'ui.import.done_refresh');
       checkStaging();
       document.dispatchEvent(new Event('selfos-import-finished'));
     } catch (error) {
       if (generation !== knowledgeRecoveryGeneration) return;
-      title.textContent = lang === 'zh' ? '暂时无法连接服务，正在重试状态查询…' : 'Server unavailable; retrying status…';
+      progressStatus('ui.import.server_unavailable_retrying_status');
       setTimeout(recover, 2000);
     }
   }
@@ -65,11 +61,10 @@ async function stopKnowledge() {
   try {
     const response = await fetch('/__knowledge_stop__', {method: 'POST'});
     if (!response.ok) throw new Error('Stop request failed');
-    document.getElementById('progress-title').textContent = lang === 'zh'
-      ? '正在停止，保存已完成结果…' : 'Stopping; saving completed results…';
+    progressStatus('ui.import.stopping_saving_completed_results');
   } catch (error) {
     btn.disabled = false;
-    document.getElementById('progress-log').textContent += String.fromCharCode(10) + error.message;
+    progressStatus('ui.import.stop_failed');
   }
 }
 
@@ -91,9 +86,7 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
   bar.style.width = '0%';
   log.textContent = '';
   icon.textContent = '⏳';
-  title.textContent = knowledge
-    ? (lang === 'zh' ? '正在整理知识库…' : 'Building knowledge…')
-    : (lang === 'zh' ? '采集中…' : 'Harvesting…');
+  progressStatus(knowledge?'ui.import.building_knowledge':'ui.import.harvesting');
   doneBtn.style.display = 'none';
   pm.classList.add('open');
 
@@ -125,14 +118,12 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
       stopBtn.style.display = 'none';
       if (msg.ok && !msg.cancelled) advanceTo(100);
       icon.textContent = msg.ok ? '✅' : '⚠️';
-      title.textContent = msg.ok
-        ? (lang === 'zh' ? (knowledge ? '知识库整理完成' : '采集完成') : 'Done')
-        : (lang === 'zh' ? (knowledge ? '整理未完成，可重试' : '采集出错') : 'Error — retry available');
-      if (msg.cancelled) title.textContent = lang === 'zh' ? '已停止，可继续整理' : 'Stopped; resume available';
+      progressStatus(msg.ok?(knowledge?'ui.import.knowledge_complete':'ui.import.harvest_complete'):'ui.import.incomplete_retry_available');
+      if (msg.cancelled) progressStatus('ui.import.stopped_resume_available');
       if (msg.ok) checkStaging();
       if (knowledge) document.dispatchEvent(new Event('selfos-import-finished'));
       doneBtn.style.display = 'block';
-      doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
+      window.selfosI18n.bindText(doneBtn,'ui.import.done_refresh');
       return;
     }
     const line = msg.line || '';
@@ -161,7 +152,7 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
     }
     importRunning = false;
     icon.textContent = '⚠️';
-    title.textContent = lang === 'zh' ? '连接中断' : 'Connection lost';
+    progressStatus('ui.import.connection_lost');
     doneBtn.style.display = 'block';
   };
 }

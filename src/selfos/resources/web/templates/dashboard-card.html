@@ -1,11 +1,11 @@
 
         <div class="card" onclick="openDim(this)" data-key="@@SELFOS_VALUE:key@@"
-             data-label-zh="@@SELFOS_VALUE:label_zh@@" data-label-en="@@SELFOS_VALUE:label_en@@"
+             data-label-key="@@SELFOS_VALUE:label_key@@"
              data-score="@@SELFOS_VALUE:display@@" data-color="@@SELFOS_VALUE:color@@"
-             data-status-zh="@@SELFOS_VALUE:status_zh@@" data-status-en="@@SELFOS_VALUE:status_en@@"
-             data-sugg-zh="@@SELFOS_VALUE:sugg_zh@@" data-sugg-en="@@SELFOS_VALUE:sugg_en@@">
+             data-status-key="@@SELFOS_VALUE:status_key@@"
+             data-sugg-key="@@SELFOS_VALUE:sugg_key@@">
           <div class="card-header">
-            <span class="dim-label" data-zh="@@SELFOS_VALUE:label_zh@@" data-en="@@SELFOS_VALUE:label_en@@">@@SELFOS_VALUE:label_zh@@</span>
+            <span class="dim-label" data-i18n="@@SELFOS_VALUE:label_key@@">@@SELFOS_VALUE:label_text@@</span>
           </div>
           <div class="ring-wrap">
             <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
@@ -15,9 +15,9 @@
                 stroke-dasharray="@@SELFOS_VALUE:arc@@ @@SELFOS_VALUE:circ@@"
                 stroke-dashoffset="0"/>
             </svg>
-            <span class="ring-score">@@SELFOS_VALUE:display@@</span>
+            <span class="ring-score" data-i18n="ui.common.value" data-i18n-params="@@SELFOS_VALUE:score_params@@">@@SELFOS_VALUE:display@@</span>
           </div>
-          <div class="dim-status" style="color:@@SELFOS_VALUE:color@@" data-zh="@@SELFOS_VALUE:status_zh@@" data-en="@@SELFOS_VALUE:status_en@@">@@SELFOS_VALUE:status_zh@@</div>
-          <div class="dim-suggestion" data-zh="@@SELFOS_VALUE:sugg_zh@@" data-en="@@SELFOS_VALUE:sugg_en@@">@@SELFOS_VALUE:sugg_zh@@</div>
+          <div class="dim-status" style="color:@@SELFOS_VALUE:color@@" data-i18n="@@SELFOS_VALUE:status_key@@">@@SELFOS_VALUE:status_text@@</div>
+          <div class="dim-suggestion" data-i18n="@@SELFOS_VALUE:sugg_key@@">@@SELFOS_VALUE:suggestion_text@@</div>
           <canvas class="sparkline" data-values='@@SELFOS_VALUE:hist_json@@' data-color='@@SELFOS_VALUE:color@@' width="200" height="36"></canvas>
         </div>
