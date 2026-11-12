@@ -47,6 +47,7 @@ function recoverKnowledgeRun() {
       doneBtn.style.display = 'block';
       doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
       checkStaging();
+      document.dispatchEvent(new Event('selfos-import-finished'));
     } catch (error) {
       if (generation !== knowledgeRecoveryGeneration) return;
       title.textContent = lang === 'zh' ? '暂时无法连接服务，正在重试状态查询…' : 'Server unavailable; retrying status…';
@@ -129,6 +130,7 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
         : (lang === 'zh' ? (knowledge ? '整理未完成，可重试' : '采集出错') : 'Error — retry available');
       if (msg.cancelled) title.textContent = lang === 'zh' ? '已停止，可继续整理' : 'Stopped; resume available';
       if (msg.ok) checkStaging();
+      if (knowledge) document.dispatchEvent(new Event('selfos-import-finished'));
       doneBtn.style.display = 'block';
       doneBtn.textContent = lang === 'zh' ? '完成，刷新页面' : 'Done, Refresh';
       return;
@@ -166,3 +168,4 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
 document.getElementById('harvest-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeHarvestModal();
 });
+

@@ -30,7 +30,9 @@ def get_status(vault):
     settings = load_settings(vault)
     state = _state(vault)
     from selfos.app.library import knowledge_counts
+    from selfos.app.import_status import publication_status
     return {'settings': settings, 'counts': knowledge_counts(state),
+        'publication': publication_status(vault, state, settings),
         'saved_checkpoints':len(_saved_summaries(Path(vault).resolve(),settings,lambda:False)),
         'last_operation': state.get('last_operation'),
         'needs_rebuild': bool(state) and (state.get('schema_version') != VERSION or
@@ -45,11 +47,13 @@ def _saved_summaries(vault,settings,cancel):
         if not path.resolve().is_relative_to(vault):continue
         try:
             state=json.loads(path.read_text(encoding='utf-8'))
+            if not isinstance(state,dict):continue
             if not state.get('policy') or policy_hash(state['policy'])!=policy_hash(settings):continue
+            if not isinstance(state.get('cache',{}),dict) or not isinstance(state.get('summaries',{}),dict):continue
             for key,fingerprint in state.get('cache',{}).items():
                 summary=state.get('summaries',{}).get(key)
                 if isinstance(summary,dict):cached[(key,fingerprint)]=summary
-        except (OSError,ValueError,TypeError):
+        except (OSError,ValueError,TypeError,AttributeError):
             continue
     return cached
 
@@ -77,6 +81,9 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         operation = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:12]
     result = {'mode': mode, 'installed': False, 'status': 'completed', 'model_calls': 0,
               'operation_id': None}
+    from selfos.app.import_status import RunJournal
+    journal = RunJournal(vault, operation, mode, expected, policy_hash(settings))
+    journal.update()
     try:
         messages = extract_conversations(local_roots() if roots is None else roots, cancel=cancel)
         sessions = prepare_sessions(messages, max_chars=limits(settings)['session_chars'],
@@ -90,6 +97,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if not scratch.resolve().is_relative_to(vault):
             raise ValueError('staging escapes vault')
         scratch.mkdir(parents=True,exist_ok=True)
+        journal.update(checkpoint=scratch.name)
         if not (scratch / '.knowledge_pipeline.json').exists() and mode == 'incremental' and previous:
             with _locked(vault):
                 if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
@@ -106,6 +114,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if cancel():
             result['status'] = 'stopped'
             return result
+        journal.update(phase='extracting')
         imported = consolidate_sessions(scratch, sessions, summarize or api_summarizer(vault.parent),
             max_workers=max_workers, cancel=cancel, progress=progress, settings=settings,
             cached_summaries={} if rebuild else _saved_summaries(vault,settings,cancel))
@@ -113,6 +122,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if imported['failed_sessions'] or cancel():
             result['status'] = 'stopped' if cancel() else 'failed'
             return result
+        journal.update(phase='refining')
         refined = refine_projects(scratch, refine or api_refiner(vault.parent,cancel=cancel), cancel=cancel, progress=progress)
         result['model_calls'] += refined.get('model_calls',refined['projects'])
         if cancel():
@@ -133,6 +143,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         # Empty selected project domains must also clear previously managed lessons.
         if not (scratch / '05_Life/lessons.md').exists():
             _atomic_write(scratch / '05_Life/lessons.md', b'# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n<!-- /selfos-managed-lessons -->\n')
+        journal.update(phase='publishing')
         install_rebuilt(vault, scratch, expected_hash=expected, run_id=operation,
                         expected_policy_hash=policy_hash(settings))
         result.update(installed=True, operation_id=operation)
@@ -142,6 +153,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         result.update(status='failed', error=redact(str(error)))
         progress('Knowledge failed: ' + result['error'])
         return result
+    except BaseException:
+        result['status'] = 'interrupted'
+        raise
+    finally:
+        journal.update(status=result['status'], installed=result['installed'])
 
 
 def restore_last(vault, operation_id=None):

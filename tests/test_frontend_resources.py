@@ -27,9 +27,9 @@ def rendering_hashes(tmp_path, monkeypatch):
     return {key: hashlib.sha256(value.encode('utf-8')).hexdigest() for key, value in outputs.items()}
 
 
-def test_rendered_pages_and_components_preserve_pre_refactor_bytes(tmp_path, monkeypatch):
-    baseline = json.loads((ROOT / 'tests/fixtures/frontend_rendering_baseline.json').read_text(encoding='utf-8'))
-    assert rendering_hashes(tmp_path, monkeypatch) == baseline
+def test_rendered_pages_and_components_preserve_current_main_bytes(tmp_path, monkeypatch):
+    baseline = json.loads((ROOT / 'tests/fixtures/frontend_rendering_main_baseline.json').read_text(encoding='utf-8'))
+    assert rendering_hashes(tmp_path, monkeypatch) == baseline['hashes']
 
 
 def test_production_renderers_do_not_embed_large_ui_blocks():

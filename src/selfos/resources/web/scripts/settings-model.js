@@ -1,4 +1,27 @@
 
+const modelMessages = __MODEL_MESSAGES__;
+let modelView = {config:null, status:null, unavailable:false};
+function modelText(key) {
+  const locale=document.documentElement.lang==='zh'?'zh':'en';
+  return modelMessages[locale][key] || modelMessages.en[key] || key;
+}
+function refreshModelLanguage() {
+  document.getElementById('model-name').placeholder=modelText('namePlaceholder');
+  document.getElementById('model-key').placeholder=modelText('keyPlaceholder');
+  if(modelView.config) {
+    const c=modelView.config;
+    document.getElementById('current-model').textContent=c.provider+' · '+(c.model||modelText('defaultModel'));
+  } else if(modelView.unavailable) document.getElementById('current-model').textContent=modelText('unavailable');
+  if(modelView.status) {
+    const s=modelView.status;
+    document.getElementById('model-status').textContent=s.key?modelText(s.key):s.error?modelText('requestFailed')+': '+s.error:s.text;
+  } else if(modelView.config) {
+    const c=modelView.config;
+    document.getElementById('model-status').textContent=modelText('proxySource')+': '+c.proxy_source+' '+JSON.stringify(c.effective_proxy)+'\n'+modelText('key')+': '+modelText(c.has_api_key?'configured':'notConfigured');
+  }
+}
+function setModelStatus(status) {modelView.status=status;refreshModelLanguage();}
+document.addEventListener('selfos-language',refreshModelLanguage);
 function openAppSettings() {
   document.getElementById('settings-language').value=document.documentElement.lang==='zh'?'zh':'en';
   document.getElementById('app-settings').showModal();
@@ -17,12 +40,11 @@ function changeModelProvider() {
   document.getElementById('model-key').value='';
 }
 function showCurrentModel(c) {
-  document.getElementById('current-model').textContent=c.provider+' · '+(c.model||'默认 Claude 模型');
-  document.getElementById('model-status').textContent='代理来源：'+c.proxy_source+' '+JSON.stringify(c.effective_proxy)+'\n密钥：'+(c.has_api_key?'已配置':'未配置');
+  modelView.config=c;modelView.status=null;modelView.unavailable=false;refreshModelLanguage();
 }
 async function modelRequest(url,body) {
   const r=await fetch(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();if(!r.ok)throw new Error(data.error||'请求失败');return data;
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'HTTP '+r.status);return data;
 }
 async function openModelSettings() {
   document.getElementById('model-settings').showModal();
@@ -32,7 +54,7 @@ async function openModelSettings() {
     document.getElementById('model-name').value=c.model||(c.provider==='anthropic'?'claude-haiku-4-5-20251001':'');
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
     updateModelProxy();showCurrentModel(c);
-  }catch(e){document.getElementById('model-status').textContent=e.message;}
+  }catch(e){setModelStatus({error:e.message});}
 }
 async function saveModelSettings(test) {
   const form=document.querySelector('#model-settings form');if(!form.reportValidity())return;
@@ -40,8 +62,8 @@ async function saveModelSettings(test) {
   try {
     const c=await modelRequest('/__model_settings__',{provider:document.getElementById('model-provider').value,base_url:document.getElementById('model-base').value,model:document.getElementById('model-name').value,api_key:document.getElementById('model-key').value,clear_api_key:document.getElementById('model-clear-key').checked,proxy_mode:document.getElementById('model-proxy-mode').value,proxy_url:document.getElementById('model-proxy-url').value});
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;showCurrentModel(c);
-    if(test){document.getElementById('model-status').textContent='正在测试网络、认证与结构化输出（发送一条测试请求）…';const r=await modelRequest('/__model_test__',{});document.getElementById('model-status').textContent=r.message;}
-  }catch(e){document.getElementById('model-status').textContent=e.message;}
+    if(test){setModelStatus({key:'testing'});const r=await modelRequest('/__model_test__',{});setModelStatus(r.ok?{key:'passed'}:{text:r.message});}
+  }catch(e){setModelStatus({error:e.message});}
   finally{buttons.forEach(b=>b.disabled=false);}
 }
 document.addEventListener('DOMContentLoaded',()=>{
@@ -49,5 +71,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(header)header.append(document.getElementById('model-settings-entry'));
   const languageButton=document.getElementById('lang-toggle');
   if(languageButton){languageButton.hidden=true;languageButton.style.display='none';document.getElementById('app-settings').append(languageButton);}
-  modelRequest('/__model_settings__').then(showCurrentModel).catch(()=>{document.getElementById('current-model').textContent='启动本地服务后配置模型';});
+  refreshModelLanguage();
+  modelRequest('/__model_settings__').then(showCurrentModel).catch(()=>{modelView.unavailable=true;refreshModelLanguage();});
 });

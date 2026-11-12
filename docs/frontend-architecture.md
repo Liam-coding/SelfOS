@@ -12,6 +12,8 @@ All maintained UI source lives under src/selfos/resources/web:
 | Shared visual system and overview | visual-system.html, overview.html | visual-system.css | overview.js |
 | Knowledge browsing and original sources | knowledge-browser.html, knowledge-browser-style.html | knowledge-browser.css | knowledge-browser.js |
 | Import settings and recovery actions | import-controls.html | Existing shared controls | import-controls.js |
+| Published knowledge and saved progress | import-publication.html | import-publication.css | import-publication.js |
+| Project chronology and source paging | project-timeline.html | project-timeline.css | project-timeline.js |
 | Settings, model and proxy configuration | settings-model.html | settings-model.css | settings-model.js |
 | Login and account controls | login-head/form/tail, auth-style/script, account-controls/script | login.css, auth.css | login.js, auth-common.js, account.js |
 
@@ -43,6 +45,7 @@ Standalone browser/settings/auth resources retain their existing global compatib
 | UI owner | Backend contract |
 | --- | --- |
 | Knowledge browser | Authenticated GET /__knowledge__, /__knowledge_item__, /__knowledge_source__; category/query/pagination and registered source identities |
+| Project timeline | Authenticated GET /__knowledge_timeline__; project record ID, milestone filters, pagination and revision-aware refresh; original sources retain the shared paging contract |
 | Import controls | /__knowledge_settings__ and /__knowledge_restore__; existing retention settings and recovery responses |
 | Import progress | /__knowledge_stream__, /__harvest_stream__; SSE JSON line/done events; /__knowledge_run__ for measured runtime state; POST /__knowledge_stop__ requests checkpoint-safe cancellation |
 | Settings | /__model_settings__ reads/saves public configuration; /__model_test__ performs an explicitly requested connection test |
@@ -58,3 +61,5 @@ dashboard.css owns compatibility layout and component geometry; visual-system.cs
 ## Validation
 
 A synthetic pre-refactor baseline checks exact rendered bytes for the dashboard and ten other page/component outputs. Architecture checks reject new large embedded UI blocks, and resource tests cover allowed names, single-pass values, cycles, manifest coverage and independent working directories. Wheel and actual browser checks cover installation, login/account, browsing, settings, chat, progress, both languages, responsive layouts, dark mode and reduced motion. The five frozen knowledge acceptance files remain unchanged.
+
+After merging overlapping features, the active parity fixture records the explicit main snapshot at 5b4a97f, including global search, publication status and timelines. It was captured before resource extraction from an isolated Git archive with its source path asserted. The original pre-refactor fixture remains available; updated feature output is compared against the current main implementation rather than against obsolete pre-feature markup.

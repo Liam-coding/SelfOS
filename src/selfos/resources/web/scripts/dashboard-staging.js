@@ -56,3 +56,4 @@ document.getElementById('staging-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeStagingModal();
 });
 checkStaging();
+

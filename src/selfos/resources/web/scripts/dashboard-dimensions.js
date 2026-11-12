@@ -59,3 +59,4 @@ async function _sendChatSilent(text) {
     thinking.textContent = lang === 'zh' ? '连接失败，请运行 python -m selfos serve' : 'Connection failed — run python -m selfos serve';
   }
 }
+

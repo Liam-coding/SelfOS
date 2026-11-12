@@ -12,6 +12,8 @@ SelfOS is a local, Markdown-based personal knowledge system. It organizes your C
 
 ## Quick start
 
+For tested macOS environments and reproducible checks, see the [macOS compatibility report](docs/macos-compatibility.md).
+
 Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible Chat Completions API for organizing and chat. Local models need tool support. Password hashing uses argon2-cffi; install it with `python -m pip install -r requirements.txt`.
 
 1. Clone the repository:
@@ -55,6 +57,10 @@ Before using the vault as agent context, review `vault/PROFILE.md`, `vault/NOW.m
 | History | Earlier project states, meaningful outcomes and scoped observations |
 
 You choose the domains and wording detail. Retention follows meaning and evidence, with no target number of final records. Local measurements and configurations stay scoped to their projects rather than becoming universal advice.
+
+Use global search to find records across all categories, filter by project context,
+source or date, and inspect matching excerpts and original evidence. See the
+[search guide](docs/knowledge-search.md).
 
 ## How importing works
 
@@ -105,6 +111,7 @@ Source references make records traceable; AI summaries and candidate reviews do 
 | Guide | Covers |
 | --- | --- |
 | [Import and recovery](docs/knowledge-import.md) | Retention rules, CLI, checkpoints, retries and backups |
+| [Project timelines](docs/project-timelines.md) | Trace goals, decisions, progress and blockers to recorded conversations |
 | [Agent integration](docs/agent-integration.md) | Connecting Claude Code, Codex and other agents |
 | [Development](docs/dev.md) | Architecture, endpoints and Harvest workflows |
 | [Backend package](docs/backend-architecture.md) | Module boundaries, installation, paths and compatible commands |

@@ -27,6 +27,7 @@ async function knowledgeRequest(url, body) {
   return data;
 }
 function displayKnowledgeStatus(data) {
+  renderImportPublication(data);
   knowledgeOperation = data.last_operation ? data.last_operation.id : null;
   document.getElementById('knowledge-undo').disabled = !knowledgeOperation;
   if(data.needs_rebuild)setKnowledgeStatus('设置已变化，下次整理会自动重建。','Settings changed. The next import will rebuild automatically.');

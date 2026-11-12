@@ -35,3 +35,4 @@ function toggleLang() {
   applyLanguage();
 }
 document.addEventListener('DOMContentLoaded', applyLanguage);
+

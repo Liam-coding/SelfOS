@@ -1,5 +1,5 @@
 """web / rendering / overall responsibilities."""
-from selfos.web.rendering.resources import frontend_text
+from selfos.web.rendering.resources import frontend_text, render_ui
 
 
 def integrate_overall(html):
@@ -18,7 +18,8 @@ def integrate_overall(html):
     legend=''
     if legend_start>=0 and legend_end>legend_start:
         legend=html[legend_start:legend_end].strip();html=html[:legend_start]+html[legend_end:]
-    card='<aside class="knowledge-overall" aria-labelledby="overall-title">'+overall+legend+'</aside>'
+    card='<a class="knowledge-overall" href="#dimension-cards" aria-labelledby="overall-title">'+overall+legend+'</a>'
+    html=html.replace('<div class="grid">', '<div class="grid" id="dimension-cards" tabindex="-1">', 1)
     html=re.sub(r'<div class="knowledge-orbit"[^>]*>.*?<div class="knowledge-orbit-core">.*?</div>\s*</div>',lambda _:card,html,count=1,flags=re.S)
     if greeting:
         html=html.replace('<div class="knowledge-eyebrow">',greeting[0]+'<div class="knowledge-eyebrow">',1)

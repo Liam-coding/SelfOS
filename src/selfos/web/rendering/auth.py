@@ -1,5 +1,5 @@
 """web / rendering / auth responsibilities."""
-from selfos.web.rendering.resources import frontend_text
+from selfos.web.rendering.resources import frontend_text, render_ui
 import json
 
 def resources():

@@ -171,20 +171,20 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
         arc = round((v / 10) * circ, 2) if isinstance(v, int) else 0
         hist_json = json.dumps(dim_history(key))
         cards_html += render_ui('templates/dashboard-card.html', {
-            'key': key,
-            'label_zh': label_zh,
-            'label_en': label_en,
-            'display': display,
-            'color': color,
-            'status_zh': status_zh,
-            'status_en': status_en,
-            'sugg_zh': sugg['zh'],
-            'sugg_en': sugg['en'],
-            'r': r,
-            'arc': arc,
-            'circ': circ,
-            'hist_json': hist_json,
-        })
+                          'key': key,
+                          'label_zh': label_zh,
+                          'label_en': label_en,
+                          'display': display,
+                          'color': color,
+                          'status_zh': status_zh,
+                          'status_en': status_en,
+                          'sugg_zh': sugg['zh'],
+                          'sugg_en': sugg['en'],
+                          'r': r,
+                          'arc': arc,
+                          'circ': circ,
+                          'hist_json': hist_json,
+                      })
 
     overall_color = score_color(int(overall) if overall and overall >= 1 else None)
     overall_display = str(overall) if overall is not None else "—"
@@ -204,24 +204,24 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     greeting_en = f"Hello, {preferred_name}" if preferred_name else "Hello, Liam"
 
     html = render_ui('templates/dashboard-page.html', {
-        'selfos_style': selfos_style,
-        'library_style': library_style,
-        'knowledge_controls': knowledge_controls,
-        'knowledge_overview': knowledge_overview,
-        'library_html': library_html,
-        'greeting_zh': greeting_zh,
-        'greeting_en': greeting_en,
-        'r_big': r_big,
-        'overall_color': overall_color,
-        'arc_big': arc_big,
-        'circ_big': circ_big,
-        'overall_display': overall_display,
-        'overall_status_zh': overall_status_zh,
-        'overall_status_en': overall_status_en,
-        'scored_count': scored_count,
-        'updated': updated,
-        'cards_html': cards_html,
-    })
+               'selfos_style': selfos_style,
+               'library_style': library_style,
+               'knowledge_controls': knowledge_controls,
+               'knowledge_overview': knowledge_overview,
+               'library_html': library_html,
+               'greeting_zh': greeting_zh,
+               'greeting_en': greeting_en,
+               'r_big': r_big,
+               'overall_color': overall_color,
+               'arc_big': arc_big,
+               'circ_big': circ_big,
+               'overall_display': overall_display,
+               'overall_status_zh': overall_status_zh,
+               'overall_status_en': overall_status_en,
+               'scored_count': scored_count,
+               'updated': updated,
+               'cards_html': cards_html,
+           })
 
     out = vault.parent / "dashboard.html"
     from selfos.web.rendering.overall import integrate_overall
