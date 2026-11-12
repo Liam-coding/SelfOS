@@ -16,14 +16,18 @@ class DashboardRoutes:
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
                 return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
             return self._send_json(200, self.runtime.knowledge_run_status())
-        if parsed_path.path in ('/__knowledge__','/__knowledge_item__','/__knowledge_source__'):
+        if parsed_path.path in ('/__knowledge__','/__knowledge_item__','/__knowledge_source__','/__knowledge_timeline__'):
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
                 return self._send_json(403,{'error':'Knowledge is available from the local dashboard only'})
-            from selfos.app.library import list_knowledge, knowledge_detail, knowledge_source
+            from selfos.app.library import list_knowledge, knowledge_detail, knowledge_source, knowledge_timeline
             qs=parse_qs(parsed_path.query)
             try:
-                if parsed_path.path=='/__knowledge__':
+                if parsed_path.path=='/__knowledge_timeline__':
+                    result=knowledge_timeline(self.runtime.VAULT,qs.get('id',[''])[0],
+                        category=qs.get('category',['all'])[0],offset=int(qs.get('offset',['0'])[0]),
+                        limit=int(qs.get('limit',['50'])[0]),revision=qs.get('revision',[''])[0])
+                elif parsed_path.path=='/__knowledge__':
                     result=list_knowledge(self.runtime.VAULT,category=qs.get('category',['all'])[0],query=qs.get('query',[''])[0],
                         offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['50'])[0]),
                         project=qs.get('project',[''])[0],source=qs.get('source',[''])[0],

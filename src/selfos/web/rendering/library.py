@@ -142,6 +142,7 @@ _SCRIPT = r'''
    if(!detailCache)return;const item=detailCache.item,content=el('kb-detail-content');
    content.replaceChildren(node('h2',item.title),node('p',tr(item.category)+' · '+attribution(item),'kb-meta'),node('p',item.summary));
    if(item.conflict)content.append(node('p',tr('conflict')));
+   if(item.category==='projects'&&window.openProjectTimeline){const timeline=node('button',window.projectTimelineLabel?.()||'Project timeline','pt-entry-button');timeline.type='button';timeline.dataset.projectTimeline='';timeline.onclick=()=>{el('kb-detail').close();window.openProjectTimeline(item.id);};content.append(timeline);}
    for(const field of ['decisions','blockers','next_steps'])if(item[field]?.length){const list=node('ul');item[field].forEach(value=>list.append(node('li',value)));content.append(node('h3',tr(field)),list);}
    if(item.evidence)content.append(node('h3',tr('quote')),node('pre',item.evidence));
    const notes={project_context:'project_context_note',session_context:'session_context_note',summary_context:'summary_context_note'};
@@ -176,8 +177,12 @@ _SCRIPT = r'''
 HTML = _HTML + '<script>\nconst searchLocales = ' + json.dumps(LOCALES, ensure_ascii=True) + ';\n' + _SCRIPT + '</script>'
 
 
+from selfos.web.rendering.timeline import HTML as TIMELINE_HTML
+HTML += TIMELINE_HTML
+
 def refresh_library(html):
     """Refresh an existing library without regenerating private dashboard data."""
+    html = re.sub(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->', '', html, flags=re.S)
     pattern = r'<section\b[^>]*\bid="knowledge-library"[^>]*>.*?</section>\s*<dialog\b[^>]*\bid="kb-detail"[^>]*>.*?</dialog>\s*<script>.*?</script>'
     updated, count = re.subn(pattern, lambda _: HTML, html, count=1, flags=re.S)
     if not count:
