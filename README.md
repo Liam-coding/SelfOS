@@ -2,13 +2,17 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+[![README views](https://hits.sh/github.com/Liam-coding/SelfOS.svg?style=flat&label=README%20views&color=2563eb)](https://hits.sh/github.com/Liam-coding/SelfOS/)
+
 **Turn AI conversations into knowledge you can use again.**
 
 SelfOS is a local, Markdown-based personal knowledge system. It organizes your Claude Code and Codex conversations into facts, preferences, project context and reusable experience, so your AI assistant can understand what you are working on across sessions.
 
-![SelfOS knowledge overview and browser](docs/images/selfos-knowledge-dashboard.png)
+![SelfOS knowledge overview and browser](examples/selfos-demo/selfos-en.png)
 
 *Core dashboard with example data.*
+
+[Browse the bilingual synthetic demo](examples/selfos-demo/README.md) or open its HTML pages locally. All demonstration data is fictional.
 
 ## Quick start
 

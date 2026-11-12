@@ -2,13 +2,17 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+[![README views](https://hits.sh/github.com/Liam-coding/SelfOS.svg?style=flat&label=README%20views&color=2563eb)](https://hits.sh/github.com/Liam-coding/SelfOS/)
+
 **把 AI 对话变成可以再次使用的知识。**
 
 SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claude Code 和 Codex 对话整理为事实、偏好、项目上下文和可复用经验，让 AI 助手跨会话了解你正在做什么。
 
-![SelfOS 知识概览与浏览页面](docs/images/selfos-knowledge-dashboard.png)
+![SelfOS 知识概览与浏览页面](examples/selfos-demo/selfos-zh.png)
 
 *核心页面截图，使用示例数据。*
+
+[?????????](examples/selfos-demo/README.md)????????? HTML ???????????????
 
 ## 快速开始
 

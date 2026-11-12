@@ -1,0 +1,233 @@
+[
+  {
+    "id": "bdb92a116127a8b2f9f731be80399db65fb33243e4020439008e5734c1f34c3d",
+    "role": "user",
+    "text": "Build a career with direction\nTurn scattered work into a portfolio of decisions, outcomes and lessons.\nDocument one project each week.\nWrite the story behind a recent technical decision.",
+    "source": "codex",
+    "path": "synthetic-career.jsonl",
+    "timestamp": "2026-11-12T08:00:00Z",
+    "project_id": "demo-career",
+    "project": "career",
+    "session_id": "demo-career"
+  },
+  {
+    "id": "ea8242094f585cc5f2690d7bc21411bf7d2abe42c086695e7aeee9ed34c5989a",
+    "role": "user",
+    "text": "A healthier, sustainable rhythm\nBuild a routine around three workouts a week, consistent sleep and time to recover.\nKeep the routine achievable on busy days.\nReview energy and sleep before increasing training.",
+    "source": "claude",
+    "path": "synthetic-health.jsonl",
+    "timestamp": "2026-11-12T08:01:00Z",
+    "project_id": "demo-health",
+    "project": "health",
+    "session_id": "demo-health"
+  },
+  {
+    "id": "66ab27bec52bc7fbc9dda044bc328c03d57dbbd85a8b78831d7b730e59ff8cc8",
+    "role": "user",
+    "text": "Learn by making something useful\nConnect reading about AI with small experiments and reusable notes.\nOne useful experiment matters more than ten unfinished courses.\nBuild a small prototype and record what changed your understanding.",
+    "source": "codex",
+    "path": "synthetic-learning.jsonl",
+    "timestamp": "2026-11-12T08:02:00Z",
+    "project_id": "demo-learning",
+    "project": "learning",
+    "session_id": "demo-learning"
+  },
+  {
+    "id": "8c1dff4dedd7a318d3e0ce34d9c1debcbb78f531743d0b0d0f1dd1c0db932ada",
+    "role": "user",
+    "text": "Make room for meaningful connection\nProtect a weekly evening for family and friends, with fewer distractions and better conversations.\nListen before trying to solve the problem.\nPlan one unhurried conversation this week.",
+    "source": "claude",
+    "path": "synthetic-relationships.jsonl",
+    "timestamp": "2026-11-12T08:03:00Z",
+    "project_id": "demo-relationships",
+    "project": "relationships",
+    "session_id": "demo-relationships"
+  },
+  {
+    "id": "62a5c0a3f134264bde41d0eaee2d77ecfab88305987a3ac39fa78b4a894a40c2",
+    "role": "user",
+    "text": "A personal knowledge base that grows\nBring useful ideas from daily AI conversations into one source-linked place.\nSeparate lasting insight from temporary requests.\nReview new knowledge and keep the next action clear.",
+    "source": "codex",
+    "path": "synthetic-knowledge.jsonl",
+    "timestamp": "2026-11-12T08:04:00Z",
+    "project_id": "demo-knowledge",
+    "project": "knowledge",
+    "session_id": "demo-knowledge"
+  },
+  {
+    "id": "e894cb624490b66b8e4183146fd0bbbd8523d85d8bfc548f331e828ee75c1b24",
+    "role": "user",
+    "text": "I work as a product engineer and enjoy turning ideas into useful tools.",
+    "source": "claude",
+    "path": "synthetic-career.jsonl",
+    "timestamp": "2026-11-12T08:05:00Z",
+    "project_id": "demo-career",
+    "project": "career",
+    "session_id": "demo-career"
+  },
+  {
+    "id": "7dcbb26980ff3512d2c2f7066aa9911fc7ddca375a3a4f171b6b52f536e3228e",
+    "role": "user",
+    "text": "I am learning how AI systems can support everyday work and personal reflection.",
+    "source": "codex",
+    "path": "synthetic-learning.jsonl",
+    "timestamp": "2026-11-12T08:06:00Z",
+    "project_id": "demo-learning",
+    "project": "learning",
+    "session_id": "demo-learning"
+  },
+  {
+    "id": "95efb182de1aae0d9e2a6042f0e7e5c25f9797becb95e5babc5e367e3478bb4d",
+    "role": "user",
+    "text": "Running and strength training are part of my regular routine.",
+    "source": "claude",
+    "path": "synthetic-health.jsonl",
+    "timestamp": "2026-11-12T08:07:00Z",
+    "project_id": "demo-health",
+    "project": "health",
+    "session_id": "demo-health"
+  },
+  {
+    "id": "c78c3b8a515e6d6d3c6b51622c68cfc4bb9d6b9fa46e1649be9a08f3a5c47008",
+    "role": "user",
+    "text": "For work updates, I prefer concise explanations with a clear next action.",
+    "source": "codex",
+    "path": "synthetic-career.jsonl",
+    "timestamp": "2026-11-12T08:08:00Z",
+    "project_id": "demo-career",
+    "project": "career",
+    "session_id": "demo-career"
+  },
+  {
+    "id": "addf988d76a9ec0a22958b532b0aeedda856d1de8e6b76fc89055d4c033b4a34",
+    "role": "user",
+    "text": "I prefer learning by building small projects rather than only collecting courses.",
+    "source": "claude",
+    "path": "synthetic-learning.jsonl",
+    "timestamp": "2026-11-12T08:09:00Z",
+    "project_id": "demo-learning",
+    "project": "learning",
+    "session_id": "demo-learning"
+  },
+  {
+    "id": "3fcfa92574ce2ecf9d43dbed3e82aae9efd22b8465104013fb6cc11c903b5c60",
+    "role": "user",
+    "text": "I prefer sustainable exercise routines over short bursts of extreme intensity.",
+    "source": "codex",
+    "path": "synthetic-health.jsonl",
+    "timestamp": "2026-11-12T08:10:00Z",
+    "project_id": "demo-health",
+    "project": "health",
+    "session_id": "demo-health"
+  },
+  {
+    "id": "0a24f7278e4bede8f72fb606507779130f8972872b31ac3ea480eeb54dbd3471",
+    "role": "user",
+    "text": "I prefer a quiet weekly review to connect daily choices with longer-term goals.",
+    "source": "claude",
+    "path": "synthetic-knowledge.jsonl",
+    "timestamp": "2026-11-12T08:11:00Z",
+    "project_id": "demo-knowledge",
+    "project": "knowledge",
+    "session_id": "demo-knowledge"
+  },
+  {
+    "id": "47c495c789bb908d090d3dead21feb2871b277cc185b98945443d64e6a053e5e",
+    "role": "user",
+    "text": "A habit becomes more reliable when its minimum version still fits a busy day.",
+    "source": "codex",
+    "path": "synthetic-health.jsonl",
+    "timestamp": "2026-11-12T08:12:00Z",
+    "project_id": "demo-health",
+    "project": "health",
+    "session_id": "demo-health"
+  },
+  {
+    "id": "b88ec9c2f26281b1444b52ac6a1b865d52c52e54d32a6e1ec0ff2388213d95f7",
+    "role": "user",
+    "text": "Before changing a plan, distinguish observed results from explanations that have not been tested.",
+    "source": "claude",
+    "path": "synthetic-career.jsonl",
+    "timestamp": "2026-11-12T08:13:00Z",
+    "project_id": "demo-career",
+    "project": "career",
+    "session_id": "demo-career"
+  },
+  {
+    "id": "441e8c6cfd211d12705dd09c171faf88652c79214b5089007443deb717543feb",
+    "role": "user",
+    "text": "A reusable note explains why a decision worked and when the same approach may apply.",
+    "source": "codex",
+    "path": "synthetic-learning.jsonl",
+    "timestamp": "2026-11-12T08:14:00Z",
+    "project_id": "demo-learning",
+    "project": "learning",
+    "session_id": "demo-learning"
+  },
+  {
+    "id": "799d4e5077001c02df83940a173060d2b0077b1dbe2b76c5f6c94421d8bf1f72",
+    "role": "user",
+    "text": "In a difficult conversation, clarify what the other person needs before offering a solution.",
+    "source": "claude",
+    "path": "synthetic-relationships.jsonl",
+    "timestamp": "2026-11-12T08:15:00Z",
+    "project_id": "demo-relationships",
+    "project": "relationships",
+    "session_id": "demo-relationships"
+  },
+  {
+    "id": "2b0c451ffbfeed9bcd0d6d64db7697835a9c417dd90592a5671eb190b13f9e1f",
+    "role": "user",
+    "text": "A weekly review is useful when it ends with a small number of clear next actions.",
+    "source": "codex",
+    "path": "synthetic-knowledge.jsonl",
+    "timestamp": "2026-11-12T08:16:00Z",
+    "project_id": "demo-knowledge",
+    "project": "knowledge",
+    "session_id": "demo-knowledge"
+  },
+  {
+    "id": "db8b4aa6cdec29a955f1627484738d8e21b79618b14853c284fc4354e353d2b3",
+    "role": "user",
+    "text": "Replaced daily workouts with three sessions per week to make room for recovery.",
+    "source": "claude",
+    "path": "synthetic-health.jsonl",
+    "timestamp": "2026-11-12T08:17:00Z",
+    "project_id": "demo-health",
+    "project": "health",
+    "session_id": "demo-health"
+  },
+  {
+    "id": "d6ccab2bac6df353206551000936ab788410e584b04ef37bc4608c12dea8fd21",
+    "role": "user",
+    "text": "Completed a small AI-assisted prototype and documented the trade-offs.",
+    "source": "codex",
+    "path": "synthetic-learning.jsonl",
+    "timestamp": "2026-11-12T08:18:00Z",
+    "project_id": "demo-learning",
+    "project": "learning",
+    "session_id": "demo-learning"
+  },
+  {
+    "id": "e18d76018810884cf1e833c89af34535f64311a2a6a5c3edbb629997c5724bc8",
+    "role": "user",
+    "text": "Set aside one evening each week for an unhurried conversation with family or friends.",
+    "source": "claude",
+    "path": "synthetic-relationships.jsonl",
+    "timestamp": "2026-11-12T08:19:00Z",
+    "project_id": "demo-relationships",
+    "project": "relationships",
+    "session_id": "demo-relationships"
+  },
+  {
+    "id": "cc69bf85b8fa2adcd83b4f51b6b0f47e9649f87649eea3f1850fcb1421b792c4",
+    "role": "user",
+    "text": "Moved from scattered chat history to organized notes with links to their sources.",
+    "source": "codex",
+    "path": "synthetic-knowledge.jsonl",
+    "timestamp": "2026-11-12T08:20:00Z",
+    "project_id": "demo-knowledge",
+    "project": "knowledge",
+    "session_id": "demo-knowledge"
+  }
+]
