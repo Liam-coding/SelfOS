@@ -41,7 +41,7 @@ def normalize_response(data, provider):
     return {'content':content,'stop_reason':'max_tokens' if choice.get('finish_reason')=='length' else 'end_turn'}
 
 
-def request_opener(root):
+def request_opener(root, budget=None):
     config=load_config(root)
     def open_request(request, timeout=90):
         req=adapt_request(request,config)
@@ -55,6 +55,8 @@ def request_opener(root):
             class NoRedirect(HTTPRedirectHandler):
                 def redirect_request(self,*args,**kwargs): return None
             opener=build_opener(ProxyHandler(proxies),NoRedirect())
+            if budget is not None:
+                budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())
             return io.BytesIO(json.dumps(normalize_response(data,config['provider'])).encode())
         except HTTPError as error: raise RuntimeError(f'Model API HTTP {error.code}; check authentication, endpoint and model') from None

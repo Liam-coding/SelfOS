@@ -1,3 +1,121 @@
+"""Contained, bounded onboarding metadata; never canonical knowledge."""
+import json
+import re
+import os
+import time
+from contextlib import contextmanager
+from pathlib import Path
+
+from selfos.storage.files import _atomic_write
+
+
+def metadata_path(vault, name):
+    root = Path(vault).resolve()
+    if name not in (".knowledge_sources.json", ".knowledge_onboarding.json") and not re.fullmatch(
+            r"\.knowledge_onboarding/(?:previews|budgets)/[a-f0-9]{32}\.json", name):
+        raise ValueError("Unsupported onboarding metadata path")
+    path = root / name
+    if not path.resolve().is_relative_to(root):
+        raise ValueError("Onboarding metadata escapes vault")
+    return path
+
+
+def read_metadata(vault, name, default=None, max_bytes=65536):
+    path = metadata_path(vault, name)
+    if not path.exists():
+        return default
+    with path.open("rb") as stream:
+        data = stream.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise ValueError("Onboarding metadata is too large")
+    try:
+        return json.loads(data)
+    except (ValueError, UnicodeError) as error:
+        raise ValueError("Invalid onboarding metadata") from error
+
+
+def write_metadata(vault, name, value, max_bytes=65536):
+    data = json.dumps(value, ensure_ascii=False).encode("utf-8")
+    if len(data) > max_bytes:
+        raise ValueError("Onboarding metadata is too large")
+    _atomic_write(metadata_path(vault, name), data)
+
+
+class ModelBudgetExceeded(RuntimeError):
+    """A new explicit preview/allowance is required for more requests."""
+
+
+@contextmanager
+def _budget_lock(vault, preview_id):
+    # Advisory OS locks release on process exit; separate from the import lock.
+    path = metadata_path(vault, f".knowledge_onboarding/budgets/{preview_id}.json")
+    lock = path.with_suffix(".lock")
+    if not lock.resolve().is_relative_to(Path(vault).resolve()):
+        raise ValueError("Budget lock escapes vault")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open("a+b") as stream:
+        if os.name == "nt":
+            import msvcrt
+            if stream.seek(0, 2) == 0:
+                stream.write(b"0")
+                stream.flush()
+            deadline = time.monotonic() + 10
+            while True:
+                stream.seek(0)
+                try:
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("Sample allowance is busy; retry later")
+                    time.sleep(0.01)
+            try:
+                yield
+            finally:
+                stream.seek(0)
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
+class SampleBudget:
+    def __init__(self, vault, preview_id):
+        self.vault = vault
+        self.preview_id = preview_id
+        self.name = f".knowledge_onboarding/budgets/{preview_id}.json"
+        metadata_path(vault, self.name)
+
+    def _read(self):
+        value = read_metadata(self.vault, self.name)
+        preview = read_metadata(self.vault, f".knowledge_onboarding/previews/{self.preview_id}.json", max_bytes=2 * 1024 * 1024)
+        if (not isinstance(value, dict) or value.get("version") != 1
+                or not isinstance(preview, dict) or preview.get("id") != self.preview_id
+                or type(value.get("used")) is not int or type(value.get("limit")) is not int
+                or value["limit"] not in (12, 24) or not 0 <= value["used"] <= value["limit"]
+                or value['limit'] != {'sample': 12, 'more': 24}.get(preview.get('tier'))
+                or value["limit"] != preview.get("budget_limit")):
+            raise ValueError("Invalid or missing sample allowance; create a new preview")
+        return value
+
+    def status(self):
+        # Atomic replacement gives readers a complete snapshot without a write lock.
+        value = self._read()
+        return {"used": value["used"], "remaining": value["limit"] - value["used"], "limit": value["limit"]}
+
+    def claim(self):
+        with _budget_lock(self.vault, self.preview_id):
+            value = self._read()
+            if value["used"] >= value["limit"]:
+                raise ModelBudgetExceeded("Sample request allowance exhausted; saved progress is retained. Create a new preview to grant more requests.")
+            value["used"] += 1
+            write_metadata(self.vault, self.name, value)
+
+
 """storage / onboarding responsibilities."""
 from pathlib import Path
 

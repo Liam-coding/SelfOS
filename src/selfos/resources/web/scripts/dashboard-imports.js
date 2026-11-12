@@ -68,7 +68,7 @@ async function stopKnowledge() {
   }
 }
 
-function confirmHarvest(full, knowledge = false, rebuild = false) {
+function confirmHarvest(full, knowledge = false, rebuild = false, previewUrl = null) {
   if (importRunning) return;
   ++knowledgeRecoveryGeneration;
   importRunning = true;
@@ -107,7 +107,7 @@ function confirmHarvest(full, knowledge = false, rebuild = false) {
     if (n > pct) { pct = n; bar.style.width = pct + '%'; }
   }
 
-  const url = knowledge ? '/__knowledge_stream__' + (rebuild ? '?action=rebuild' : '') : '/__harvest_stream__?full=' + (full ? '1' : '0');
+  const url = knowledge ? (previewUrl || '/__knowledge_stream__' + (rebuild ? '?action=rebuild' : '')) : '/__harvest_stream__?full=' + (full ? '1' : '0');
   const es = new EventSource(url);
   es.onmessage = function(e) {
     let msg;

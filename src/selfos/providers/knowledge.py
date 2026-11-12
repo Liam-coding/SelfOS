@@ -162,9 +162,9 @@ If repair_feedback is present, regenerate a complete valid response addressing t
 '''
 
 
-def api_summarizer(root, *, review_records=False):
+def api_summarizer(root, *, review_records=False, budget=None):
     from selfos.providers.client import request_opener
-    open_model = request_opener(root)
+    open_model = request_opener(root) if budget is None else request_opener(root, budget=budget)
     key, base = _get_api_config(root)
     if not key and __import__('selfos.providers.settings', fromlist=['*']).load_config(root)['provider']=='anthropic':
         raise RuntimeError('ANTHROPIC_API_KEY is missing')
@@ -234,9 +234,9 @@ def api_summarizer(root, *, review_records=False):
     return summarize
 
 
-def api_refiner(root, *, review_records=True, cancel=lambda:False):
+def api_refiner(root, *, review_records=True, cancel=lambda:False, budget=None):
     from selfos.providers.client import request_opener
-    open_model = request_opener(root)
+    open_model = request_opener(root) if budget is None else request_opener(root, budget=budget)
     key, base = _get_api_config(root)
     if not key and __import__('selfos.providers.settings', fromlist=['*']).load_config(root)['provider']=='anthropic':
         raise RuntimeError('ANTHROPIC_API_KEY is missing')
@@ -252,6 +252,17 @@ def api_refiner(root, *, review_records=True, cancel=lambda:False):
             {k: m.get(k, '') for k in ('role', 'provenance', 'timestamp')} for i, m in payload['sources'].items()}}
         prompt['repair_feedback'] = payload.get('repair_feedback', '')
         prompt['intent_history'] = payload.get('intent_history', [])
+        corrections = payload.get('user_corrections')
+        if isinstance(corrections, dict):
+            corrected_project = corrections.get('project')
+            prompt['user_corrections'] = {
+                'project': {k: corrected_project[k][:2000] for k in ('title', 'intent')
+                            if isinstance(corrected_project.get(k), str)} if isinstance(corrected_project, dict) else None,
+                'lessons': [{'text': record['text'][:2000],
+                             'source_ids': [aliases[i] for i in record.get('source_ids', []) if i in aliases]}
+                            for record in corrections.get('lessons', [])[:20]
+                            if isinstance(record, dict) and isinstance(record.get('text'), str)],
+                'notice': 'These are deliberate user corrections, separate from original evidence. Respect them; do not relabel them as source facts.'}
         prompt['retention_policy']=settings
         prompt['current_decision_budget']=limits(settings)['decisions']
         system = SUMMARY_SYSTEM + '''

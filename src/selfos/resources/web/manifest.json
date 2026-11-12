@@ -2,6 +2,7 @@
   "version": 1,
   "resources": [
     "scripts/account.js",
+    "scripts/onboarding.js",
     "scripts/auth-common.js",
     "scripts/dashboard-chat.js",
     "scripts/dashboard-dimensions.js",
@@ -19,6 +20,7 @@
     "scripts/project-timeline.js",
     "scripts/settings-model.js",
     "styles/auth.css",
+    "styles/onboarding.css",
     "styles/dashboard.css",
     "styles/import-publication.css",
     "styles/knowledge-browser.css",
@@ -28,6 +30,7 @@
     "styles/settings-model.css",
     "styles/visual-system.css",
     "templates/account-controls.html",
+    "templates/onboarding.html",
     "templates/account-script.html",
     "templates/auth-script.html",
     "templates/auth-style.html",

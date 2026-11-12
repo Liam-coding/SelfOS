@@ -1,5 +1,7 @@
 # Model and network settings
 
+New users can configure the same form through the [bounded first-run guide](first-run-onboarding.md); opening the guide does not test or call the model automatically.
+
 Start `python -m selfos serve`, open the dashboard, and select **⚙ Settings → Model and network**.
 Language is available in the same settings dialog. New visitors default to English; saved language choices are retained.
 The configuration is shared by conversation imports, project refinement, optional AI staging

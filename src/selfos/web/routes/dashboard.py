@@ -11,6 +11,12 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path == '/__onboarding__':
+            try:
+                from selfos.app.onboarding import onboarding_status
+                return self._send_json(200, onboarding_status(self.runtime.VAULT, self.runtime.ROOT))
+            except (ValueError, OSError, TypeError):
+                return self._send_json(503, {'code': 'onboarding_unavailable'})
         if parsed_path.path=='/__knowledge_corrections__':
             from selfos.app.corrections import correction_metadata
             try:return self._send_json(200,correction_metadata(self.runtime.VAULT))
@@ -89,12 +95,23 @@ class DashboardRoutes:
                 host = self.headers.get("Host", "")
                 if (origin and origin != f"http://{host}") or self.headers.get("Sec-Fetch-Site") == "cross-site":
                     return self._send_json(403, {"error": "Knowledge import must be started from the local SelfOS dashboard"})
-            qs = parse_qs(parsed.query)
+            qs = parse_qs(parsed.query, keep_blank_values=True)
             full = qs.get("full", ["0"])[0] == "1"
             from selfos.app.jobs import command, child_environment
             cmd = command('knowledge' if knowledge else 'harvest', self.runtime.ROOT)
             if knowledge:
                 cmd.extend(['--vault', str(self.runtime.VAULT)])
+                if 'preview' in qs:
+                    try:
+                        if len(qs['preview']) != 1 or qs.get('action', [''])[0] == 'rebuild':
+                            raise ValueError('Invalid preview request')
+                        from selfos.app.onboarding import resolve_preview, _progress
+                        preview = resolve_preview(self.runtime.VAULT, qs['preview'][0])
+                        if _progress(self.runtime.VAULT)['preview_id'] != preview['id'] or not preview['sessions']:
+                            raise ValueError('Preview is not current or has no work')
+                        cmd.extend(['--onboarding-preview', preview['id']])
+                    except (ValueError, OSError, TypeError, KeyError):
+                        return self._send_json(400, {'code': 'onboarding_invalid'})
             if full and not knowledge:
                 cmd.append("--full")
             stop_file = None

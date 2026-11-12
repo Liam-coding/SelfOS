@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--restore-last', action='store_true')
     parser.add_argument('--stop-file', type=Path)
     parser.add_argument('--dry-run', action='store_true', help='Scan and compact without API requests or vault writes')
+    parser.add_argument('--onboarding-preview', help='Process only a validated bounded local preview; resume keeps its allowance')
     args = parser.parse_args()
     paths = AppPaths.from_root(args.root)
     # A root explicitly selects configuration independently of vault location.
@@ -40,12 +41,19 @@ def main():
             return
         print('SelfOS Knowledge: scanning local Claude Code and Codex conversations', flush=True)
         cancelled = lambda: bool(args.stop_file and args.stop_file.exists())
+        preview = None
+        budget = None
+        if args.onboarding_preview is not None:
+            from selfos.app.onboarding import resolve_preview
+            from selfos.storage.onboarding import SampleBudget
+            preview = resolve_preview(args.vault, args.onboarding_preview)
+            budget = SampleBudget(args.vault, args.onboarding_preview)
         if not args.dry_run:
             from selfos.app.knowledge import run_knowledge
-            summarizer = api_summarizer(config_root)
-            refiner = api_refiner(config_root,cancel=cancelled)
+            summarizer = api_summarizer(config_root,budget=budget)
+            refiner = api_refiner(config_root,cancel=cancelled,budget=budget)
             result = run_knowledge(args.vault, rebuild=args.rebuild, max_workers=args.workers,
-                summarize=summarizer, refine=refiner,
+                summarize=summarizer, refine=refiner, sample_id=args.onboarding_preview,
                 cancel=cancelled,
                 progress=lambda line: print(line, flush=True))
             if result['installed']:
@@ -57,10 +65,21 @@ def main():
             return
         from selfos.sources.compaction import prepare_sessions
         cancelled = lambda: bool(args.stop_file and args.stop_file.exists())
-        messages = extract_conversations(local_roots(), cancel=cancelled)
+        if preview is not None:
+            sessions = preview['sessions']
+            messages = [m for s in sessions for m in s['messages']]
+        else:
+            roots = local_roots()
+            if (args.vault / '.knowledge_sources.json').exists():
+                from selfos.sources.selection import load_sources, allowed_source
+                selection = load_sources(args.vault)
+                roots = [path for directory in selection['roots'] for path in Path(directory).rglob('*.jsonl')
+                         if path.is_file() and allowed_source(path, selection)]
+            messages = extract_conversations(roots, cancel=cancelled)
         state_file = args.vault / '.knowledge_pipeline.json'
         aliases = json.loads(state_file.read_text(encoding='utf-8')).get('project_aliases', {}) if state_file.exists() else {}
-        sessions = prepare_sessions(messages, max_chars=24000, cancel=cancelled, aliases=aliases)
+        if preview is None:
+            sessions = prepare_sessions(messages, max_chars=24000, cancel=cancelled, aliases=aliases)
         print(f'Scanned {len(messages)} messages; compacted into {len(sessions)} session parts, {len({s["project_id"] for s in sessions})} projects; characters {sum(len(m["text"]) for m in messages)} -> {sum(len(m["text"]) for s in sessions for m in s["messages"])}', flush=True)
         return
     except Exception as exc:

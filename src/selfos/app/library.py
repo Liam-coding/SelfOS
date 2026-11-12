@@ -226,7 +226,9 @@ def knowledge_source(vault,identity, *, offset=0,limit=24000):
     path=Path(source.get('path','')).resolve()
     if path.suffix.lower()!='.jsonl':
         raise SourceUnavailable('unsupported_source_format','Conversation source format is not supported')
-    if not any(path.is_relative_to(Path(root).resolve()) for root in local_roots()):
+    from selfos.sources.selection import load_sources, allowed_source
+    selection = load_sources(vault) if (Path(vault) / '.knowledge_sources.json').exists() else load_sources(vault, defaults=local_roots())
+    if not allowed_source(path, selection):
         raise SourceUnavailable('source_denied','Conversation source is outside supported source folders')
     if not path.is_file():
         raise SourceUnavailable('source_missing','Conversation source is missing or has moved')
