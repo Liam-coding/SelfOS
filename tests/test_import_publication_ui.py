@@ -13,11 +13,11 @@ def component():
         pytest.fail('Publication status UI is not implemented')
 
 
-def test_publication_ui_executes_and_only_explicit_action_starts_import():
+def test_publication_ui_executes_and_only_explicit_action_starts_import(tmp_path):
     module = component()
     node = shutil.which('node')
     assert node, 'Node is required for this JavaScript regression'
-    fixture = {'counts': {'preferences': 0}, 'saved_checkpoints': 1,
+    fixture = {'counts': {'preferences': 0}, 'saved_checkpoints': 1234,
                'publication': {'diagnostics': 0, 'operations': [
                    {'id': 'example', 'status': 'stopped', 'phase': 'extracting',
                     'compatible': True, 'resume_eligible': True, 'staged_counts': {'preferences': 1},
@@ -31,14 +31,17 @@ class Element {
  addEventListener(){}
  setAttribute(k,v){if(k==='data-action')this.tag=v;}
 }
-global.document={documentElement:{lang:'en'},
+const events=new Map();global.localStorage={getItem:()=>null,setItem(){}};global.document={documentElement:{lang:'en'},querySelectorAll:()=>[],dispatchEvent:e=>events.get(e.type)?.(),
  getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},
- createElement(){return new Element();}, addEventListener(){}};
+ createElement(){return new Element();}, addEventListener(k,f){events.set(k,f);}};
 global.window=global;
 let calls=[];global.confirmHarvest=(...args)=>calls.push(args);
 global.fetch=async()=>({ok:true,json:async()=>(FIXTURE)});
 SCRIPT
 renderImportPublication(FIXTURE);
+if(!document.getElementById('import-checkpoints').textContent.includes('1,234'))throw Error('Checkpoint count is not locale formatted');
+if(!document.getElementById('import-modal-boundary').textContent.includes('1,234'))throw Error('Modal checkpoint count is not locale formatted');
+const englishBoundary=document.getElementById('import-boundary').textContent;
 if(!document.getElementById('import-published').textContent.includes('Preferences: 0'))throw Error('published count');
 if(!document.getElementById('import-modal-published').textContent.includes('Preferences: 0'))throw Error('modal count');
 const row=document.getElementById('import-operations').children[0];
@@ -48,18 +51,22 @@ const button=row.children.find(e=>e.tag==='resume');
 if(!button)throw Error('resume action missing');
 button.onclick();
 if(JSON.stringify(calls)!==JSON.stringify([[false,true,false]]))throw Error('wrong import action');
-document.documentElement.lang='zh';renderImportPublication(FIXTURE);
+selfosI18n.setLocale('zh');if(document.getElementById('import-operations').children[0]!==row)throw Error('Language switch replaced publication DOM');
+if(document.getElementById('import-boundary').textContent===englishBoundary)throw Error('Publication explanation did not translate');
 if(!document.getElementById('import-published').textContent.includes('偏好'))throw Error('language change');
 console.log('publication UI passed');
 (async()=>{
- importPublicationData=null;document.documentElement.lang='en';
+ importPublicationData=null;selfosI18n.setLocale('en');
  global.fetch=async()=>{throw Error('offline');};
  await refreshImportPublication();
  if(!document.getElementById('import-published').textContent.includes('unavailable'))throw Error('loading must become an error');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''
-    harness = harness.replace('FIXTURE', json.dumps(fixture)).replace('SCRIPT', module.SCRIPT)
-    result = subprocess.run([node, '-e', harness], capture_output=True, text=True, encoding='utf-8')
+    from selfos.web.i18n import runtime
+    common=runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
+    harness = harness.replace('FIXTURE', json.dumps(fixture)).replace('SCRIPT', common + module.SCRIPT)
+    path=tmp_path/'publication.js';path.write_text(harness,encoding='utf-8')
+    result = subprocess.run([node, str(path)], capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 0, result.stderr
 
 

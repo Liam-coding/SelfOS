@@ -1,42 +1,26 @@
 
 let knowledgeOperation = null;
-let knowledgeStatusTranslation = null;
-const knowledgeDomains = {work:['工作','Work'],research:['研究','Research'],learning:['学习','Learning'],personal:['个人信息与偏好','Personal facts and preferences'],life:['生活','Life'],health:['健康','Health']};
-const knowledgeText = (zh,en) => document.documentElement.lang === 'zh' ? zh : en;
-function setKnowledgeStatus(zh,en) {
-  knowledgeStatusTranslation=[zh,en];
-  document.getElementById('knowledge-status').textContent=knowledgeText(zh,en);
-}
-function knowledgeSettingsError(error) {
-  knowledgeStatusTranslation=null;
-  document.getElementById('knowledge-status').textContent=error.message;
-}
-function translateKnowledgeSettings() {
-  document.querySelectorAll('#knowledge-domains [data-domain]').forEach(span=>{
-    span.textContent=knowledgeText(...knowledgeDomains[span.dataset.domain]);
-  });
-  document.getElementById('knowledge-custom').placeholder=knowledgeText('例如：音乐, 旅行','For example: music, travel');
-  if(knowledgeStatusTranslation)document.getElementById('knowledge-status').textContent=knowledgeText(...knowledgeStatusTranslation);
-}
-document.addEventListener('selfos-language',translateKnowledgeSettings);
-document.addEventListener('DOMContentLoaded',translateKnowledgeSettings);
+
+const knowledgeDomains = {work:'ui.import_settings.work',research:'ui.import_settings.research',learning:'ui.import_settings.learning',personal:'ui.import_settings.personal_facts_and_preferences',life:'ui.import_settings.life',health:'ui.import_settings.health'};
+function setKnowledgeStatus(key){window.selfosI18n.bindText('knowledge-status',key);}
+function knowledgeSettingsError(error){setKnowledgeStatus('ui.import_settings.request_failed');}
 async function knowledgeRequest(url, body) {
   const response = await fetch(url, body === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || knowledgeText('请求失败','Request failed'));
+  if (!response.ok) throw new Error(window.selfosI18n.t('ui.import_settings.request_failed'));
   return data;
 }
 function displayKnowledgeStatus(data) {
-  renderImportPublication(data);
+  if(typeof renderImportPublication==='function')renderImportPublication(data);
   knowledgeOperation = data.last_operation ? data.last_operation.id : null;
   document.getElementById('knowledge-undo').disabled = !knowledgeOperation;
-  if(data.needs_rebuild)setKnowledgeStatus('设置已变化，下次整理会自动重建。','Settings changed. The next import will rebuild automatically.');
-  else setKnowledgeStatus('设置已保存。','Settings saved.');
+  if(data.needs_rebuild)setKnowledgeStatus('ui.import_settings.settings_changed_the_next_import_will_rebuild_automatically');
+  else setKnowledgeStatus('ui.import_settings.settings_saved');
 }
 async function openKnowledgeSettings() {
   const dialog = document.getElementById('knowledge-settings');
   dialog.showModal();
-  setKnowledgeStatus('正在加载设置…','Loading settings…');
+  setKnowledgeStatus('ui.import_settings.loading_settings');
   try {
     const data = await knowledgeRequest('/__knowledge_settings__');
     const container = document.getElementById('knowledge-domains');
@@ -46,7 +30,7 @@ async function openKnowledgeSettings() {
       label.style.marginRight = '12px';
       const input = document.createElement('input');
       input.type = 'checkbox'; input.value = key; input.checked = data.settings.domains.includes(key);
-      const span=document.createElement('span');span.dataset.domain=key;span.textContent=knowledgeText(...title);
+      const span=document.createElement('span');span.dataset.domain=key;window.selfosI18n.bindText(span,title);
       label.append(input,span); container.append(label);
     }
     document.getElementById('knowledge-custom').value = data.settings.domains.filter(d => !(d in knowledgeDomains)).join(', ');
@@ -68,6 +52,6 @@ async function undoKnowledge() {
   try {
     const data = await knowledgeRequest('/__knowledge_restore__', {operation_id:knowledgeOperation});
     displayKnowledgeStatus(data);
-    setKnowledgeStatus('上次整理已撤销，备份保留。','Last import undone. Backups are retained.');
+    setKnowledgeStatus('ui.import_settings.last_import_undone_backups_are_retained');
   } catch (error) { knowledgeSettingsError(error); button.disabled = !knowledgeOperation; }
 }

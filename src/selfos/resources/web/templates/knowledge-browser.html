@@ -1,13 +1,13 @@
 <section id="knowledge-library" class="knowledge-library" aria-labelledby="kb-heading">
-<h2 id="kb-heading" tabindex="-1">Search your knowledge</h2><p id="kb-intro"></p>
-<div id="kb-tabs" class="kb-tabs" role="group" aria-label="Knowledge categories"></div>
-<form id="kb-search-form" role="search"><input class="kb-search" id="kb-search" type="search" maxlength="500" aria-label="Search knowledge" placeholder="Search all knowledge…">
+<h2 id="kb-heading" data-i18n="search.heading" tabindex="-1">Search your knowledge</h2><p id="kb-intro"></p>
+<div id="kb-tabs" data-i18n-aria-label="search.all" class="kb-tabs" role="group" aria-label="Knowledge categories"></div>
+<form id="kb-search-form" role="search"><input class="kb-search" id="kb-search" data-i18n-placeholder="search.search_placeholder" data-i18n-aria-label="search.search_label" type="search" maxlength="500" aria-label="Search knowledge" placeholder="Search all knowledge…">
 <div class="kb-filters">
-<label><span id="kb-project-label">Project context</span><select id="kb-project"></select></label>
-<label><span id="kb-source-label">Source</span><select id="kb-source-filter"></select></label>
-<label><span id="kb-date-from-label">From date</span><input id="kb-date-from" type="date"></label>
-<label><span id="kb-date-to-label">Through date</span><input id="kb-date-to" type="date"></label>
-</div><button id="kb-reset" class="kb-reset" type="button">Reset search</button><p id="kb-date-hint" hidden></p></form>
-<p id="kb-status" role="status" aria-live="polite">Loading…</p><div class="kb-list" id="kb-list"></div>
-<button id="kb-more" class="kb-more" type="button" hidden>Load more</button><button id="kb-retry" class="kb-more" type="button" hidden>Try again</button>
-</section><dialog id="kb-detail" aria-label="Knowledge details"><button id="kb-close" class="kb-close" type="button" autofocus>Close</button><div class="kb-detail-content" id="kb-detail-content"></div></dialog>
+<label><span id="kb-project-label" data-i18n="search.project_label">Project context</span><select id="kb-project"></select></label>
+<label><span id="kb-source-label" data-i18n="search.source_label">Source</span><select id="kb-source-filter"></select></label>
+<label><span id="kb-date-from-label" data-i18n="search.date_from_label">From date</span><input id="kb-date-from" type="date"></label>
+<label><span id="kb-date-to-label" data-i18n="search.date_to_label">Through date</span><input id="kb-date-to" type="date"></label>
+</div><button id="kb-reset" data-i18n="search.clear" class="kb-reset" type="button">Reset search</button><p id="kb-date-hint" hidden></p></form>
+<p id="kb-status" data-i18n="search.loading" role="status" aria-live="polite">Loading…</p><div class="kb-list" id="kb-list"></div>
+<button id="kb-more" data-i18n="search.more" class="kb-more" type="button" hidden>Load more</button><button id="kb-retry" data-i18n="search.retry" class="kb-more" type="button" hidden>Try again</button>
+</section><dialog id="kb-detail" data-i18n-aria-label="search.detail_label" aria-label="Knowledge details"><button id="kb-close" data-i18n="search.close" class="kb-close" type="button" autofocus>Close</button><div class="kb-detail-content" id="kb-detail-content"></div></dialog>

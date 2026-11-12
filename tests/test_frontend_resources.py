@@ -27,9 +27,20 @@ def rendering_hashes(tmp_path, monkeypatch):
     return {key: hashlib.sha256(value.encode('utf-8')).hexdigest() for key, value in outputs.items()}
 
 
-def test_rendered_pages_and_components_preserve_current_main_bytes(tmp_path, monkeypatch):
+def test_styles_preserve_pre_refactor_bytes_and_ui_messages_use_catalogs(tmp_path, monkeypatch):
     baseline = json.loads((ROOT / 'tests/fixtures/frontend_rendering_main_baseline.json').read_text(encoding='utf-8'))
-    assert rendering_hashes(tmp_path, monkeypatch) == baseline['hashes']
+    actual=rendering_hashes(tmp_path,monkeypatch)
+    for name in ('auth_style','library_style','visual_style'):
+        assert actual[name]==baseline['hashes'][name]
+    import re
+    from selfos.web.i18n import catalogs
+    messages=catalogs()['locales']['en']['messages']
+    for path in (ROOT/'src/selfos/resources/web/templates').glob('*.html'):
+        source=path.read_text(encoding='utf-8')
+        assert 'data-zh=' not in source and 'data-en=' not in source,path.name
+        for key in re.findall(r'data-i18n(?:-placeholder|-title|-aria-label)?="([^"]+)"',source):
+            if not key.startswith('@@SELFOS_VALUE:'):
+                assert key in messages,(path.name,key)
 
 
 def test_production_renderers_do_not_embed_large_ui_blocks():
@@ -47,8 +58,8 @@ def test_package_loader_rejects_unknown_paths_and_preserves_value_boundaries(tmp
         with pytest.raises(ValueError):
             frontend_text(path)
     value = '@@SELFOS_RESOURCE:styles/visual-system.css@@ @@SELFOS_VALUE:value1@@'
-    fields = dict(key=value, label_zh='', label_en='', display='', color='', status_zh='', status_en='',
-                  sugg_zh='', sugg_en='', r='', arc='', circ='', hist_json='')
+    fields = dict(key=value, label_text='', display='', color='', status_text='',
+                  suggestion_text='', label_key='', status_key='', sugg_key='', r='', arc='', circ='', hist_json='', score_params='{}')
     rendered = render_ui('templates/dashboard-card.html', fields)
     assert value in rendered
     with pytest.raises(ValueError):

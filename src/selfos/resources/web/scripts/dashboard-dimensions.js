@@ -4,12 +4,11 @@ const DIM_ICONS = {
   research:'🔬', life:'🌿', family:'🏠'
 };
 let _currentDimKey = '';
-let _pendingDimMsg = '';
 
 function chatAboutDim() {
   document.getElementById('dim-modal').classList.remove('open');
   if (chatCollapsed) toggleChat();
-  _sendChatSilent(_pendingDimMsg);
+  _sendChatSilent(window.selfosI18n.t('ui.dimension.discuss',{label:window.selfosI18n.t('ui.dimension.'+_currentDimKey)}));
 }
 
 function openDim(card) {
@@ -17,21 +16,18 @@ function openDim(card) {
   const score = card.dataset.score;
   const color = card.dataset.color;
   _currentDimKey = key;
-  const label = card.dataset[lang === 'zh' ? 'labelZh' : 'labelEn'];
 
   // Show modal
   document.getElementById('dim-modal-icon').textContent  = DIM_ICONS[key] || '📊';
-  document.getElementById('dim-modal-title').textContent = label;
+  window.selfosI18n.bindText('dim-modal-title',card.dataset.labelKey);
   const scoreEl = document.getElementById('dim-modal-score');
-  scoreEl.textContent = score;
+  window.selfosI18n.bindText(scoreEl,'ui.common.value',{value:score.trim()!==''&&Number.isFinite(Number(score))?Number(score):score});
   scoreEl.style.color = color;
-  document.getElementById('dim-modal-status').textContent = card.dataset[lang === 'zh' ? 'statusZh' : 'statusEn'];
+  window.selfosI18n.bindText('dim-modal-status',card.dataset.statusKey);
   document.getElementById('dim-modal-status').style.color = color;
-  document.getElementById('dim-modal-sugg').textContent   = card.dataset[lang === 'zh' ? 'suggZh' : 'suggEn'];
+  window.selfosI18n.bindText('dim-modal-sugg',card.dataset.suggKey);
   document.getElementById('dim-modal').classList.add('open');
 
-  // Pre-store the message so the chat button can send it
-  _pendingDimMsg = lang === 'zh' ? `帮我分析一下「${label}」这个维度` : `Tell me about my ${label} dimension`;
 }
 document.getElementById('dim-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
@@ -41,7 +37,8 @@ document.getElementById('dim-modal').addEventListener('click', e => {
 async function _sendChatSilent(text) {
   appendMsg(text, 'user');
   chatHistory.push({role:'user', content: text});
-  const thinking = appendMsg(lang === 'zh' ? '思考中…' : 'Thinking…', 'ai');
+  const thinking = appendMsg('', 'ai');
+  window.selfosI18n.bindText(thinking,'ui.chat.thinking');
   thinking.classList.add('thinking');
   try {
     const fetchPromise = fetch('/chat', {
@@ -51,12 +48,13 @@ async function _sendChatSilent(text) {
     });
     const res = await fetchPromise;
     const data = await res.json();
+    if(!res.ok||typeof data.reply!=='string'||!data.reply.trim())throw Error('chat_failed');
     thinking.remove();
-    const reply = data.reply || data.error || 'Error';
+    const reply = data.reply;
     appendMsg(reply, 'ai');
     chatHistory.push({role:'assistant', content: reply});
   } catch(e) {
-    thinking.textContent = lang === 'zh' ? '连接失败，请运行 python -m selfos serve' : 'Connection failed — run python -m selfos serve';
+    window.selfosI18n.bindText(thinking,'ui.chat.failed');
   }
 }
 

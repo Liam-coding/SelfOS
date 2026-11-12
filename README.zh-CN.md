@@ -114,6 +114,7 @@ Markdown 和来源路径保存在本地。**整理和聊天会把脱敏后的文
 | [开发文档](docs/dev.md) | 架构、接口和 Harvest 流程 |
 | [后端结构](docs/backend-architecture.md) | 模块职责、包安装、路径与兼容命令 |
 | [前端结构](docs/frontend-architecture.md) | 安装包中的模板、样式、浏览器模块和前后端接口约定 |
+| [国际化](docs/internationalization.md) | 语言目录、扩展翻译与切换时的状态保留 |
 | [评测说明](evals/README.md) | 冻结验收案例和模型质量检查 |
 
 运行代码测试：

@@ -1,12 +1,9 @@
 """Canonical knowledge search and evidence browser with packaged translations."""
 from selfos.web.rendering.resources import frontend_text, render_ui
-import json
 import re
-from importlib.resources import files
 
-LOCALES = {language: json.loads(files('selfos.resources').joinpath(
-    'locales', folder, 'search.json').read_text(encoding='utf-8'))
-    for language, folder in [('en', 'en'), ('zh', 'zh-CN')]}
+from selfos.web.i18n import namespace_messages
+LOCALES = namespace_messages('search')
 
 STYLE = frontend_text('templates/knowledge-browser-style.html')
 
@@ -14,7 +11,7 @@ _HTML = frontend_text('templates/knowledge-browser.html')
 
 _SCRIPT = frontend_text('scripts/knowledge-browser.js')
 
-HTML = _HTML + '<script>\nconst searchLocales = ' + json.dumps(LOCALES, ensure_ascii=True) + ';\n' + _SCRIPT + '</script>'
+HTML = _HTML + '<script>' + _SCRIPT + '</script>'
 
 
 from selfos.web.rendering.timeline import HTML as TIMELINE_HTML

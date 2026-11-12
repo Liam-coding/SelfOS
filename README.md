@@ -40,7 +40,9 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
 
     Open [http://localhost:7070](http://localhost:7070).
     Log in before accessing the dashboard. Existing vaults require local password initialization with `python -m selfos auth reset`; an empty installation can set its password on the login page. See [authentication](docs/authentication.md).
-    Select **模型与网络** (Model and network) to choose the interface, Base URL, model, API key and proxy. Use **Save and test connection** before importing. See [model settings](docs/model-settings.md).
+    Select **Settings > Model and network** to choose the interface, Base URL, model, API key and proxy. Use **Save and test connection** before importing. See [model settings](docs/model-settings.md).
+
+    The interface defaults to English. Choose **Settings > Language** for Simplified Chinese.
 
 4. Select your focus domains and detail level under **Choose what matters**, then click **Organize my knowledge**. When the operation completes, use **Browse knowledge** to explore records and their sources.
 
@@ -116,6 +118,7 @@ Source references make records traceable; AI summaries and candidate reviews do 
 | [Development](docs/dev.md) | Architecture, endpoints and Harvest workflows |
 | [Backend package](docs/backend-architecture.md) | Module boundaries, installation, paths and compatible commands |
 | [Frontend structure](docs/frontend-architecture.md) | Packaged templates, styles, browser modules and UI/backend contracts |
+| [Internationalization](docs/internationalization.md) | Locale catalogs, adding translations and preserving state during language changes |
 | [Evaluation](evals/README.md) | Frozen acceptance cases and model-quality checks |
 
 To run program tests:

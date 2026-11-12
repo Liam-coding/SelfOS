@@ -42,6 +42,8 @@ with tempfile.TemporaryDirectory() as folder:
         browser=getattr(playwright,engine).launch(**options)
         for name,width,height in [('desktop',1440,900),('mobile',390,740)]:
             page=browser.new_page(viewport={'width':width,'height':height},reduced_motion='reduce')
+            errors=[]
+            page.on('pageerror',lambda error:errors.append(str(error)))
             page.route('**/*',respond)
             page.goto('http://fixture.test/')
             page.locator('#kb-list .kb-card').first.wait_for()
@@ -49,24 +51,33 @@ with tempfile.TemporaryDirectory() as folder:
             page.evaluate('toggleTheme()')
             assert 'dark' in page.locator('body').get_attribute('class')
             page.locator('#model-settings-entry button').click()
-            page.locator('#settings-language').select_option('zh')
+            page.locator('#settings-language').select_option('zh-CN')
             assert page.locator('html').get_attribute('lang')=='zh'
+            assert page.evaluate('window.selfosI18n.locale')=='zh-CN'
             page.locator('#settings-language').select_option('en')
             page.locator('#app-settings button').filter(has_text='Model and network').click()
             page.locator('#model-name').wait_for()
             page.wait_for_function("document.getElementById('model-name').value==='fixture-model'")
             page.locator('#model-name').fill('unsaved-fixture')
+            page.evaluate("window.selfosI18n.setLocale('zh')")
+            assert page.locator('#model-name').input_value()=='unsaved-fixture'
+            page.evaluate("window.selfosI18n.setLocale('en')")
             page.locator('#model-settings button').filter(has_text='Close').click()
             page.locator('#kb-search').fill('fixture')
             page.locator('#kb-list .kb-card').first.click()
-            page.locator('.kb-source').click()
-            page.wait_for_function("document.getElementById('kb-detail-content').textContent.includes('I am building a fixture project.')")
+            page.locator('#kb-sources').get_by_role('button',name='Read original source',exact=True).click()
+            page.locator('#kb-sources pre').filter(has_text='I am building a fixture project.').wait_for()
+            page.evaluate("window.originalSourceNode=document.querySelector('#kb-sources pre');window.selfosI18n.setLocale('zh')")
+            assert page.evaluate("originalSourceNode===document.querySelector('#kb-sources pre')")
+            assert page.locator('#kb-sources pre').inner_text()=='I am building a fixture project.'
+            page.evaluate("window.selfosI18n.setLocale('en')")
             page.locator('.kb-close').click()
             page.evaluate('openKnowledgeSettings()')
             page.locator('#knowledge-domains input').first.wait_for()
             page.locator('#knowledge-custom').fill('music')
             page.locator('#knowledge-settings button').filter(has_text='Close').click()
             page.screenshot(path=str(output/f'{engine}-{name}.png'),full_page=True)
+            assert not errors, errors
             print(engine,name,'settings, locale/theme, knowledge search/detail/source passed')
             page.close()
         browser.close()

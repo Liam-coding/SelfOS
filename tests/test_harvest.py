@@ -737,8 +737,8 @@ class TestGenerateDashboard:
         scores = {key: 7 for key, _, _ in _knowledge_scoring.SCORE_DIMENSIONS}
         _web_rendering_dashboard.generate_dashboard(vault, scores)
         html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
-        for _, label, _ in _knowledge_scoring.SCORE_DIMENSIONS:
-            assert label in html
+        for key, _, _ in _knowledge_scoring.SCORE_DIMENSIONS:
+            assert 'data-label-key="ui.dimension.'+key+'"' in html
 
     def test_overall_score_shown(self, tmp_path):
         vault = tmp_path / "vault"
@@ -762,7 +762,7 @@ class TestGenerateDashboard:
         scores["family"] = "skip"
         _web_rendering_dashboard.generate_dashboard(vault, scores)
         html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
-        assert "家庭" not in html
+        assert 'data-key="family"' not in html
 
     def test_bilingual_toggle_button_present(self, tmp_path):
         vault = tmp_path / "vault"
@@ -770,7 +770,7 @@ class TestGenerateDashboard:
         _web_rendering_dashboard.generate_dashboard(vault)
         html = (vault.parent / "dashboard.html").read_text(encoding="utf-8")
         assert "toggleLang" in html
-        assert "EN" in html
+        assert 'id="lang-toggle" data-i18n="ui.common.language"' in html
 
     def test_english_strings_embedded(self, tmp_path):
         vault = tmp_path / "vault"
@@ -1125,12 +1125,15 @@ class TestDashboardStagingUI:
         assert "progress-bar" in html
         assert "EventSource" in html
 
-    def test_suggestion_returns_both_langs(self):
-        s = _web_rendering_dashboard._suggestion("health", 8)
-        assert "zh" in s and "en" in s
-        assert len(s["zh"]) > 5
-        assert len(s["en"]) > 5
+    def test_suggestion_key_has_both_translations(self):
+        from selfos.web.i18n import translate
+        key = _web_rendering_dashboard._suggestion("health", 8)
+        assert key == 'ui.suggestion.health.high'
+        assert len(translate(key, 'zh')) > 5
+        assert len(translate(key, 'en')) > 5
 
     def test_suggestion_nodata_when_none(self):
-        s = _web_rendering_dashboard._suggestion("career", None)
-        assert "vault" in s["zh"] or "vault" in s["en"]
+        from selfos.web.i18n import translate
+        key = _web_rendering_dashboard._suggestion("career", None)
+        assert key == 'ui.suggestion.empty'
+        assert "vault" in translate(key, 'zh') and "vault" in translate(key, 'en')
