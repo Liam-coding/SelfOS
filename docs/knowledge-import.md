@@ -110,3 +110,26 @@ restore the whole last operation. Undo validates all files first and refuses to
 overwrite subsequent manual changes. Existing --restore RUN_ID remains usable
 for older backups. Manual notes outside managed sections survive rebuilding.
 Settings are vault-specific and stored in .knowledge_settings.json.
+
+The publication status panel separates canonical category counts from saved
+extraction checkpoints and provisional records in each staging snapshot. Saved
+sessions are published only after consolidation and refinement succeed. Snapshots
+can overlap, so their counts are never added together. The count of compatible
+saved summaries is not a count of independently verified personal facts.
+
+New imports persist small operation journals under
+.knowledge_jobs/operations/*.json, independently of canonical transactions.
+They record scanning, extraction, refinement and publication phases and terminal
+outcomes. Old staging without a journal is explicitly unknown. A running journal
+with a verified dead owner is interrupted; successful canonical publication takes
+precedence over a stale journal. Unreadable status files produce a bounded
+diagnostic without exposing source text. Journal failure does not invalidate a
+successful knowledge transaction.
+
+Status queries do not scan source conversations, call models or restart imports.
+Resume import deliberately enters the existing incremental importer, which
+revalidates original source IDs and content before reusing compatible summaries.
+New or changed conversations can still require model calls. Different settings
+or a changed canonical base are shown as incompatible with the old operation;
+policy changes can be rebuilt explicitly. Original conversations, backups and
+atomic publication guarantees remain in place.
