@@ -12,6 +12,8 @@ SelfOS 是一个以本地 Markdown 为基础的个人知识系统。它将 Claud
 
 ## 快速开始
 
+已测试的 macOS 环境和复现步骤见 [macOS 兼容性报告](docs/macos-compatibility.md)。
+
 需要 **Python 3.10+**、Git，以及用于整理和聊天的 Anthropic Messages 或 OpenAI-compatible Chat Completions API。本地模型需要支持工具调用。密码哈希使用 argon2-cffi，请先运行 `python -m pip install -r requirements.txt`。
 
 1. 克隆项目：
