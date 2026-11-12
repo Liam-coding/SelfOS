@@ -105,6 +105,11 @@
    if(!detailCache)return;const item=detailCache.item,content=el('kb-detail-content');
    content.replaceChildren(node('h2',item.title),node('p',()=>tr(item.category)+' · '+attribution(item),'kb-meta'),node('p',item.summary));
    if(item.conflict)content.append(node('p',()=>tr('conflict')));
+   if(item.scope_type){
+     content.append(node('p',()=>tr('preference_scope',{scope:named('scope_',item.scope_type)})+(item.scope_type==='activity'||item.scope_type==='project'?' · '+item.scope:''),'kb-meta'));
+     if(item.scope_type==='unknown')content.append(node('p',()=>tr('preference_scope_unknown_note')));
+   }
+   if(item.superseded_by_source_ids?.length)content.append(node('p',()=>tr('preference_superseded')));
    if(item.category==='projects'&&window.openProjectTimeline){const timeline=node('button',()=>window.selfosI18n.t('timeline.open'),'pt-entry-button');timeline.type='button';timeline.dataset.projectTimeline='';timeline.onclick=()=>{el('kb-detail').close();window.openProjectTimeline(item.id);};content.append(timeline);}
    for(const field of ['decisions','blockers','next_steps'])if(item[field]?.length){const list=node('ul');item[field].forEach(value=>list.append(node('li',value)));content.append(node('h3',()=>tr(field)),list);}
    if(item.evidence)content.append(node('h3',()=>tr('quote')),node('pre',item.evidence));

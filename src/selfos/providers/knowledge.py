@@ -112,6 +112,19 @@ record MUST include non-empty key (stable relation name), value, text, domain, k
 and evidence_id. kind MUST be exactly user_fact, assistant_suggestion, or inference, in ALL three
 arrays. user_statement, preference, runtime_evidence are NOT valid kinds. Do not omit kind.
 temporal MUST be current or historical. See record_schema for a complete example.
+Extract preferences in this SAME response while understanding the project; do not defer
+preference extraction to another pass. Only retain explicitly supported enduring preferences.
+Temporary commands such as "write tests for this change" or "open a branch" are not preferences.
+Project design decisions belong in project context, not personal preferences.
+Every preference includes scope: {"type":"global|activity|project|unknown","id":"..."}.
+Use global only when evidence explicitly supports general applicability; global and unknown
+have an empty id. Activity ids are stable English identifiers such as work-email or learning.
+Project scope uses id current-project, resolved locally to the source session identity.
+Missing or ambiguous applicability is unknown, never global. Different contexts stay separate.
+Do not infer a language preference merely from the language used in a message. Repetition
+does not broaden applicability. Select evidence supporting both the preference and its scope.
+Preserve explicit historical preferences as historical; never invent an effective date or
+declare that one preference replaced another without evidence. Local source dates govern merging.
 Input conversations contain evidence_spans with exact original text and IDs such as s1:e1.
 Copy ONE supporting evidence_id exactly. The program resolves that ID to original evidence and
 source_ids. Do not write your own evidence quotation or combine sources into a paraphrase.
@@ -128,7 +141,7 @@ If repair_feedback is present, regenerate a complete valid response addressing t
 '''
 
 
-def api_summarizer(root, *, review_records=True):
+def api_summarizer(root, *, review_records=False):
     from selfos.providers.client import request_opener
     open_model = request_opener(root)
     key, base = _get_api_config(root)
@@ -183,13 +196,14 @@ def api_summarizer(root, *, review_records=True):
             for item in [result.get('project'), *result.get('lessons', []), *result.get('personal_facts',[]), *result.get('preferences',[]), *result.get('history',[])]:
                 if isinstance(item, dict) and isinstance(item.get('source_ids'), list):
                     item['source_ids'] = [originals.get(i, i) for i in item['source_ids']]
-        if review_records and isinstance(result,dict) and any(result.get(k) for k in ('personal_facts','preferences')):
+        if isinstance(result,dict):
             from selfos.knowledge.projects import validate_summary
-            from selfos.providers.reviews.scope import review_personal_records
             try:
                 result=validate_summary(result,session)
             except ValueError as error:
                 raise ResponseFormatError(str(error),raw) from error
+        if review_records and isinstance(result,dict) and any(result.get(k) for k in ('personal_facts','preferences')):
+            from selfos.providers.reviews.scope import review_personal_records
             try:
                 result=review_personal_records(result,key,base,open_request=open_model)
             except Exception as error:
