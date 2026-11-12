@@ -54,6 +54,11 @@ def output_schema(aliases, references, decision_budget):
             'temporal':{'type':'string','enum':['current','historical']},
             'evidence_id':{'type':'string','enum':list(references)}}}
     strings = lambda maximum: {'type':'array','maxItems':maximum,'items':text}
+    preference = {**record, 'required':[*record['required'], 'scope'],
+        'properties':{**record['properties'], 'scope':{
+            'type':'object', 'additionalProperties':False, 'required':['type','id'],
+            'properties':{'type':{'type':'string','enum':['global','activity','project','unknown']},
+                          'id':{'type':'string','maxLength':200}}}}}
     project = {'type':'object','additionalProperties':False,
         'required':['project_id','title','domain','intent','status','decisions','blockers','next_steps','source_ids','updated_at','verified'],
         'properties':{'project_id':{'type':'string','enum':['current-project']},
@@ -67,7 +72,7 @@ def output_schema(aliases, references, decision_budget):
         'required':['project','lessons','personal_facts','preferences','history'],
         'properties':{'project':{'anyOf':[project,{'type':'null'}]},
             'lessons':{'type':'array','maxItems':12,'items':lesson},
-            **{k:{'type':'array','maxItems':100,'items':record}
+            **{k:{'type':'array','maxItems':100,'items':preference if k=='preferences' else record}
                for k in ('personal_facts','preferences','history')}}}
 
 

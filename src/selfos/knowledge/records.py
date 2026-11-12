@@ -42,8 +42,7 @@ def validate_record(raw,session):
     return r
 
 
-def normalized(value):
-    return re.sub(r'[\s_\-]+','',value).casefold()
+from selfos.knowledge.identity import normalized
 
 
 def merge_records(state,category,records,settings):

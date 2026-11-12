@@ -27,7 +27,9 @@ def normalize_scope(record, session=None):
         raise ValueError('Unsupported preference scope type')
     if declared_type is not None and declared_type != kind:
         raise ValueError('Conflicting preference scope type')
-    if not isinstance(identity, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}', identity):
+    if not isinstance(identity, str) or not identity or len(identity)>2000 or any(ord(c)<32 for c in identity):
+        raise ValueError('Invalid preference scope id')
+    if kind!='project' and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}', identity):
         raise ValueError('Invalid preference scope id')
     if kind in ('global', 'unknown') and identity != kind:
         raise ValueError('Invalid global/unknown preference scope id')
@@ -68,13 +70,45 @@ def observation_time(record):
 
 
 def relation(record):
-    from selfos.knowledge.records import normalized
+    from selfos.knowledge.identity import normalized
     return normalized(record['key']), record['scope_type'], record['scope']
 
 
 def merge_preferences(state, incoming):
+    """Replay sourced observations so late arrivals preserve historical stages."""
+    from selfos.knowledge.identity import unique
+    incoming=normalize_scope(copy.deepcopy(incoming))
+    selected=[normalize_scope(copy.deepcopy(old)) for old in state['preferences']
+              if relation(normalize_scope(copy.deepcopy(old)))==relation(incoming)]
+    historical=[normalize_scope(copy.deepcopy(old)) for old in state['records_history']
+                if old.get('original_category')=='preferences' and old.get('superseded_by_source_ids')
+                and relation(normalize_scope(copy.deepcopy(old)))==relation(incoming)]
+    events=[]
+    for record in selected+historical+[incoming]:
+        supports=observations(record)
+        contextual=[source for source in record['source_ids']
+                    if source not in {support['source_id'] for support in supports}]
+        for support in supports:
+            event=copy.deepcopy(record)
+            for field in ('original_category','superseded_by_source_ids','conflict','conflict_source_ids'):
+                event.pop(field,None)
+            event.update(temporal='current', evidence=support.get('evidence',''),
+                         observed_at=support.get('observed_at',''),
+                         supporting_observations=[copy.deepcopy(support)],
+                         source_ids=unique([support['source_id'],*contextual]),evidence_history=[])
+            if event not in events:events.append(event)
+    events.sort(key=lambda event:(instant(event['observed_at']) is not None,
+                instant(event['observed_at']) or datetime.min.replace(tzinfo=timezone.utc),
+                event['value'],event['source_ids'][0],event['evidence']))
+    state['preferences']=[old for old in state['preferences']
+                          if relation(normalize_scope(copy.deepcopy(old)))!=relation(incoming)]
+    state['records_history']=[old for old in state['records_history'] if old not in historical]
+    for event in events:_merge_current(state,event)
+
+
+def _merge_current(state, incoming):
     """Replace only definitely older values; preserve incomparable conflicts."""
-    from selfos.knowledge.records import normalized
+    from selfos.knowledge.identity import normalized
     from selfos.knowledge.identity import unique
     incoming = normalize_scope(copy.deepcopy(incoming))
     current = [normalize_scope(copy.deepcopy(old)) for old in state['preferences']]

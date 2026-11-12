@@ -12,6 +12,12 @@ def managed_content(old,title,records,marker):
         lines.extend(['- ['+r.get('kind','inference')+'] '+r['text']+(' [conflict]' if r.get('conflict') else ''),
                       '  Date: '+r.get('observed_at',''), '  Source: '+', '.join(r['source_ids'])])
         if r.get('project_title'):lines.append('  Project: '+r['project_title'])
+        if 'scope_type' in r:
+            lines.append('  Scope: '+r['scope_type']+':'+r.get('scope','unknown'))
+        if r.get('superseded_by_source_ids'):
+            lines.append('  Superseded by sources: '+', '.join(r['superseded_by_source_ids']))
+        if r.get('conflict_source_ids'):
+            lines.append('  Conflicting sources: '+', '.join(r['conflict_source_ids']))
         basis={'summary_context':'Saved-summary inference; verify raw sources for scope.',
                'project_context':'Legacy project context; event time and direct evidence unavailable.',
                'session_context':'Source conversation; date is the session time.'}.get(r.get('source_scope'))

@@ -59,9 +59,15 @@ def _sources(state,ids):
 
 
 def _record_identity(category, record):
+    if category=='preferences' or record.get('original_category')=='preferences':
+        from selfos.knowledge.preferences import normalize_scope
+        record=normalize_scope(copy.deepcopy(record))
     text = record.get('intent', '') if category == 'projects' else record.get('text', '')
-    return digest([category, record.get('project_id'), record.get('key'), record.get('value'),
-                   text, record.get('source_ids', []), record.get('domain')])
+    fields = [category, record.get('project_id'), record.get('key'), record.get('value'),
+              text, record.get('source_ids', []), record.get('domain')]
+    if category == 'preferences' or record.get('original_category') == 'preferences':
+        fields.extend([record.get('scope_type','unknown'), record.get('scope','unknown')])
+    return digest(fields)
 
 
 def _records(state):
@@ -76,6 +82,9 @@ def _records(state):
         return [metadata[i] for i in dict.fromkeys(ids) if i in metadata]
     def add(category,record):
         if not isinstance(record,dict):return
+        if category=='preferences' or record.get('original_category')=='preferences':
+            from selfos.knowledge.preferences import normalize_scope
+            record=normalize_scope(copy.deepcopy(record))
         ids=record.get('source_ids',[])
         sources=sources_for(ids)
         direct_project = project_identity(record.get('project_id'))
@@ -94,7 +103,7 @@ def _records(state):
         if record.get('source_scope')=='project_context':date=''
         text=record.get('intent','') if category=='projects' else record.get('text','')
         title=record.get('title','') if category=='projects' else record.get('project_title') or record.get('value') or text[:80]
-        row={'id':digest([category,record.get('project_id'),record.get('key'),record.get('value'),text,ids,record.get('domain')]),
+        row={'id':_record_identity(category,record),
             'category':category,'title':redact(str(title)),'summary':redact(str(text)),
             'date':date,'domain':record.get('domain','work' if category=='projects' else ''),
             'kind':record.get('kind','inference'),'status':record.get('status',''),
@@ -105,11 +114,16 @@ def _records(state):
             'source_count':len(sources), 'missing_source_count':len(set(ids) - {source['id'] for source in sources}),
             'project_contexts':contexts,
             'source_types':sorted({source['source'] for source in sources if source['source']})}
+        if category=='preferences' or record.get('original_category')=='preferences':
+            row.update(scope_type=record.get('scope_type','unknown'),
+                       scope=redact(str(record.get('scope','unknown'))))
         details={**row,'evidence':redact(str(record.get('evidence',''))),
             'source_scope':record.get('source_scope','record'),
             'original_category':record.get('original_category',''),
             **{field:[redact(str(v)) for v in record.get(field,[])]
                for field in ('decisions','blockers','next_steps')}}
+        for field in ('conflict_source_ids','superseded_by_source_ids'):
+            details[field]=list(record.get(field,[]))
         search=' '.join([row['title'],row['summary'],row['domain'],*details['decisions'],
             *details['blockers'],*details['next_steps']]).casefold()
         rows.append((row,details,sources,search))

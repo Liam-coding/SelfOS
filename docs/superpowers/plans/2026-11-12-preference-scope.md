@@ -40,6 +40,8 @@ Files: knowledge/preferences.py, knowledge/records.py, tests/test_preference_sco
 
 ## Task 2: Extraction contract and source-backed revisions
 
+Current user decision: extract preferences in the same model response as project understanding and other knowledge categories. Normal import defaults to one extraction call with local validation; optional explicit review remains available. This delivery connects typed scope and conflict/history display, but does not close #40: exact supported validity intervals, durable correction integration and independently labeled source-session evaluation remain outstanding.
+
 Files: knowledge/evidence.py, providers/knowledge.py, providers/reviews/scope.py, tests/test_knowledge_evidence_protocol.py, new protocol tests.
 
 - [ ] Add failing schema/resolution tests for typed scope, invalid ids, old responses, explicit revisions and current-project mapping.

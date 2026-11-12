@@ -171,3 +171,14 @@ def test_revision_cycle_retains_distinct_source_backed_stages_and_retry_is_idemp
     snapshot = copy.deepcopy(state)
     merge_records(state, 'preferences', [records[-1]], DEFAULT_SETTINGS)
     assert state == snapshot
+
+
+def test_late_middle_revision_reconstructs_the_same_three_stages_for_every_arrival_order():
+    records = [preference('concise', scope='global'),
+               preference('detailed', at='2026-02-01T10:00:00Z', scope='global', identity='m2'),
+               preference('concise', at='2026-03-01T10:00:00Z', scope='global', identity='m3')]
+    for order in itertools.permutations(records):
+        state=merge(*order)
+        assert [(r['value'],r['source_ids']) for r in state['preferences']]==[('concise',['m3'])]
+        assert [(r['value'],r['source_ids']) for r in state['records_history']]==[
+            ('concise',['m1']),('detailed',['m2'])]
