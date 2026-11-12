@@ -65,13 +65,13 @@ def _sources(state,ids):
 
 
 def _record_identity(category, record):
-    if category=='preferences' or record.get('original_category')=='preferences':
+    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
         from selfos.knowledge.preferences import normalize_scope
         record=normalize_scope(copy.deepcopy(record))
     text = record.get('intent', '') if category == 'projects' else record.get('text', '')
     fields = [category, record.get('project_id'), record.get('key'), record.get('value'),
               text, record.get('source_ids', []), record.get('domain')]
-    if category == 'preferences' or record.get('original_category') == 'preferences':
+    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
         fields.extend([record.get('scope_type','unknown'), record.get('scope','unknown')])
     return digest(fields)
 
@@ -90,7 +90,7 @@ def _records(state):
         return [metadata[i] for i in dict.fromkeys(ids) if i in metadata]
     def add(category,record):
         if not isinstance(record,dict):return
-        if category=='preferences' or record.get('original_category')=='preferences':
+        if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
             from selfos.knowledge.preferences import normalize_scope
             record=normalize_scope(copy.deepcopy(record))
         ids=record.get('source_ids',[])
@@ -122,7 +122,7 @@ def _records(state):
             'source_count':len(sources), 'missing_source_count':len(set(ids) - {source['id'] for source in sources}),
             'project_contexts':contexts,
             'source_types':sorted({source['source'] for source in sources if source['source']})}
-        if category=='preferences' or record.get('original_category')=='preferences':
+        if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
             row.update(scope_type=record.get('scope_type','unknown'),
                        scope=redact(str(record.get('scope','unknown'))))
         details={**row,'evidence':redact(str(record.get('evidence',''))),
@@ -130,6 +130,10 @@ def _records(state):
             'original_category':record.get('original_category',''),
             **{field:[redact(str(v)) for v in record.get(field,[])]
                for field in ('decisions','blockers','next_steps')}}
+        details['supporting_source_ids']=list(record.get('supporting_source_ids',[]))
+        details['context_source_ids']=list(record.get('context_source_ids',[]))
+        details['claim_type']=record.get('claim_type','')
+        details['retention_reason']=record.get('retention_reason','')
         for field in ('conflict_source_ids','superseded_by_source_ids'):
             details[field]=list(record.get(field,[]))
         for field in ('valid_from','valid_until'):

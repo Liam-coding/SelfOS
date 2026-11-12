@@ -15,7 +15,7 @@ RECORD_SCHEMA = {
 def normalize_wire_arrays(result):
     """Some compatible gateways encode array-valued tool arguments a second time."""
     array_fields={'lessons','observations','verdicts','personal_facts','preferences','history','source_ids',
-                  'decisions','blockers','next_steps'}
+                  'decisions','blockers','next_steps','context_source_ids'}
     def visit(value):
         if isinstance(value,dict):
             for field,child in list(value.items()):
@@ -64,6 +64,12 @@ def output_schema(aliases, references, decision_budget):
             'properties':{'type':{'type':'string','enum':['global','activity','project','unknown']},
                           'id':{'type':'string','maxLength':200}}},
                       'revision':{'anyOf':[revision,{'type':'null'}]}}}
+    from selfos.knowledge.personal_facts import CLAIM_TYPES
+    fact={**record,'required':[*record['required'],'scope','claim_type','context_source_ids'],
+          'properties':{**record['properties'],'scope':preference['properties']['scope'],
+                        'claim_type':{'type':'string','enum':list(CLAIM_TYPES)},
+                        'context_source_ids':{'type':'array','uniqueItems':True,
+                            'items':{'type':'string','enum':list(aliases.values())}}}}
     project = {'type':'object','additionalProperties':False,
         'required':['project_id','title','domain','intent','status','decisions','blockers','next_steps','source_ids','updated_at','verified'],
         'properties':{'project_id':{'type':'string','enum':['current-project']},
@@ -77,7 +83,7 @@ def output_schema(aliases, references, decision_budget):
         'required':['project','lessons','personal_facts','preferences','history'],
         'properties':{'project':{'anyOf':[project,{'type':'null'}]},
             'lessons':{'type':'array','maxItems':12,'items':lesson},
-            **{k:{'type':'array','maxItems':100,'items':preference if k=='preferences' else record}
+            **{k:{'type':'array','maxItems':100,'items':preference if k=='preferences' else fact if k=='personal_facts' else record}
                for k in ('personal_facts','preferences','history')}}}
 
 
@@ -178,11 +184,17 @@ def resolve_evidence(result, references, originals):
             if not isinstance(ref, str) or ref not in references:
                 raise ValueError(f'{category}[{index}] has unknown evidence_id; copy one exact input evidence ID')
             identity, quote = references[ref]
+            record['evidence_source_id']=identity
             declared = record.get('source_ids')
             if declared is not None and (not isinstance(declared, list) or not declared or
                 any(not isinstance(i,str) for i in declared) or
                 identity not in [originals.get(i,i) for i in declared]):
                 raise ValueError(f'{category}[{index}] evidence does not match its declared source')
             record['source_ids'] = [identity] if declared is None else [originals.get(i,i) for i in declared]
+            contextual=record.get('context_source_ids',[])
+            if not isinstance(contextual,list) or any(not isinstance(i,str) or i not in originals and i not in originals.values() for i in contextual):
+                raise ValueError(f'{category}[{index}] has unknown contextual sources')
+            record['context_source_ids']=[originals.get(i,i) for i in contextual]
+            record['source_ids']=list(dict.fromkeys(record['source_ids']+record['context_source_ids']))
             record['evidence'] = quote
     return result

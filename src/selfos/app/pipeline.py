@@ -419,18 +419,22 @@ def register_project_aliases(vault, aliases):
                 record['scope']=aliases[scope]
         preferences=state.get('preferences',[])
         for record in preferences:migrate_scope(record)
+        for record in state.get('personal_facts',[]):migrate_scope(record)
         for category in ('history','records_history'):
             for record in state.get(category,[]):
-                if record.get('original_category')=='preferences':migrate_scope(record)
+                if record.get('original_category') in ('preferences','personal_facts'):migrate_scope(record)
         for candidate in state.get('summaries',{}).values():
             for record in candidate.get('preferences',[]):migrate_scope(record)
+            for record in candidate.get('personal_facts',[]):migrate_scope(record)
             for record in candidate.get('history',[]):
-                if record.get('original_category')=='preferences':migrate_scope(record)
+                if record.get('original_category') in ('preferences','personal_facts'):migrate_scope(record)
         # Aliased projects can now share a preference relation. Consolidate support locally.
         from selfos.knowledge.preferences import merge_preferences
         state['preferences']=[]
         state.setdefault('records_history',[])
         for record in preferences:merge_preferences(state,record)
+        from selfos.knowledge.personal_facts import reconsolidate_facts
+        reconsolidate_facts(state)
         from selfos.storage.records import record_writes
         writes.update(record_writes(vault,state))
         for origin,target in aliases.items():

@@ -19,18 +19,32 @@ def validate_record(raw,session):
     if not isinstance(ids,list) or not ids or any(not isinstance(i,str) or i not in known for i in ids):
         raise ValueError('Record has untraceable sources')
     r['source_ids']=unique(ids)
+    context=r.get('context_source_ids',[])
+    if not isinstance(context,list) or any(not isinstance(i,str) or i not in ids for i in context):
+        raise ValueError('Record has untraceable context sources')
+    from selfos.knowledge.personal_facts import CLAIM_TYPES
+    if 'claim_type' in r and r['claim_type'] not in CLAIM_TYPES:
+        raise ValueError('Unsupported personal fact claim type')
     quote=r.get('evidence','')
     if not isinstance(quote,str) or not quote.strip() or len(quote)>2000:
         raise ValueError('Record needs a short exact source quotation')
     matches=[i for i in ids if quote.strip() in known[i].get('text','')]
     if not matches:raise ValueError('Record quotation is not present in its sources')
-    if r['kind']=='user_fact' and (any(content_identity(known[i])!='user_statement' for i in ids) or
-        not any(content_identity(known[i])=='user_statement' for i in matches)):
+    if 'evidence_source_id' in r:
+        if r['evidence_source_id'] not in matches:raise ValueError('Selected evidence source does not support quotation')
+        matches=[r['evidence_source_id']]
+    matches=[i for i in matches if i not in context]
+    if not matches:raise ValueError('Record needs supporting evidence outside context references')
+    direct=[i for i in matches if content_identity(known[i])=='user_statement']
+    if r['kind']=='user_fact' and not direct:
         r['kind']='inference'
+    supporting=direct if r['kind']=='user_fact' else matches
+    r['supporting_source_ids']=unique(supporting)
+    r['context_source_ids']=[i for i in r['source_ids'] if i not in supporting]
     r['evidence']=redact(quote.strip())
     from selfos.knowledge.preferences import instant
     r['supporting_observations'] = [{'source_id': identity, 'evidence': r['evidence'],
-        'observed_at': known[identity].get('timestamp', '')} for identity in r['source_ids'] if identity in matches]
+        'observed_at': known[identity].get('timestamp', '')} for identity in supporting]
     dated = [(instant(item['observed_at']), item['observed_at']) for item in r['supporting_observations']]
     precise = [(date, text) for date, text in dated if date is not None]
     r['observed_at'] = max(precise, key=lambda item: item[0])[1] if precise else r['supporting_observations'][0]['observed_at']
@@ -61,13 +75,29 @@ def merge_records(state,category,records,settings):
             r['original_category']=category
             if r not in state['records_history']:state['records_history'].append(r)
             continue
+        if category=='personal_facts':
+            from selfos.knowledge.personal_facts import retention_reason
+            reason=retention_reason(r)
+            if reason:
+                state['retention_audit'].append({'category':category,'source_ids':r['source_ids'],'reason':reason})
+                if reason not in ('temporary_request','project_choice'):
+                    r.update(original_category=category,retention_reason=reason,temporal='historical')
+                    if r not in state['records_history']:state['records_history'].append(r)
+                continue
         if category == 'preferences':
             from selfos.knowledge.preferences import merge_preferences
             merge_preferences(state, r)
             continue
-        matches=[old for old in state[category] if normalized(old['key'])==normalized(r['key'])]
+        from selfos.knowledge.preferences import normalize_scope, relation
+        matches=[old for old in state[category] if normalized(old['key'])==normalized(r['key'])
+                 and (category!='personal_facts' or relation(normalize_scope(old))==relation(normalize_scope(r)))]
         equal=next((old for old in matches if normalized(old['value'])==normalized(r['value'])),None)
         if equal:
+            if category=='personal_facts':
+                from selfos.knowledge.personal_facts import merge_fact_support, mark_conflicts
+                merge_fact_support(equal,r)
+                mark_conflicts(matches)
+                continue
             equal['source_ids']=unique(equal['source_ids']+r['source_ids'])
             equal['observed_at']=max(equal['observed_at'],r['observed_at'])
             equal.setdefault('evidence_history',[])
@@ -75,6 +105,6 @@ def merge_records(state,category,records,settings):
                 equal['evidence_history'].append(r['evidence'])
             continue
         if category=='personal_facts' and matches:
-            for old in matches:old['conflict']=True
-            r['conflict']=True
+            from selfos.knowledge.personal_facts import mark_conflicts
+            mark_conflicts(matches+[r])
         state[category].append(r)

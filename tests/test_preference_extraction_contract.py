@@ -61,12 +61,12 @@ def test_one_model_response_retains_project_and_all_record_categories(monkeypatc
         assert result[category][0]['source_ids']==['m1']
 
 
-def test_preference_schema_has_typed_scope_without_changing_other_records():
+def test_preference_and_fact_schemas_have_typed_scope():
     schema = output_schema({'m1':'s1'}, {'s1:e1':('m1','quote')}, 8)
     preference = schema['properties']['preferences']['items']
     assert 'scope' in preference['required']
     assert preference['properties']['scope']['properties']['type']['enum'] == ['global','activity','project','unknown']
-    assert 'scope' not in schema['properties']['personal_facts']['items']['required']
+    assert 'scope' in schema['properties']['personal_facts']['items']['required']
 
 
 def test_project_alias_resolved_and_invalid_scope_rejected_in_default_path(monkeypatch):
