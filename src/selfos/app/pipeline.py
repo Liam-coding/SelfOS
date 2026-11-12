@@ -39,7 +39,8 @@ def _upgrade_cached_history(vault,state,domains,run_id,cancel,progress):
 
 
 def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts=2,
-                         cancel=lambda: False, progress=lambda _: None, settings=None, cached_summaries=None):
+                         cancel=lambda: False, progress=lambda _: None, settings=None, cached_summaries=None,
+                         upgrade_history=True):
     from selfos.storage.files import _locked
     from selfos.app.diagnostics import _record_model_error
     from selfos.storage.settings import load_settings
@@ -104,7 +105,7 @@ def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts
         state.setdefault("summaries", {})
         state['policy']=settings
         state.setdefault('retention_audit',[])
-        history_upgraded=_upgrade_cached_history(vault,state,settings['domains'],run_id,cancel,progress)
+        history_upgraded=_upgrade_cached_history(vault,state,settings['domains'],run_id,cancel,progress) if upgrade_history else 0
         pending = []
         seen = set()
         for s in sessions:
@@ -191,7 +192,8 @@ def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts
             'history_upgraded':history_upgraded, **coverage}
 
 
-def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None):
+def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None,
+                    project_ids=None, context_filter=None, upgrade_history=True):
     """Semantic synthesis of project history; never let synthesis alter observed current status."""
     from selfos.storage.files import _locked
     from selfos.app.diagnostics import _record_model_error
@@ -206,11 +208,13 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
         if not state_path.exists():
             return {"projects": 0, "run_id": None}
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        history_upgraded=_upgrade_cached_history(vault,state,state.get('policy',DEFAULT_SETTINGS)['domains'],run_id,cancel,progress)
+        history_upgraded=_upgrade_cached_history(vault,state,state.get('policy',DEFAULT_SETTINGS)['domains'],run_id,cancel,progress) if upgrade_history else 0
         state.setdefault("lesson_history", copy.deepcopy(state["lessons"]))
         state.setdefault("refined", {})
         completed = 0
         for project_id, current in list(state["cards"].items()):
+            if project_ids is not None and project_id not in project_ids:
+                continue
             if cancel():
                 break
             lessons = [l for l in state["lesson_history"] if any(
@@ -231,10 +235,18 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
             payload['policy']=state.get('policy',DEFAULT_SETTINGS)
             payload["intent_history"] = [{"title": c["project"]["title"], "intent": c["project"]["intent"]}
                 for c in state.get("summaries",{}).values() if c.get("project") and c["project"]["project_id"] == project_id]
+            if context_filter is not None:
+                payload = context_filter(payload, state)
+                if payload is None:
+                    continue
+                lessons = payload['lessons']
+                source_ids = list(payload['sources'])
             fingerprint = digest({'synthesis_version':SYNTHESIS_VERSION,"history":current.get("decision_history",current["decisions"]),
                 "state": {k:current.get(k) for k in ("status","blockers","next_steps","updated_at")},
                 "lessons": lessons, "sources": source_ids, "intent_history":payload["intent_history"], 'policy':payload['policy']})
             if 'user_corrections' in payload:fingerprint=digest([fingerprint,payload['user_corrections']])
+            if context_filter is not None:
+                fingerprint = digest([fingerprint, payload])
             if state["refined"].get(project_id) == fingerprint:
                 continue
             progress("Refining project: " + current["title"])
@@ -285,6 +297,9 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
             state["cards"][project_id] = updated
             unrelated_lessons=[]
             for lesson in state['lessons']:
+                if context_filter is not None and not set(lesson['source_ids']).issubset(payload['sources']):
+                    unrelated_lessons.append(copy.deepcopy(lesson))
+                    continue
                 remaining=[identity for identity in lesson['source_ids']
                            if state['sources'].get(identity,{}).get('project_id')!=project_id]
                 if remaining:unrelated_lessons.append({**copy.deepcopy(lesson),'source_ids':remaining})
@@ -301,7 +316,8 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
             state.setdefault('project_observation_history',[])
             for record in previous_observations:
                 if record not in state['project_observation_history']:state['project_observation_history'].append(copy.deepcopy(record))
-            state['project_observations']=[r for r in state.get('project_observations',[]) if r['project_id']!=project_id]+[
+            state['project_observations']=[r for r in state.get('project_observations',[]) if r['project_id']!=project_id or
+                (context_filter is not None and not set(r['source_ids']).issubset(payload['sources']))]+[
                 {**record,'project_id':project_id,'project_title':updated['title'],'kind':'inference','verified':False,
                  'original_category':'projects','source_scope':'summary_context',
                  'observed_at':max(state['sources'][identity].get('timestamp','') for identity in record['source_ids'])}
@@ -331,8 +347,9 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
                 'model_calls':model_calls,'history_upgraded':history_upgraded}
 
 
-def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None):
+def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None, selected_projects=None):
     from selfos.storage.files import _locked
+    from selfos.storage.settings import load_settings
     vault, scratch = Path(vault).resolve(), Path(scratch).resolve()
     run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:12]
     with _locked(vault):
@@ -348,16 +365,22 @@ def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_po
                 raise ValueError('Settings changed during rebuild; replacement aborted')
         old = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {"cards":{}}
         new = json.loads(safe_path(scratch, ".knowledge_pipeline.json").read_text(encoding="utf-8"))
-        if new.get("quality_version") != 2:
+        if selected_projects is None and new.get("quality_version") != 2:
             raise ValueError("Rebuild requires completed semantic refinement")
         writes = {".knowledge_pipeline.json":safe_path(scratch, ".knowledge_pipeline.json").read_bytes()}
         for identity in old["cards"]:
+            if selected_projects is not None and identity not in selected_projects:
+                if new['cards'].get(identity) != old['cards'][identity]:
+                    raise ValueError("Sample changed an unrelated project")
+                continue
             if identity not in new["cards"]:
                 notes=_project_unmanaged(vault,identity,old['cards'][identity])
                 writes["02_Work/projects/" + digest(identity) + ".md"] = notes.encode('utf-8') if notes.strip() else None
         for identity, card in new["cards"].items():
+            if selected_projects is not None and identity not in selected_projects:
+                continue
             from selfos.knowledge.settings import limits
-            if len(card["decisions"]) > limits(new.get('policy'))['decisions']:
+            if len(card["decisions"]) > limits(load_settings(vault) if selected_projects is not None else new.get('policy'))['decisions']:
                 raise ValueError("Rebuilt card is not compact")
             writes["02_Work/projects/" + digest(identity) + ".md"] = render_project_document(vault,card,old['cards'].get(identity))
         lessons = safe_path(scratch, "05_Life/lessons.md")

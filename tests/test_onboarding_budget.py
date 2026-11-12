@@ -66,3 +66,13 @@ def test_process_restart_keeps_consumed_allowance(tmp_path):
                  for _ in range(3)]
     assert all(process.wait(timeout=20) == 0 for process in processes)
     assert SampleBudget(vault, preview["id"]).status()["remaining"] == 0
+
+
+def test_budget_status_does_not_create_or_modify_files(tmp_path):
+    from selfos.storage.onboarding import SampleBudget
+    preview = _preview(tmp_path)
+    vault = tmp_path / 'vault'
+    before = {str(path.relative_to(vault)): path.read_bytes() for path in vault.rglob('*') if path.is_file()}
+    assert SampleBudget(vault, preview['id']).status()['remaining'] == 12
+    after = {str(path.relative_to(vault)): path.read_bytes() for path in vault.rglob('*') if path.is_file()}
+    assert after == before

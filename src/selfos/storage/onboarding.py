@@ -97,14 +97,15 @@ class SampleBudget:
                 or not isinstance(preview, dict) or preview.get("id") != self.preview_id
                 or type(value.get("used")) is not int or type(value.get("limit")) is not int
                 or value["limit"] not in (12, 24) or not 0 <= value["used"] <= value["limit"]
+                or value['limit'] != {'sample': 12, 'more': 24}.get(preview.get('tier'))
                 or value["limit"] != preview.get("budget_limit")):
             raise ValueError("Invalid or missing sample allowance; create a new preview")
         return value
 
     def status(self):
-        with _budget_lock(self.vault, self.preview_id):
-            value = self._read()
-            return {"used": value["used"], "remaining": value["limit"] - value["used"], "limit": value["limit"]}
+        # Atomic replacement gives readers a complete snapshot without a write lock.
+        value = self._read()
+        return {"used": value["used"], "remaining": value["limit"] - value["used"], "limit": value["limit"]}
 
     def claim(self):
         with _budget_lock(self.vault, self.preview_id):
