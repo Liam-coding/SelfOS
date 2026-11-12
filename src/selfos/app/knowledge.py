@@ -144,7 +144,8 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         state.update(schema_version=VERSION, policy_hash=policy_hash(settings), policy=settings,
                      quality_version=2, project_aliases=previous.get('project_aliases', {}))
         if scoped:
-            if previous and (previous.get('schema_version') != VERSION or previous.get('policy_hash') != policy_hash(settings)):
+            if previous and (previous.get('schema_version') != VERSION or previous.get('policy_hash') != policy_hash(settings)
+                             or previous.get('quality_version') != 2):
                 for key in ('schema_version', 'policy_hash', 'policy', 'quality_version'):
                     if key in previous:
                         state[key] = copy.deepcopy(previous[key])

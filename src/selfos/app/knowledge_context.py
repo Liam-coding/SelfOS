@@ -27,7 +27,7 @@ def filter_project_context(payload, state, selection):
     result = {**copy.deepcopy(payload), 'project': current,
               'lessons': [copy.deepcopy(record) for record in payload.get('lessons', []) if supported(record)],
               'intent_history': [{'title': project['title'], 'intent': project['intent']} for project in summaries]}
-    ids = set(current['source_ids']) | {identity for record in result['lessons'] for identity in record['source_ids']}
+    ids = list(dict.fromkeys(current['source_ids'] + [identity for record in result['lessons'] for identity in record['source_ids']]))
     result['sources'] = {identity: copy.deepcopy(state['sources'][identity]) for identity in ids}
     if 'user_corrections' in result:
         corrections = result['user_corrections']

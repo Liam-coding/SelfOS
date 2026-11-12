@@ -1,11 +1,13 @@
 """A bounded sample cannot replace or upgrade unrelated historical knowledge."""
 import copy
 import json
+import pytest
 
 from tests.test_knowledge_service import source, summarize, refine
 
 
-def test_old_schema_sample_preserves_unrelated_card_and_global_coverage(tmp_path):
+@pytest.mark.parametrize('legacy', ['schema', 'quality', 'missing_quality'])
+def test_old_schema_sample_preserves_unrelated_card_and_global_coverage(tmp_path, legacy):
     from selfos.app.knowledge import run_knowledge
     from selfos.app.onboarding import build_preview
     from selfos.sources.selection import save_sources
@@ -14,9 +16,13 @@ def test_old_schema_sample_preserves_unrelated_card_and_global_coverage(tmp_path
     assert run_knowledge(vault, roots=[root], summarize=summarize, refine=refine)["installed"]
     state_path = vault / ".knowledge_pipeline.json"
     previous = json.loads(state_path.read_text())
-    previous["schema_version"] = 1
-    previous["quality_version"] = 1
-    previous["policy_hash"] = "legacy-policy"
+    if legacy == 'schema':
+        previous["schema_version"] = 1
+        previous["policy_hash"] = "legacy-policy"
+    if legacy == 'missing_quality':
+        previous.pop('quality_version')
+    else:
+        previous["quality_version"] = 1
     previous["cards"]["C:/projects/alpha"]["decisions"] = [f"Legacy decision {i}" for i in range(20)]
     state_path.write_text(json.dumps(previous), encoding="utf-8")
     new_root = tmp_path / "new-source"
@@ -32,8 +38,10 @@ def test_old_schema_sample_preserves_unrelated_card_and_global_coverage(tmp_path
     assert result["installed"], result
     current = json.loads(state_path.read_text())
     assert current["cards"]["C:/projects/alpha"] == previous["cards"]["C:/projects/alpha"]
-    assert current["schema_version"] == 1 and current["quality_version"] == 1
-    assert current["policy_hash"] == "legacy-policy"
+    assert current['schema_version'] == previous['schema_version']
+    assert current.get('quality_version') == previous.get('quality_version')
+    assert ('quality_version' in current) == ('quality_version' in previous)
+    assert current['policy_hash'] == previous['policy_hash']
     assert seen == ["C:/projects/beta"]
     assert preview["id"] in current["sample_coverage"]
 
@@ -164,3 +172,47 @@ def test_exhaustion_reports_charged_attempts_not_rejected_retries(tmp_path):
     assert result['status'] == 'failed' and not result['installed']
     assert result['model_calls'] == 1
     assert result['request_budget'] == {'used': 12, 'remaining': 0, 'limit': 12}
+
+
+def test_sample_cache_is_reused_across_python_hash_seeds(tmp_path):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from selfos.app.onboarding import build_preview
+    from selfos.sources.selection import save_sources
+    from tests.test_onboarding_sources import _conversation
+    root = tmp_path / 'source'
+    _conversation(root / 'session.jsonl', 12)
+    vault = tmp_path / 'vault'
+    save_sources(vault, {'roots': [str(root)], 'exclusions': []})
+    preview = build_preview(vault)
+    project = Path(__file__).resolve().parents[1]
+    script = r'''
+import json,sys,copy
+from selfos.app.knowledge import run_knowledge
+from selfos.storage.onboarding import SampleBudget
+from tests.test_project_knowledge_contract import card
+vault,preview=sys.argv[1:]
+budget=SampleBudget(vault,preview)
+def summarize(item):
+    budget.claim()
+    return {'project':card(project_id=item['project_id'],source_ids=[m['id'] for m in item['messages']],updated_at=max(m['timestamp'] for m in item['messages']),domain='work'),'lessons':[]}
+def refine(payload):
+    budget.claim()
+    return {'project':copy.deepcopy(payload['project']),'lessons':[]}
+print(json.dumps(run_knowledge(vault,sample_id=preview,summarize=summarize,refine=refine)))
+'''
+    results = []
+    for seed in ('1', '2'):
+        env = {**os.environ, 'PYTHONHASHSEED': seed,
+               'PYTHONPATH': os.pathsep.join(str(p) for p in (project / 'src', project, project / 'evals/adapters'))}
+        result = subprocess.run([sys.executable, '-c', script, str(vault), preview['id']], env=env,
+                                cwd=project, capture_output=True, text=True, timeout=30)
+        assert result.returncode == 0, result.stderr
+        results.append(json.loads(result.stdout))
+    assert results[0]['installed'], results
+    assert results[0]['request_budget']['used'] == 2
+    assert results[1]['status'] == 'completed', results
+    assert results[1]['model_calls'] == 0
+    assert results[1]['request_budget']['used'] == 2
