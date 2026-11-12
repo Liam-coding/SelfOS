@@ -28,10 +28,17 @@ def validate_record(raw,session):
         not any(content_identity(known[i])=='user_statement' for i in matches)):
         r['kind']='inference'
     r['evidence']=redact(quote.strip())
-    r['observed_at']=max(known[i].get('timestamp','') for i in ids)
+    from selfos.knowledge.preferences import instant
+    r['supporting_observations'] = [{'source_id': identity, 'evidence': r['evidence'],
+        'observed_at': known[identity].get('timestamp', '')} for identity in r['source_ids'] if identity in matches]
+    dated = [(instant(item['observed_at']), item['observed_at']) for item in r['supporting_observations']]
+    precise = [(date, text) for date, text in dated if date is not None]
+    r['observed_at'] = max(precise, key=lambda item: item[0])[1] if precise else r['supporting_observations'][0]['observed_at']
     r['domain']=r['domain'].casefold()
     if r.get('temporal','current') not in ('current','historical'):raise ValueError('Invalid temporal classification')
     r['temporal']=r.get('temporal','current')
+    from selfos.knowledge.preferences import normalize_scope
+    normalize_scope(r, session)
     return r
 
 
@@ -53,6 +60,10 @@ def merge_records(state,category,records,settings):
             r['original_category']=category
             if r not in state['records_history']:state['records_history'].append(r)
             continue
+        if category == 'preferences':
+            from selfos.knowledge.preferences import merge_preferences
+            merge_preferences(state, r)
+            continue
         matches=[old for old in state[category] if normalized(old['key'])==normalized(r['key'])]
         equal=next((old for old in matches if normalized(old['value'])==normalized(r['value'])),None)
         if equal:
@@ -62,14 +73,7 @@ def merge_records(state,category,records,settings):
             if r['evidence']!=equal['evidence'] and r['evidence'] not in equal['evidence_history']:
                 equal['evidence_history'].append(r['evidence'])
             continue
-        if category=='preferences' and matches:
-            newest=max(matches+[r],key=lambda old:old['observed_at'])
-            for old in matches+[r]:
-                if old is not newest and old not in state['records_history']:
-                    state['records_history'].append(copy.deepcopy(old))
-            state[category]=[old for old in state[category] if old not in matches]+[copy.deepcopy(newest)]
-        else:
-            if category=='personal_facts' and matches:
-                for old in matches:old['conflict']=True
-                r['conflict']=True
-            state[category].append(r)
+        if category=='personal_facts' and matches:
+            for old in matches:old['conflict']=True
+            r['conflict']=True
+        state[category].append(r)
