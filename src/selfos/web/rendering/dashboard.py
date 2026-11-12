@@ -35,6 +35,8 @@ def generate_dashboard(vault: Path, scores: dict | None = None) -> Path:
     from selfos.web.rendering.knowledge import CONTROLS as knowledge_controls
     from selfos.web.rendering.model import CONTROLS as model_controls
     knowledge_controls += model_controls
+    from selfos.web.rendering.onboarding import CONTROLS as onboarding_controls
+    knowledge_controls += onboarding_controls
     from selfos.web.rendering.overall import STYLE as selfos_style, OVERVIEW as knowledge_overview
     from selfos.web.rendering.library import STYLE as library_style, HTML as library_html
     """

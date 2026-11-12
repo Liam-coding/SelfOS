@@ -7,6 +7,21 @@ class ActionsRoutes:
     def do_POST(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
+        if self.path == '/__onboarding__':
+            with self.runtime.KNOWLEDGE_RUN_LOCK:
+                if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409, {'code': 'onboarding_import_active'})
+                try:
+                    size = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < size <= 65536:
+                        raise ValueError('Invalid setup request size')
+                    body = json.loads(self._read_body())
+                    from selfos.app.onboarding import onboarding_action
+                    return self._send_json(200, onboarding_action(self.runtime.VAULT, self.runtime.ROOT, body))
+                except (ValueError, TypeError, KeyError):
+                    return self._send_json(400, {'code': 'onboarding_invalid'})
+                except (OSError, RuntimeError):
+                    return self._send_json(503, {'code': 'onboarding_unavailable'})
         if self.path=='/__knowledge_correct__':
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:

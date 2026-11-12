@@ -5,6 +5,7 @@
 </div>
 <dialog id="app-settings" style="margin:auto;background:var(--bg,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:28px;width:min(440px,90vw)">
   <h3 data-i18n="ui.model.settings_button">Settings</h3>
+  <button type="button" class="harvest-btn" onclick="document.getElementById('app-settings').close();onboardingResumeSetup()" data-i18n="onboarding.resume_setup">Resume setup</button>
   <p style="margin:20px 0"><label><span data-i18n="ui.model.language">Language</span>
     <select id="settings-language" onchange="setSettingsLanguage(this.value)" style="padding:10px;border-radius:8px"></select></label></p>
   <button class="harvest-btn" onclick="document.getElementById('app-settings').close();openModelSettings()" data-i18n="ui.model.model_and_network">Model and network</button>

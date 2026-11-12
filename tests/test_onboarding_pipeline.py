@@ -143,3 +143,24 @@ def test_registered_exclusions_filter_real_pipeline_cache_and_keep_local_lessons
     current = json.loads(state_path.read_text())
     assert private_lesson in current['lessons']
     assert any(summary.get('project', {}).get('intent') == 'PRIVATE CLIENT SECRET' for summary in current['summaries'].values())
+
+
+def test_exhaustion_reports_charged_attempts_not_rejected_retries(tmp_path):
+    from selfos.app.onboarding import build_preview
+    from selfos.app.knowledge import run_knowledge
+    from selfos.sources.selection import save_sources
+    from selfos.storage.onboarding import SampleBudget
+    root, _ = source(tmp_path)
+    vault = tmp_path / 'vault'
+    save_sources(vault, {'roots': [str(root)], 'exclusions': []})
+    preview = build_preview(vault)
+    budget = SampleBudget(vault, preview['id'])
+    for _ in range(11):
+        budget.claim()
+    def failing_attempt(item):
+        budget.claim()
+        raise ValueError('Synthetic invalid response')
+    result = run_knowledge(vault, sample_id=preview['id'], summarize=failing_attempt, refine=refine)
+    assert result['status'] == 'failed' and not result['installed']
+    assert result['model_calls'] == 1
+    assert result['request_budget'] == {'used': 12, 'remaining': 0, 'limit': 12}

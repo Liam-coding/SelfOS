@@ -5,7 +5,7 @@ from selfos.web.rendering.resources import frontend_text
 
 
 def refresh_dashboard(page):
-    from selfos.web.rendering import auth, knowledge, model, library, overall
+    from selfos.web.rendering import auth, knowledge, model, library, overall, onboarding
     from selfos.web.rendering.legacy_i18n import upgrade_legacy_markup
     page=upgrade_legacy_markup(page)
     # Retire the script owned by an old search shell even if its implementation
@@ -28,6 +28,7 @@ def refresh_dashboard(page):
     page=re.sub(r'<section class="knowledge-overview"[^>]*>.*?</section>','<!--selfos-overview-anchor-->',page,count=1,flags=re.S)
     page=re.sub(r'<section id="knowledge-library"[^>]*>.*?</section>','<!--selfos-library-anchor-->',page,count=1,flags=re.S)
     remove(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->')
+    remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')
     for identity in ('project-timeline','kb-detail','knowledge-settings','app-settings','model-settings','auth-change'):
         remove(r'<dialog id="'+identity+r'"[^>]*>.*?</dialog>')
@@ -50,7 +51,7 @@ def refresh_dashboard(page):
     page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:overall.STYLE,page,count=1,flags=re.S)
     template=frontend_text('templates/dashboard-page.html')
     main=next(match[0] for match in re.finditer(r'<script\b[^>]*>.*?</script>',template,re.S) if 'let isDark' in match[0])
-    controls=model.CONTROLS+auth.account_controls(include_runtime=False)+main
+    controls=model.CONTROLS+onboarding.CONTROLS+auth.account_controls(include_runtime=False)+main
     if '<!--selfos-controls-anchor-->' in page:page=page.replace('<!--selfos-controls-anchor-->',knowledge.CONTROLS,1)
     else:controls=knowledge.CONTROLS+controls
     page=page.replace('</body>',controls+'</body>',1)
