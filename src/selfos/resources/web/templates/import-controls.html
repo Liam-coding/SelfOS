@@ -1,0 +1,14 @@
+<button class="harvest-btn" onclick="openKnowledgeSettings()" data-zh="整理设置" data-en="Import settings">Import settings</button>
+<dialog id="knowledge-settings" style="background:var(--bg,#fff);color:var(--text,#222);border-radius:16px;max-width:560px;padding:24px">
+  <h3 data-zh="知识库整理设置" data-en="Knowledge import settings">Knowledge import settings</h3>
+  <p data-zh="关注领域决定保留范围；原始对话保留。详细程度控制表达粒度，不设知识总数。" data-en="Focus domains determine what to retain. Original conversations are preserved. Detail controls how much context to keep, not the number of records.">Focus domains determine what to retain. Original conversations are preserved. Detail controls how much context to keep, not the number of records.</p>
+  <div id="knowledge-domains"></div>
+  <p><label><span data-zh="自定义领域（逗号分隔）" data-en="Custom domains (comma-separated)">Custom domains (comma-separated)</span> <input id="knowledge-custom" placeholder="For example: music, travel"></label></p>
+  <p><label><span data-zh="详细程度" data-en="Detail level">Detail level</span> <select id="knowledge-detail"><option value="concise" data-zh="简洁" data-en="Concise">Concise</option><option value="balanced" data-zh="标准" data-en="Balanced">Balanced</option><option value="detailed" data-zh="详细" data-en="Detailed">Detailed</option></select></label></p>
+  <p id="knowledge-status" role="status"></p>
+  <button onclick="saveKnowledgeSettings(false)" data-zh="保存设置" data-en="Save settings">Save settings</button>
+  <button onclick="saveKnowledgeSettings(true)" data-zh="保存并重建" data-en="Save and rebuild">Save and rebuild</button>
+  <button id="knowledge-undo" onclick="undoKnowledge()" data-zh="撤销上次整理" data-en="Undo last import">Undo last import</button>
+  <button onclick="document.getElementById('knowledge-settings').close()" data-zh="关闭" data-en="Close">Close</button>
+</dialog>
+<script>@@SELFOS_RESOURCE:scripts/import-controls.js@@</script>

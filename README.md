@@ -115,6 +115,7 @@ Source references make records traceable; AI summaries and candidate reviews do 
 | [Agent integration](docs/agent-integration.md) | Connecting Claude Code, Codex and other agents |
 | [Development](docs/dev.md) | Architecture, endpoints and Harvest workflows |
 | [Backend package](docs/backend-architecture.md) | Module boundaries, installation, paths and compatible commands |
+| [Frontend structure](docs/frontend-architecture.md) | Packaged templates, styles, browser modules and UI/backend contracts |
 | [Evaluation](evals/README.md) | Frozen acceptance cases and model-quality checks |
 
 To run program tests:

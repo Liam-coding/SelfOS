@@ -1,0 +1,23 @@
+
+        <div class="card" onclick="openDim(this)" data-key="@@SELFOS_VALUE:key@@"
+             data-label-zh="@@SELFOS_VALUE:label_zh@@" data-label-en="@@SELFOS_VALUE:label_en@@"
+             data-score="@@SELFOS_VALUE:display@@" data-color="@@SELFOS_VALUE:color@@"
+             data-status-zh="@@SELFOS_VALUE:status_zh@@" data-status-en="@@SELFOS_VALUE:status_en@@"
+             data-sugg-zh="@@SELFOS_VALUE:sugg_zh@@" data-sugg-en="@@SELFOS_VALUE:sugg_en@@">
+          <div class="card-header">
+            <span class="dim-label" data-zh="@@SELFOS_VALUE:label_zh@@" data-en="@@SELFOS_VALUE:label_en@@">@@SELFOS_VALUE:label_zh@@</span>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 72 72" width="72" height="72">
+              <circle class="ring-bg" cx="36" cy="36" r="@@SELFOS_VALUE:r@@"/>
+              <circle class="ring-fill" cx="36" cy="36" r="@@SELFOS_VALUE:r@@"
+                stroke="@@SELFOS_VALUE:color@@"
+                stroke-dasharray="@@SELFOS_VALUE:arc@@ @@SELFOS_VALUE:circ@@"
+                stroke-dashoffset="0"/>
+            </svg>
+            <span class="ring-score">@@SELFOS_VALUE:display@@</span>
+          </div>
+          <div class="dim-status" style="color:@@SELFOS_VALUE:color@@" data-zh="@@SELFOS_VALUE:status_zh@@" data-en="@@SELFOS_VALUE:status_en@@">@@SELFOS_VALUE:status_zh@@</div>
+          <div class="dim-suggestion" data-zh="@@SELFOS_VALUE:sugg_zh@@" data-en="@@SELFOS_VALUE:sugg_en@@">@@SELFOS_VALUE:sugg_zh@@</div>
+          <canvas class="sparkline" data-values='@@SELFOS_VALUE:hist_json@@' data-color='@@SELFOS_VALUE:color@@' width="200" height="36"></canvas>
+        </div>
