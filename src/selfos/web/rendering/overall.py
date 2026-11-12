@@ -17,7 +17,8 @@ def integrate_overall(html):
     legend=''
     if legend_start>=0 and legend_end>legend_start:
         legend=html[legend_start:legend_end].strip();html=html[:legend_start]+html[legend_end:]
-    card='<aside class="knowledge-overall" aria-labelledby="overall-title">'+overall+legend+'</aside>'
+    card='<a class="knowledge-overall" href="#dimension-cards" aria-labelledby="overall-title">'+overall+legend+'</a>'
+    html=html.replace('<div class="grid">', '<div class="grid" id="dimension-cards" tabindex="-1">', 1)
     html=re.sub(r'<div class="knowledge-orbit"[^>]*>.*?<div class="knowledge-orbit-core">.*?</div>\s*</div>',lambda _:card,html,count=1,flags=re.S)
     if greeting:
         html=html.replace('<div class="knowledge-eyebrow">',greeting[0]+'<div class="knowledge-eyebrow">',1)
@@ -40,7 +41,10 @@ button:focus-visible,.card:focus-visible,a:focus-visible,input:focus-visible,sel
 .knowledge-overview { position:relative; overflow:hidden; border:1px solid rgba(255,255,255,.85); border-radius:32px; padding:clamp(26px,4vw,54px); background:linear-gradient(130deg,rgba(255,255,255,.97),rgba(247,250,255,.82)); box-shadow:0 24px 70px rgba(37,65,122,.075),inset 0 1px 0 white; margin-bottom:24px; }
 .knowledge-overview::after { content:''; position:absolute; width:420px; height:420px; right:-80px; top:-100px; background:radial-gradient(circle,rgba(84,153,255,.16),transparent 65%); pointer-events:none; }
 .knowledge-hero-layout { display:grid; grid-template-columns:minmax(0,1fr) 320px; align-items:center; gap:40px; position:relative; z-index:1; }
-.knowledge-overall { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:24px; box-shadow:0 12px 35px rgba(38,65,110,.05); }
+.knowledge-overall { display:block; color:inherit; text-decoration:none; background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:24px; box-shadow:0 12px 35px rgba(38,65,110,.05); }
+.knowledge-overall:hover { border-color:var(--blue); }
+#dimension-cards { scroll-margin-top:24px; }
+#dimension-cards:focus-visible { outline:3px solid #69aaff; outline-offset:4px; }
 .knowledge-overall .overall { gap:12px; }
 .knowledge-overall .overall-ring-num { font-size:42px; font-weight:650; letter-spacing:-1.5px; color:var(--text); font-variant-numeric:tabular-nums; }
 .knowledge-overall .overall-ring-bg { stroke:var(--line); }
