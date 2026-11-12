@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "purpose": "Separate source-session labels; not supplied-candidate merge cases. Freeze before live evaluation; do not tune on evaluation outputs.",
+  "cases": [
+    {"id":"general-preference","text":"In general I prefer concise explanations.","expected":[{"category":"preferences","key":"communication.detail","values":["concise","brief"],"scope_type":"global"}]},
+    {"id":"work-email","text":"For work emails I consistently prefer concise wording.","expected":[{"category":"preferences","key":"communication.detail","values":["concise","brief"],"scope_type":"activity","scopes":["work-email","work-emails"]}]},
+    {"id":"learning-detail","text":"When learning unfamiliar concepts I prefer detailed explanations.","expected":[{"category":"preferences","key":"communication.detail","values":["detailed"],"scope_type":"activity","scopes":["learning"]}]},
+    {"id":"one-off","text":"For this answer only, keep it short. Then run the tests for this change.","temporary":true,"expected":[]},
+    {"id":"project-choice","text":"For this repository we decided to use SQLite rather than a server database.","expected":[]},
+    {"id":"explicit-revision","text":"From 2026-03-01 I change concise explanations to detailed explanations for learning.","expected":[{"category":"preferences","key":"communication.detail","values":["detailed"],"scope_type":"activity","scopes":["learning"],"valid_from":"2026-03-01"}]},
+    {"id":"quoted-ai-profile","text":"The assistant wrote: 'You prefer detailed explanations.' I am only quoting its output; I have not confirmed this.","provenance":"quoted_dialogue","expected":[]},
+    {"id":"negated-revision","text":"I still prefer concise explanations. I have not changed to detailed explanations.","expected":[{"category":"preferences","key":"communication.detail","values":["concise","brief"],"scope_type":"unknown"}]},
+    {"id":"direct-role","text":"I work as a researcher.","expected":[{"category":"personal_facts","key":"work.role","values":["researcher"]}]},
+    {"id":"role-with-context","text":"I work as a researcher.","context":"I recommend a research planning tool.","expected":[{"category":"personal_facts","key":"work.role","values":["researcher"]}]},
+    {"id":"project-task","text":"Build a researcher profile page for our fictional demo user.","temporary":true,"expected":[]},
+    {"id":"dated-measurement","text":"On 2026-03-02 my resting heart rate was 61 beats per minute.","expected":[]}
+  ]
+}

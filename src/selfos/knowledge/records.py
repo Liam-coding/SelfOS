@@ -39,6 +39,8 @@ def validate_record(raw,session):
     r['temporal']=r.get('temporal','current')
     from selfos.knowledge.preferences import normalize_scope
     normalize_scope(r, session)
+    from selfos.knowledge.revisions import validate_revision
+    validate_revision(r,known)
     return r
 
 

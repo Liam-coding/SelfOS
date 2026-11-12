@@ -85,6 +85,8 @@ def rebuild_cached_state_history(state, domains):
 
 def history_records(state):
     history=list(state.get('history',[]))+list(state.get('records_history',[]))+list(state.get('project_observations',[]))
+    history.extend({**copy.deepcopy(record),'original_category':'preferences','temporal':'historical'}
+                   for record in state.get('preferences',[]) if record.get('scheduled'))
     for card in state.get('cards',{}).values():
         for snapshot in card.get('state_records',[])[:-1]:
             text='Earlier project state: '+snapshot['status']
