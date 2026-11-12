@@ -24,8 +24,13 @@ def _view(vault):
     vault=Path(vault).resolve();path=vault/'.knowledge_pipeline.json'
     if not path.resolve().is_relative_to(vault):raise ValueError('Knowledge state escapes vault')
     stat=path.stat() if path.exists() else None
+    from selfos.storage.pipeline import safe_path
+    correction_path=safe_path(vault,'.knowledge_corrections.json')
+    correction_stat=correction_path.stat() if correction_path.exists() else None
+    correction_signature=(correction_stat.st_mtime_ns,correction_stat.st_ctime_ns,correction_stat.st_size) if correction_stat else None
     clock=datetime.now(timezone.utc).strftime('%Y%m%d%H%M')
     signature=(str(path),stat.st_mtime_ns,stat.st_ctime_ns,stat.st_size,stat.st_ino,clock) if stat else (str(path),None,clock)
+    signature=signature+(correction_signature,)
     with _VIEW_LOCK:
         if signature not in _VIEWS:
             state=_state(vault)
@@ -42,7 +47,10 @@ def _view(vault):
 def _state(vault):
     vault=Path(vault).resolve();path=vault/'.knowledge_pipeline.json'
     if not path.resolve().is_relative_to(vault):raise ValueError('Knowledge state escapes vault')
-    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    state=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    from selfos.storage.corrections import load_corrections
+    from selfos.knowledge.corrections import apply_corrections
+    return apply_corrections(state,load_corrections(vault))
 
 
 def knowledge_counts(state):
@@ -65,15 +73,8 @@ def _sources(state,ids):
 
 
 def _record_identity(category, record):
-    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
-        from selfos.knowledge.preferences import normalize_scope
-        record=normalize_scope(copy.deepcopy(record))
-    text = record.get('intent', '') if category == 'projects' else record.get('text', '')
-    fields = [category, record.get('project_id'), record.get('key'), record.get('value'),
-              text, record.get('source_ids', []), record.get('domain')]
-    if category in ('preferences','personal_facts') or record.get('original_category') in ('preferences','personal_facts'):
-        fields.extend([record.get('scope_type','unknown'), record.get('scope','unknown')])
-    return digest(fields)
+    from selfos.knowledge.corrections import record_version
+    return record_version(category,record)
 
 
 def _records(state):

@@ -1,4 +1,6 @@
 {
+  "kind_user_correction": "用户修正",
+  "correction_original_quote": "原始证据支持生成记录，不代表支持修改后的内容",
   "direct_support": "直接支持证据",
   "context_only": "上下文引用，不支持该个人属性",
   "fact_scope_unknown_note": "适用范围未知，不假设此事实适用于所有场景。",

@@ -121,7 +121,7 @@
    if(item.validity_conflict)content.append(node('p',()=>tr('preference_validity_conflict')));
    if(item.category==='projects'&&window.openProjectTimeline){const timeline=node('button',()=>window.selfosI18n.t('timeline.open'),'pt-entry-button');timeline.type='button';timeline.dataset.projectTimeline='';timeline.onclick=()=>{el('kb-detail').close();window.openProjectTimeline(item.id);};content.append(timeline);}
    for(const field of ['decisions','blockers','next_steps'])if(item[field]?.length){const list=node('ul');item[field].forEach(value=>list.append(node('li',value)));content.append(node('h3',()=>tr(field)),list);}
-   if(item.evidence)content.append(node('h3',()=>tr('quote')),node('pre',item.evidence));
+   if(item.evidence)content.append(node('h3',()=>tr(item.user_corrected?'correction_original_quote':'quote')),node('pre',item.evidence));
    const notes={project_context:'project_context_note',session_context:'session_context_note',summary_context:'summary_context_note'};
    if(notes[item.source_scope])content.append(node('p',()=>tr(notes[item.source_scope])));
    content.append(node('h3',()=>tr('sources_heading')+' · '+window.selfosI18n.number(detailCache.source_count)));

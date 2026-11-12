@@ -68,6 +68,8 @@
   "verified_complete": "Verified complete",
   "completion_unverified": "Completion unverified",
   "kind_user_fact": "Explicit user statement",
+  "kind_user_correction": "User correction",
+  "correction_original_quote": "Original evidence; supports the generated claim, not the edited content",
   "kind_assistant_suggestion": "AI suggestion",
   "kind_inference": "Inference",
   "historical_state": "Historical project state · Earlier context preserved",
