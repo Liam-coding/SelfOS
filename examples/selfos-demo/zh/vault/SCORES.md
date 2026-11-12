@@ -1,0 +1,12 @@
+- 2026-11-01 | career: 5 | work: 6 | health: 5 | learning: 6 | research: 4 | life: 5 | family: 6
+- 2026-11-02 | career: 5 | work: 6 | health: 5 | learning: 6 | research: 4 | life: 5 | family: 6
+- 2026-11-03 | career: 6 | work: 7 | health: 6 | learning: 7 | research: 5 | life: 6 | family: 7
+- 2026-11-04 | career: 6 | work: 7 | health: 6 | learning: 7 | research: 5 | life: 6 | family: 7
+- 2026-11-05 | career: 6 | work: 7 | health: 6 | learning: 7 | research: 5 | life: 6 | family: 7
+- 2026-11-06 | career: 6 | work: 7 | health: 6 | learning: 7 | research: 5 | life: 6 | family: 7
+- 2026-11-07 | career: 6 | work: 7 | health: 6 | learning: 7 | research: 5 | life: 6 | family: 7
+- 2026-11-08 | career: 7 | work: 8 | health: 7 | learning: 8 | research: 6 | life: 7 | family: 8
+- 2026-11-09 | career: 7 | work: 8 | health: 7 | learning: 8 | research: 6 | life: 7 | family: 8
+- 2026-11-10 | career: 7 | work: 8 | health: 7 | learning: 8 | research: 6 | life: 7 | family: 8
+- 2026-11-11 | career: 7 | work: 8 | health: 7 | learning: 8 | research: 6 | life: 7 | family: 8
+- 2026-11-12 | career: 7 | work: 8 | health: 7 | learning: 8 | research: 6 | life: 7 | family: 8

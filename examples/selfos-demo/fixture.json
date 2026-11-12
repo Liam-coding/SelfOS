@@ -1,0 +1,29 @@
+{
+  "synthetic": true,
+  "scores": {"career": 7, "work": 8, "health": 7, "learning": 8, "research": 6, "life": 7, "family": 8},
+  "projects": [
+    {"key":"career","domain":"work","en":["Build a career with direction","Turn scattered work into a portfolio of decisions, outcomes and lessons.","Document one project each week.","Write the story behind a recent technical decision."],"zh":["让职业成长更有方向","把零散的工作积累成作品集，记录做过的决定、实际结果与学到的经验。","每周整理一个项目案例。","写清最近一次技术选择背后的思考。"]},
+    {"key":"health","domain":"health","en":["A healthier, sustainable rhythm","Build a routine around three workouts a week, consistent sleep and time to recover.","Keep the routine achievable on busy days.","Review energy and sleep before increasing training."],"zh":["建立可持续的健康节奏","围绕每周三次运动、规律睡眠与充分恢复，建立忙碌时也能坚持的习惯。","把计划缩小到忙碌时也做得到。","先回顾精力和睡眠，再考虑增加训练量。"]},
+    {"key":"learning","domain":"learning","en":["Learn by making something useful","Connect reading about AI with small experiments and reusable notes.","One useful experiment matters more than ten unfinished courses.","Build a small prototype and record what changed your understanding."],"zh":["通过做出东西来学习","把 AI 阅读、动手实验与知识笔记连接起来，让学习留下可复用的成果。","完成一个有用的小实验，比同时开十门课程更重要。","做一个小原型，记录它如何改变了自己的理解。"]},
+    {"key":"relationships","domain":"life","en":["Make room for meaningful connection","Protect a weekly evening for family and friends, with fewer distractions and better conversations.","Listen before trying to solve the problem.","Plan one unhurried conversation this week."],"zh":["给重要的关系留出时间","每周为家人与朋友留出一段不被打扰的时间，少一点分心，多一点交流。","先理解对方，再尝试解决问题。","这周安排一次不赶时间的交流。"]},
+    {"key":"knowledge","domain":"personal","en":["A personal knowledge base that grows","Bring useful ideas from daily AI conversations into one source-linked place.","Separate lasting insight from temporary requests.","Review new knowledge and keep the next action clear."],"zh":["让个人知识库持续生长","把日常 AI 对话中的有用信息整理到同一个地方，保留来处，形成自己的积累。","把长期认知与临时请求分开。","回顾新知识，让下一步行动保持清晰。"]}
+  ],
+  "records": [
+    {"category":"personal_facts","key":"work.role","project":"career","en":["Product engineer","I work as a product engineer and enjoy turning ideas into useful tools."],"zh":["产品工程师","我是一名产品工程师，喜欢把想法做成有用的工具。"]},
+    {"category":"personal_facts","key":"learning.interest","project":"learning","en":["Learning about AI systems","I am learning how AI systems can support everyday work and personal reflection."],"zh":["持续学习 AI 系统","我正在学习 AI 系统如何帮助日常工作与个人复盘。"]},
+    {"category":"personal_facts","key":"life.activity","project":"health","en":["Running and strength training","Running and strength training are part of my regular routine."],"zh":["跑步与力量训练","跑步和力量训练是我日常生活的一部分。"]},
+    {"category":"preferences","key":"communication.work","project":"career","en":["Concise, actionable work updates","For work updates, I prefer concise explanations with a clear next action."],"zh":["简洁、可行动的工作沟通","在工作沟通中，我偏好简洁的说明，以及清楚的下一步行动。"]},
+    {"category":"preferences","key":"learning.method","project":"learning","en":["Learn through small projects","I prefer learning by building small projects rather than only collecting courses."],"zh":["用小项目推动学习","我偏好通过做小项目来学习，而不是只收藏课程。"]},
+    {"category":"preferences","key":"health.routine","project":"health","en":["Consistency over intensity","I prefer sustainable exercise routines over short bursts of extreme intensity."],"zh":["持续性优先于强度","运动计划上，我更重视可以持续的节奏，而不是短期追求极高强度。"]},
+    {"category":"preferences","key":"life.review","project":"knowledge","en":["A quiet weekly review","I prefer a quiet weekly review to connect daily choices with longer-term goals."],"zh":["每周安静地复盘一次","我喜欢每周安静地复盘一次，把日常选择与长期目标连接起来。"]},
+    {"category":"lessons","key":"lesson.small","project":"health","en":["Make the next step small enough","A habit becomes more reliable when its minimum version still fits a busy day."],"zh":["让下一步小到可以开始","当一个习惯的最小版本在忙碌时也能完成，它就更容易持续。"]},
+    {"category":"lessons","key":"lesson.evidence","project":"career","en":["Separate evidence from assumptions","Before changing a plan, distinguish observed results from explanations that have not been tested."],"zh":["把事实与假设分开","调整计划之前，先分清已经观察到的结果与还没有验证的解释。"]},
+    {"category":"lessons","key":"lesson.reuse","project":"learning","en":["Keep the reasoning, not just the answer","A reusable note explains why a decision worked and when the same approach may apply."],"zh":["记录推理，而不只是答案","可复用的笔记应说明一个选择为什么有效，以及什么时候可以再次使用。"]},
+    {"category":"lessons","key":"lesson.listen","project":"relationships","en":["Understand before offering solutions","In a difficult conversation, clarify what the other person needs before offering a solution."],"zh":["先理解，再给出建议","在困难的交流里，先理解对方需要什么，再给出解决方案。"]},
+    {"category":"lessons","key":"lesson.review","project":"knowledge","en":["Review turns information into direction","A weekly review is useful when it ends with a small number of clear next actions."],"zh":["复盘让信息变成方向","每周复盘的价值，在于最后形成少量清晰、可以执行的下一步行动。"]},
+    {"category":"history","key":"history.training","project":"health","en":["Changed the training plan","Replaced daily workouts with three sessions per week to make room for recovery."],"zh":["调整了运动计划","从每天训练改为每周三次，为恢复留出空间。"]},
+    {"category":"history","key":"history.learning","project":"learning","en":["Finished a first small prototype","Completed a small AI-assisted prototype and documented the trade-offs."],"zh":["完成了第一个小原型","完成了一个 AI 辅助的小原型，并记录了设计中的取舍。"]},
+    {"category":"history","key":"history.connection","project":"relationships","en":["Started a weekly connection ritual","Set aside one evening each week for an unhurried conversation with family or friends."],"zh":["开始每周的交流习惯","每周留出一个晚上，与家人或朋友进行一次不赶时间的交流。"]},
+    {"category":"history","key":"history.knowledge","project":"knowledge","en":["Started keeping a personal knowledge base","Moved from scattered chat history to organized notes with links to their sources."],"zh":["开始积累自己的知识库","从散落的聊天记录，转向分类整理并保留来源的个人笔记。"]}
+  ]
+}
