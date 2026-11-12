@@ -1,0 +1,22 @@
+{
+  "scope": "record_validation_and_retention_only",
+  "cases": [
+    {"id":"occupation","text":"I work as a product designer.","key":"employment.role","value":"product designer","expected_current":true},
+    {"id":"residence","text":"I live in Brookfield.","key":"residence.city","value":"Brookfield","expected_current":true},
+    {"id":"education","text":"I am a part-time graduate student.","key":"education.status","value":"part-time graduate student","expected_current":true},
+    {"id":"interest","text":"I enjoy woodworking as a hobby.","key":"interests.woodworking","value":"woodworking","expected_current":true},
+    {"id":"responsibility","text":"I coordinate the accessibility team at work.","key":"employment.responsibility","value":"accessibility team coordinator","expected_current":true},
+    {"id":"health-condition","text":"I have a peanut allergy.","key":"health.allergy","value":"peanut allergy","domain":"health","expected_current":true},
+    {"id":"assistant-advice","text":"You should consider a design career.","role":"assistant","key":"employment.role","value":"designer","expected_current":false},
+    {"id":"quoted-profile","text":"An AI wrote this fictional profile: I am a teacher.","provenance":"quoted_dialogue","key":"employment.role","value":"teacher","expected_current":false},
+    {"id":"runtime-architecture","text":"Operating system reports arm64 architecture.","provenance":"runtime_evidence","key":"personal.device","value":"arm64 laptop","expected_current":false},
+    {"id":"temporary-request","text":"Retry my API request after the endpoint returns 503.","key":"employment.role","value":"API engineer","expected_current":false},
+    {"id":"project-choice","text":"For this project, use Python for the backend.","key":"employment.role","value":"Python developer","expected_current":false},
+    {"id":"dated-observation","text":"My temperature was 38 C this morning.","key":"health.temperature","value":"38 C","domain":"health","expected_current":false},
+    {"id":"historical-role","text":"I was a teacher in 2018.","key":"employment.role","value":"teacher","temporal":"historical","expected_current":false},
+    {"id":"excluded-domain","text":"I have a peanut allergy.","key":"health.allergy","value":"peanut allergy","domain":"health","domains":["work"],"expected_current":false},
+    {"id":"unsupported-quotation","text":"I work as a product designer.","key":"employment.role","value":"designer","evidence":"I am a surgeon.","expected_current":false},
+    {"id":"explicit-fact-with-context","text":"I work as a product designer.","key":"employment.role","value":"product designer","context":"That could help with this project.","source_ids":["m1","m2"],"expected_current":true},
+    {"id":"preference-misclassified-as-fact","text":"I prefer diagrams when learning new concepts.","key":"learning.format","value":"diagrams","expected_current":false}
+  ]
+}
