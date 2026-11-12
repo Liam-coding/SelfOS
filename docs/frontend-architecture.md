@@ -60,6 +60,8 @@ dashboard.css owns compatibility layout and component geometry; visual-system.cs
 
 ## Validation
 
+The repeatable [integrated browser suite](frontend-integration-validation.md) drives real authentication, model transport, search/timeline and child-process import recovery against synthetic fixtures, including installed-wheel execution from a foreign working directory.
+
 A synthetic pre-refactor baseline checks exact rendered bytes for the dashboard and ten other page/component outputs. Architecture checks reject new large embedded UI blocks, and resource tests cover allowed names, single-pass values, cycles, manifest coverage and independent working directories. Wheel and actual browser checks cover installation, login/account, browsing, settings, chat, progress, both languages, responsive layouts, dark mode and reduced motion. The five frozen knowledge acceptance files remain unchanged.
 
 After merging overlapping features, the active parity fixture records the explicit main snapshot at 5b4a97f, including global search, publication status and timelines. It was captured before resource extraction from an isolated Git archive with its source path asserted. The original pre-refactor fixture remains available; updated feature output is compared against the current main implementation rather than against obsolete pre-feature markup.
