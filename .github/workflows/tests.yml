@@ -21,11 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Determine whether code changed
         id: changes
         env:
           EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           python3 - <<'PY'
           import os
@@ -34,10 +35,15 @@ jobs:
           if os.environ['EVENT_NAME'] == 'workflow_dispatch':
               run_tests = True
           else:
-              files = subprocess.check_output(['git', 'diff', '--name-only', 'HEAD^', 'HEAD'], text=True).splitlines()
+              base = os.environ['BEFORE_SHA'] if os.environ['EVENT_NAME'] == 'push' else 'HEAD^'
               def documentation(path):
                   return path in {'README.md', 'README.zh-CN.md', 'LICENSE'} or path.startswith('docs/')
-              run_tests = any(not documentation(path) for path in files)
+              try:
+                  files = subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines()
+              except subprocess.CalledProcessError:
+                  run_tests = True
+              else:
+                  run_tests = any(not documentation(path) for path in files)
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
               output.write('run_tests=' + str(run_tests).lower() + '\n')
           if not run_tests:
