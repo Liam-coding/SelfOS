@@ -1,5 +1,22 @@
 # Reproducing integrated frontend checks
 
+## Recorded validation: 2026-11-13
+
+Tested implementation: 8b59290d5dcab598d3af8faba61ae8dbc01159f0, based on merged main 4561dfa01ec838acd1aad178dab99a46aeff22a2. This commit records the implementation bytes used in the checks; the subsequent report update changes documentation only.
+
+| Check | Result |
+| --- | --- |
+| Full Python unit/contract suite | 899 passed, 132.70 seconds |
+| Checkout Chromium matrix | Four cases passed |
+| Installed wheel, foreign cwd, final matrix | Four cases passed |
+| Source vs installed application | 154 Python/resource files byte-identical |
+| Frozen acceptance inputs | All five hashes unchanged |
+| Independent review | Three Important findings and source-filter gap fixed and re-reviewed |
+
+Environment: Windows build 26300, Python 3.11.7, Chromium 135.0.7049.95. Wheel SHA-256: 60bf9a771115bb1196502bd29946440590c4e3982280898541ff288ec1b9cfe4. No real-model evaluation was performed.
+
+Each output directory contains results.json, per-case JSON and screenshots named en-1280-light-no-preference.png, zh-CN-390-dark-reduce.png, zh-CN-1280-dark-no-preference.png and en-390-light-reduce.png. The desktop case used six local fixture requests: two connection checks, two session extractions and two project syntheses; its resume did not re-extract the first saved session. Other matrix cells used two connection-check requests each.
+
 This explicitly invoked browser suite validates the merged application for #47. It is optional and does not run on every pull request. Ordinary unit/contract checks remain python -m pytest -q.
 
 Install Playwright and Chromium in your test environment:
