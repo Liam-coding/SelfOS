@@ -4,8 +4,6 @@
 
 [![README views](https://hits.sh/github.com/Liam-coding/SelfOS.svg?style=flat&label=README%20views&color=2563eb)](https://hits.sh/github.com/Liam-coding/SelfOS/)
 
-*Counts README badge requests, not unique human visitors or Git clones. Caching and bots can affect the count.*
-
 **Turn AI conversations into knowledge you can use again.**
 
 SelfOS is a local, Markdown-based personal knowledge system. It organizes your Claude Code and Codex conversations into facts, preferences, project context and reusable experience, so your AI assistant can understand what you are working on across sessions.
