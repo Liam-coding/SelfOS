@@ -37,6 +37,13 @@ def run(output,browser_path=None):
                 if previous:raw['revision']={'previous_value':previous,'effective_at':effective,'source_id':identity,'evidence':quote}
                 merge_records(state,'preferences',[validate_record(raw,{'messages':[message]})],DEFAULT_SETTINGS)
             (vault/'.knowledge_pipeline.json').write_text(json.dumps(state),encoding='utf-8')
+            user={'id':'fact-user','role':'user','text':'I work as a designer.','timestamp':'2026-01-01T10:00:00Z','source':'codex'}
+            context={'id':'fact-context','role':'assistant','text':'That helps the project.','timestamp':'2026-01-02T10:00:00Z','source':'codex'}
+            state['sources'].update({user['id']:user,context['id']:context})
+            raw={'key':'employment.role','value':'designer','text':'I work as a designer.','scope':{'type':'activity','id':'work'},
+                 'kind':'user_fact','domain':'personal','source_ids':[user['id'],context['id']],'evidence':user['text']}
+            merge_records(state,'personal_facts',[validate_record(raw,{'messages':[user,context]})],DEFAULT_SETTINGS)
+            (vault/'.knowledge_pipeline.json').write_text(json.dumps(state),encoding='utf-8')
             page_text=generate_dashboard(vault,scores=fixture['scores']).read_text(encoding='utf-8')
             listing=list_knowledge(vault,limit=200)
             payload={'listing':listing,'details':{r['id']:knowledge_detail(vault,r['id']) for r in listing['items']},
@@ -49,6 +56,11 @@ def run(output,browser_path=None):
             page=browser.new_page();errors=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.goto(destination.as_uri());page.locator('#kb-list .kb-card').first.wait_for()
+            page.evaluate("window.browseKnowledge('personal_facts')")
+            page.locator('#kb-list .kb-card').filter(has_text='I work as a designer.').first.click()
+            page.locator('#kb-sources').get_by_text('Direct supporting evidence' if locale=='en' else '直接支持证据',exact=True).wait_for()
+            page.locator('#kb-sources').get_by_text('Context reference; does not support the personal claim' if locale=='en' else '上下文引用，不支持该个人属性',exact=True).wait_for()
+            page.locator('#kb-close').click()
             page.evaluate("window.browseKnowledge('preferences')")
             page.locator('#kb-list .kb-card').filter(has_text='From 2026-02-01').first.click()
             page.locator('#kb-detail-content').get_by_text('Effective from: 2026-02-01' if locale=='en' else '生效日期：2026-02-01',exact=True).wait_for()

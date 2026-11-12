@@ -82,8 +82,13 @@ def test_repeated_preference_uses_the_latest_evidence_date():
 
 def test_conflicting_facts_are_preserved_and_marked():
     state={}
-    a=validate_record(record(value='SAP',key='current.employer'),evidence())
-    b={**a,'value':'Other','text':'Works at Other'}
+    quote='I work at Example Company.'
+    raw=record(value='Example Company',key='current.employer')
+    raw.update(text=quote,evidence=quote)
+    a=validate_record(raw,session(quote))
+    quote='I work at Other Company.'
+    raw.update(value='Other Company',text=quote,evidence=quote)
+    b=validate_record(raw,session(quote))
     merge_records(state,'personal_facts',[a,b],DEFAULT_SETTINGS)
     assert len(state['personal_facts'])==2
     assert all(r['conflict'] for r in state['personal_facts'])

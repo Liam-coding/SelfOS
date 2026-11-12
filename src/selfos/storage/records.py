@@ -12,6 +12,10 @@ def managed_content(old,title,records,marker):
         lines.extend(['- ['+r.get('kind','inference')+'] '+r['text']+(' [conflict]' if r.get('conflict') else ''),
                       '  Date: '+r.get('observed_at',''), '  Source: '+', '.join(r['source_ids'])])
         if r.get('project_title'):lines.append('  Project: '+r['project_title'])
+        if r.get('supporting_source_ids'):lines.append('  Supporting sources: '+', '.join(r['supporting_source_ids']))
+        if r.get('context_source_ids'):lines.append('  Context sources: '+', '.join(r['context_source_ids']))
+        if r.get('claim_type'):lines.append('  Claim type: '+r['claim_type'])
+        if r.get('retention_reason'):lines.append('  Retention warning: '+r['retention_reason'])
         if 'scope_type' in r:
             lines.append('  Scope: '+r['scope_type']+':'+r.get('scope','unknown'))
         for field,label in (('valid_from','Valid from'),('valid_until','Valid until')):

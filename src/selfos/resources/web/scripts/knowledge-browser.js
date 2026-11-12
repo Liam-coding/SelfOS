@@ -78,6 +78,8 @@
    for(const source of detailSources){const row=node('div',undefined,'kb-source-row'),page=sourcePages.get(source.id);
      const sourceLabel=()=>[named('source_',source.source),named('role_',source.role),source.timestamp?window.selfosI18n.date(source.timestamp):'',source.file].filter(Boolean).join(' · ');
      row.append(node('div',sourceLabel,'kb-meta'));
+     if(detailCache?.item.supporting_source_ids?.includes(source.id))row.append(node('p',()=>tr('direct_support'),'kb-meta'));
+     else if(detailCache?.item.context_source_ids?.includes(source.id))row.append(node('p',()=>tr('context_only'),'kb-meta'));
      if(page?.loaded){row.append(node('pre',page.text),node('p',()=>tr('source_page',{shown:Array.from(page.text).length,total:page.total}),'kb-meta'));}
      if(page?.error)row.append(node('p',()=>errorText({code:page.error})));
      if(!page?.loaded||page.next!==null){const button=node('button',()=>tr(page?.loading?'loading':page?.error?'retry':page?.loaded?'more_source_text':'read_source'),'kb-source');button.type='button';button.disabled=!!page?.loading;button.onclick=()=>readOriginal(source.id);row.append(button);}
@@ -107,7 +109,7 @@
    if(item.conflict)content.append(node('p',()=>tr('conflict')));
    if(item.scope_type){
      content.append(node('p',()=>tr('preference_scope',{scope:named('scope_',item.scope_type)})+(item.scope_type==='activity'||item.scope_type==='project'?' · '+item.scope:''),'kb-meta'));
-     if(item.scope_type==='unknown')content.append(node('p',()=>tr('preference_scope_unknown_note')));
+     if(item.scope_type==='unknown')content.append(node('p',()=>tr(item.category==='personal_facts'||item.original_category==='personal_facts'?'fact_scope_unknown_note':'preference_scope_unknown_note')));
    }
    if(item.superseded_by_source_ids?.length)content.append(node('p',()=>tr('preference_superseded')));
    if(item.valid_from)content.append(node('p',()=>tr('preference_valid_from',{date:item.valid_from})));

@@ -62,6 +62,21 @@ def api_generator(root):
 
 SUMMARY_SYSTEM = '''Extract content according to its meaning, never a target number of records.
 Personal facts: explicit user statements about their circumstances, with an exact quotation.
+Each personal fact has claim_type: stable_fact or scoped_role only for enduring personal
+circumstances or an explicitly applicable role. Other categories are preference, project_choice,
+observation, temporary_request or unknown and must not be asserted as current personal facts.
+Prefer returning these in their correct category; omit meaningless temporary requests.
+Include scope with the same global/activity/project/unknown protocol used for preferences.
+An employer-specific or volunteer role is activity scoped; do not collapse simultaneous roles.
+Use stable English relation keys (employment.role, residence.city, education.status,
+health.allergy) and extend the vocabulary for distinct supported relations, never a quota.
+Select one direct evidence_id supporting the claim, category and scope. Optional assistant/tool
+context belongs in context_source_ids (message IDs, [] when absent), never supporting evidence.
+The quotation must describe the person; an imperative to fix an API cannot prove an occupation.
+Keep personal-fact value wording anchored in the original supporting span (source language);
+use the stable English key and abstracted text for organization, not invented or translated values.
+An explicitly dated measurement belongs in history, not a permanent health attribute.
+Do not invent attributes from model profiles, negated statements or hypothetical examples.
 Preferences: explicit user choices, with an exact quotation; past choices are historical.
 Personal facts describe the person, not a project's API settings, benchmark metrics or test output.
 Preferences are explicit enduring choices. A request to open a branch, retry a test, choose a
