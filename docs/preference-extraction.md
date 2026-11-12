@@ -23,6 +23,18 @@ The browser shows applicability and unknown-scope warnings in English and Chines
 
 For explicit diagnostic review, Python callers can still request api_summarizer(root, review_records=True). This adds a model call and is not the normal import default.
 
-## Remaining work
+## Explicit changes and validity
 
-This implements the single-pass contract and the scope/conflict foundation for #40. Evidence-backed explicit validity intervals, integration with durable user corrections (#15), and a separate independently labeled source-session model evaluation remain follow-up work. Deterministic candidate/contract tests are not model precision or recall measurements.
+The same extraction response can include a nullable revision object naming the previous value, effective date and an evidence ID. Local validation requires a direct user quotation supporting both values and an explicit change. A literal date must appear in that quotation; source-time is resolved from the original message timestamp only for an explicit now change. Unsupported dates, quoted AI, negated changes and invented manual-correction metadata are rejected.
+
+An explicit source-backed revision can establish valid_from for the new choice and an exclusive valid_until boundary for the displaced choice. Ordinary observation-based supersession never invents an exact effective date. Validity evidence and source links remain available in details and history. Missing or ambiguous chronology stays conservative rather than fabricating a clock.
+
+Date-only validity uses a UTC calendar-day boundary; original date text is retained. Future changes remain planned history and do not replace active preferences until their boundary is reached. Read snapshots activate due changes locally without a model call, and managed Markdown is updated on the next normal write. Browser cache signatures include the UTC minute so a new read cannot indefinitely reuse a pre-boundary snapshot. Repeated statements preserve the earliest supported start of a continuous stage. Conflicting effective dates remain flagged; no interval ending before its start is published.
+
+Local manual-correction metadata is preserved during merge/replay. Different new evidence remains a visible conflict instead of silently replacing the correction. Models cannot create this metadata. The authenticated correction service and browser edit/delete/merge/undo controls are tracked separately in #15.
+
+## Separate source-session evaluation
+
+The synthetic sessions in evals/source_session_holdout.json are distinct from supplied-candidate merge tests. Their explicit category/relation/value/scope labels can be compared against supplied prediction files with evals/run_source_session_holdout.py. The report separates labeled extraction matches, temporary-request false positives and structurally valid retained records. Strict label matching is not a general semantic entailment proof.
+
+Offline example: python evals/run_source_session_holdout.py --predictions predictions.json --output report.json. Supplying a model configuration root additionally requires --allow-model-calls and performs at most one extraction call per fixture session. No live-model evaluation has been performed as part of implementation; mocked or supplied outputs are not reported as measured model improvements.

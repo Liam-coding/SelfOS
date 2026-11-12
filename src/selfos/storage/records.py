@@ -14,6 +14,11 @@ def managed_content(old,title,records,marker):
         if r.get('project_title'):lines.append('  Project: '+r['project_title'])
         if 'scope_type' in r:
             lines.append('  Scope: '+r['scope_type']+':'+r.get('scope','unknown'))
+        for field,label in (('valid_from','Valid from'),('valid_until','Valid until')):
+            if r.get(field):lines.append('  '+label+': '+r[field])
+        if r.get('validity_source_ids'):lines.append('  Validity sources: '+', '.join(r['validity_source_ids']))
+        if r.get('scheduled'):lines.append('  Planned change; not yet active.')
+        if r.get('validity_conflict'):lines.append('  Effective dates conflict; check original sources.')
         if r.get('superseded_by_source_ids'):
             lines.append('  Superseded by sources: '+', '.join(r['superseded_by_source_ids']))
         if r.get('conflict_source_ids'):
@@ -26,11 +31,13 @@ def managed_content(old,title,records,marker):
 
 
 def record_writes(vault,state):
+    from selfos.knowledge.preferences import preference_snapshot
+    state=preference_snapshot(state)
     from selfos.storage.pipeline import safe_path
     writes={}
     for category,path in FILES.items():
         actual=safe_path(Path(vault).resolve(),path)
-        records=state.get(category,[])
+        records=[record for record in state.get(category,[]) if category!='preferences' or not record.get('scheduled')]
         if category=='history':
             from selfos.knowledge.history import history_records
             records=history_records(state)

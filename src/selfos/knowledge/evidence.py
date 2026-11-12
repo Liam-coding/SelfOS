@@ -54,11 +54,16 @@ def output_schema(aliases, references, decision_budget):
             'temporal':{'type':'string','enum':['current','historical']},
             'evidence_id':{'type':'string','enum':list(references)}}}
     strings = lambda maximum: {'type':'array','maxItems':maximum,'items':text}
-    preference = {**record, 'required':[*record['required'], 'scope'],
+    revision={'type':'object','additionalProperties':False,
+        'required':['previous_value','effective_at','evidence_id'],
+        'properties':{'previous_value':text,'effective_at':{'type':'string'},
+                      'evidence_id':record['properties']['evidence_id']}}
+    preference = {**record, 'required':[*record['required'], 'scope','revision'],
         'properties':{**record['properties'], 'scope':{
             'type':'object', 'additionalProperties':False, 'required':['type','id'],
             'properties':{'type':{'type':'string','enum':['global','activity','project','unknown']},
-                          'id':{'type':'string','maxLength':200}}}}}
+                          'id':{'type':'string','maxLength':200}}},
+                      'revision':{'anyOf':[revision,{'type':'null'}]}}}
     project = {'type':'object','additionalProperties':False,
         'required':['project_id','title','domain','intent','status','decisions','blockers','next_steps','source_ids','updated_at','verified'],
         'properties':{'project_id':{'type':'string','enum':['current-project']},
@@ -160,6 +165,13 @@ def resolve_evidence(result, references, originals):
         if not isinstance(records, list):
             raise ValueError(category + ' must be an array')
         for index, record in enumerate(records):
+            if isinstance(record,dict) and isinstance(record.get('revision'),dict):
+                revision=record['revision']
+                if 'evidence_id' in revision:
+                    ref=revision.pop('evidence_id')
+                    if not isinstance(ref,str) or ref not in references:
+                        raise ValueError('Preference revision has unknown evidence_id')
+                    revision['source_id'],revision['evidence']=references[ref]
             if not isinstance(record, dict) or 'evidence_id' not in record:
                 continue  # Legacy exact quotations still undergo strict validation.
             ref = record['evidence_id']

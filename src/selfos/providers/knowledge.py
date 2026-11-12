@@ -125,6 +125,12 @@ Do not infer a language preference merely from the language used in a message. R
 does not broaden applicability. Select evidence supporting both the preference and its scope.
 Preserve explicit historical preferences as historical; never invent an effective date or
 declare that one preference replaced another without evidence. Local source dates govern merging.
+Every preference also includes revision: null unless the user explicitly changes a previous value.
+For an explicit change use {"previous_value":"old value","effective_at":"YYYY-MM-DD or source-time or empty",
+"evidence_id":"s1:e1"}. Choose one direct user span naming both old and new values and the change.
+Keep previous/new value wording present in that span. Use a literal ISO date only if quoted;
+source-time only for an explicit "now" change, and empty when no effective date is stated.
+Never invent a timestamp, infer a change from repetition, or treat quoted AI/hypothetical changes as user revisions.
 Input conversations contain evidence_spans with exact original text and IDs such as s1:e1.
 Copy ONE supporting evidence_id exactly. The program resolves that ID to original evidence and
 source_ids. Do not write your own evidence quotation or combine sources into a paraphrase.

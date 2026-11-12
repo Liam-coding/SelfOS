@@ -2,6 +2,7 @@
 import copy, json, threading
 from collections import OrderedDict
 from pathlib import Path
+from datetime import datetime, timezone
 from selfos.knowledge.history import history_records as _history
 from selfos.sources.text import redact
 from selfos.knowledge.identity import digest
@@ -23,10 +24,13 @@ def _view(vault):
     vault=Path(vault).resolve();path=vault/'.knowledge_pipeline.json'
     if not path.resolve().is_relative_to(vault):raise ValueError('Knowledge state escapes vault')
     stat=path.stat() if path.exists() else None
-    signature=(str(path),stat.st_mtime_ns,stat.st_ctime_ns,stat.st_size,stat.st_ino) if stat else (str(path),None)
+    clock=datetime.now(timezone.utc).strftime('%Y%m%d%H%M')
+    signature=(str(path),stat.st_mtime_ns,stat.st_ctime_ns,stat.st_size,stat.st_ino,clock) if stat else (str(path),None,clock)
     with _VIEW_LOCK:
         if signature not in _VIEWS:
             state=_state(vault)
+            from selfos.knowledge.preferences import refresh_preferences
+            refresh_preferences(state)
             _VIEWS[signature]=(_records(state),knowledge_counts(state))
             for key in list(_VIEWS):
                 if key!=signature and key[0]==str(path):del _VIEWS[key]
@@ -42,9 +46,11 @@ def _state(vault):
 
 
 def knowledge_counts(state):
+    from selfos.knowledge.preferences import preference_snapshot
+    state=preference_snapshot(state)
     return {'cards':len(state.get('cards',{})),'lessons':len(state.get('lessons',[])),
         'personal_facts':len(state.get('personal_facts',[])),
-        'preferences':len(state.get('preferences',[])),'history':len(_history(state))}
+        'preferences':sum(not r.get('scheduled') for r in state.get('preferences',[])),'history':len(_history(state))}
 
 
 def _sources(state,ids):
@@ -71,6 +77,8 @@ def _record_identity(category, record):
 
 
 def _records(state):
+    from selfos.knowledge.preferences import preference_snapshot
+    state=preference_snapshot(state)
     rows=[]
     metadata={}
     aliases=state.get('project_aliases',{})
@@ -124,12 +132,24 @@ def _records(state):
                for field in ('decisions','blockers','next_steps')}}
         for field in ('conflict_source_ids','superseded_by_source_ids'):
             details[field]=list(record.get(field,[]))
+        for field in ('valid_from','valid_until'):
+            details[field]=redact(str(record.get(field,'')))
+        details['validity_source_ids']=list(record.get('validity_source_ids',[]))
+        details['validity_evidence']=redact(str(record.get('validity_evidence','')))
+        if record.get('revision'):
+            details['revision']={k:redact(str(record['revision'].get(k,'')))
+                                 for k in ('previous_value','effective_at','evidence','source_id')}
+        details['user_corrected']=bool(record.get('manual_correction'))
+        details['scheduled']=bool(record.get('scheduled'))
+        details['validity_conflict']=bool(record.get('validity_conflict'))
         search=' '.join([row['title'],row['summary'],row['domain'],*details['decisions'],
             *details['blockers'],*details['next_steps']]).casefold()
         rows.append((row,details,sources,search))
     for card in state.get('cards',{}).values():add('projects',card)
     for category in CATEGORIES[1:-1]:
-        for record in state.get(category,[]):add(category,record)
+        for record in state.get(category,[]):
+            if category=='preferences' and record.get('scheduled'):continue
+            add(category,record)
     for record in _history(state):add('history',record)
     ordered=sorted(rows,key=lambda row:(row[0]['date'],row[0]['id']),reverse=True)
     known_contexts={}
