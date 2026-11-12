@@ -31,7 +31,9 @@ def get_status(vault):
     state = _state(vault)
     from selfos.app.library import knowledge_counts
     from selfos.app.import_status import publication_status
-    return {'settings': settings, 'counts': knowledge_counts(state),
+    from selfos.storage.corrections import load_corrections
+    from selfos.knowledge.corrections import apply_corrections
+    return {'settings': settings, 'counts': knowledge_counts(apply_corrections(state,load_corrections(vault))),
         'publication': publication_status(vault, state, settings),
         'saved_checkpoints':len(_saved_summaries(Path(vault).resolve(),settings,lambda:False)),
         'last_operation': state.get('last_operation'),
@@ -97,6 +99,10 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if not scratch.resolve().is_relative_to(vault):
             raise ValueError('staging escapes vault')
         scratch.mkdir(parents=True,exist_ok=True)
+        from selfos.storage.corrections import load_corrections
+        with _locked(vault):
+            ledger=load_corrections(vault)
+            _atomic_write(safe_path(scratch,'.knowledge_corrections.json'),json.dumps(ledger,ensure_ascii=False).encode())
         journal.update(checkpoint=scratch.name)
         if not (scratch / '.knowledge_pipeline.json').exists() and mode == 'incremental' and previous:
             with _locked(vault):

@@ -73,7 +73,7 @@ def _sources(state,ids):
 
 
 def _record_identity(category, record):
-    from selfos.knowledge.corrections import record_version
+    from selfos.knowledge.identity import record_version
     return record_version(category,record)
 
 
@@ -84,7 +84,8 @@ def _records(state):
     metadata={}
     aliases=state.get('project_aliases',{})
     def project_identity(identity):
-        return aliases.get(identity,identity) if isinstance(identity,str) and isinstance(aliases,dict) else identity
+        from selfos.knowledge.identity import resolve_project_alias
+        return resolve_project_alias(identity,aliases) if isinstance(identity,str) and isinstance(aliases,dict) else identity
     def sources_for(ids):
         missing=[identity for identity in ids if identity not in metadata]
         for source in _sources(state,missing):metadata[source['id']]=source
@@ -145,6 +146,9 @@ def _records(state):
             details['revision']={k:redact(str(record['revision'].get(k,'')))
                                  for k in ('previous_value','effective_at','evidence','source_id')}
         details['user_corrected']=bool(record.get('manual_correction'))
+        if record.get('proposed_revision'):
+            details['proposed_revision']={'intent':redact(str(record['proposed_revision'].get('intent',''))),
+                                          'source_ids':list(record['proposed_revision'].get('source_ids',[]))}
         details['scheduled']=bool(record.get('scheduled'))
         details['validity_conflict']=bool(record.get('validity_conflict'))
         search=' '.join([row['title'],row['summary'],row['domain'],*details['decisions'],
@@ -208,8 +212,9 @@ def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
     for row,details,sources,_ in _view(vault)[0]:
         if row['id']==identity:
             sources=sorted(sources,key=lambda s:s['timestamp'],reverse=True)
+            from selfos.app.corrections import correction_metadata
             return copy.deepcopy({'item':details,'sources':sources[source_offset:source_offset+source_limit],
-                    'source_count':len(sources),'source_offset':source_offset})
+                    'source_count':len(sources),'source_offset':source_offset,'corrections':correction_metadata(vault,identity)})
     raise KeyError('Knowledge item not found; it may have changed after organizing')
 
 

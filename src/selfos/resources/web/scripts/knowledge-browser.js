@@ -70,6 +70,7 @@
      if(seq!==generation)return;
      items=more?items.concat(data.items):data.items;offset=requestedOffset+data.items.length;total=data.total;counts=data.filtered_counts||{};filters=data.filters||filters;
      loading=false;updateTabs();updateFilters();renderResults();el('kb-more').hidden=offset>=total;
+     if(window.selfosCorrections){let history=el('kb-correction-history');if(!history){history=node('section');history.id='kb-correction-history';el('knowledge-library').append(history);}await window.selfosCorrections.history(history,async()=>{await load();el('kb-heading').focus();});}
    }catch(error){if(seq!==generation)return;loading=false;listError=error.code||'unavailable';renderStatus();el('kb-more').hidden=!more;el('kb-retry').hidden=more;}
    finally{if(seq===generation){el('kb-more').disabled=false;el('kb-list').setAttribute('aria-busy','false');}}
  }
@@ -78,7 +79,7 @@
    for(const source of detailSources){const row=node('div',undefined,'kb-source-row'),page=sourcePages.get(source.id);
      const sourceLabel=()=>[named('source_',source.source),named('role_',source.role),source.timestamp?window.selfosI18n.date(source.timestamp):'',source.file].filter(Boolean).join(' · ');
      row.append(node('div',sourceLabel,'kb-meta'));
-     if(detailCache?.item.supporting_source_ids?.includes(source.id))row.append(node('p',()=>tr('direct_support'),'kb-meta'));
+     if(detailCache?.item.supporting_source_ids?.includes(source.id))row.append(node('p',()=>tr(detailCache.item.user_corrected?'correction_original_support':'direct_support'),'kb-meta'));
      else if(detailCache?.item.context_source_ids?.includes(source.id))row.append(node('p',()=>tr('context_only'),'kb-meta'));
      if(page?.loaded){row.append(node('pre',page.text),node('p',()=>tr('source_page',{shown:Array.from(page.text).length,total:page.total}),'kb-meta'));}
      if(page?.error)row.append(node('p',()=>errorText({code:page.error})));
@@ -117,8 +118,10 @@
    if(item.revision?.evidence)content.append(node('h3',()=>tr('preference_revision_evidence')),node('pre',item.revision.evidence));
    if(item.validity_evidence&&item.validity_evidence!==item.revision?.evidence)content.append(node('h3',()=>tr('preference_revision_evidence')),node('pre',item.validity_evidence));
    if(item.user_corrected)content.append(node('p',()=>tr('preference_user_corrected')));
+   if(item.proposed_revision?.intent)content.append(node('h3',()=>tr('correction_project_candidate')),node('pre',item.proposed_revision.intent));
    if(item.scheduled)content.append(node('p',()=>tr('preference_scheduled')));
    if(item.validity_conflict)content.append(node('p',()=>tr('preference_validity_conflict')));
+   if(window.selfosCorrections)window.selfosCorrections.mount(content,detailCache,async()=>{el('kb-detail').close();await load();el('kb-heading').focus();});
    if(item.category==='projects'&&window.openProjectTimeline){const timeline=node('button',()=>window.selfosI18n.t('timeline.open'),'pt-entry-button');timeline.type='button';timeline.dataset.projectTimeline='';timeline.onclick=()=>{el('kb-detail').close();window.openProjectTimeline(item.id);};content.append(timeline);}
    for(const field of ['decisions','blockers','next_steps'])if(item[field]?.length){const list=node('ul');item[field].forEach(value=>list.append(node('li',value)));content.append(node('h3',()=>tr(field)),list);}
    if(item.evidence)content.append(node('h3',()=>tr(item.user_corrected?'correction_original_quote':'quote')),node('pre',item.evidence));
