@@ -1,0 +1,548 @@
+{
+  "cards": {
+    "demo-career": {
+      "project_id": "demo-career",
+      "title": "让职业成长更有方向",
+      "intent": "把零散的工作积累成作品集，记录做过的决定、实际结果与学到的经验。",
+      "domain": "work",
+      "status": "in_progress",
+      "verified": false,
+      "decisions": [
+        "每周整理一个项目案例。"
+      ],
+      "next_steps": [
+        "写清最近一次技术选择背后的思考。"
+      ],
+      "blockers": [],
+      "source_ids": [
+        "43112076b720d4e6dbbe3973d464ea5cecd01622a546cfaca9c121c40b24d7b6"
+      ],
+      "updated_at": "2026-11-12T08:00:00Z"
+    },
+    "demo-health": {
+      "project_id": "demo-health",
+      "title": "建立可持续的健康节奏",
+      "intent": "围绕每周三次运动、规律睡眠与充分恢复，建立忙碌时也能坚持的习惯。",
+      "domain": "health",
+      "status": "in_progress",
+      "verified": false,
+      "decisions": [
+        "把计划缩小到忙碌时也做得到。"
+      ],
+      "next_steps": [
+        "先回顾精力和睡眠，再考虑增加训练量。"
+      ],
+      "blockers": [],
+      "source_ids": [
+        "bef2dbcfd8db19b433c352b1ce5b780d6734de4993dab86012969bfc2a84e5ee"
+      ],
+      "updated_at": "2026-11-12T08:01:00Z"
+    },
+    "demo-learning": {
+      "project_id": "demo-learning",
+      "title": "通过做出东西来学习",
+      "intent": "把 AI 阅读、动手实验与知识笔记连接起来，让学习留下可复用的成果。",
+      "domain": "learning",
+      "status": "in_progress",
+      "verified": false,
+      "decisions": [
+        "完成一个有用的小实验，比同时开十门课程更重要。"
+      ],
+      "next_steps": [
+        "做一个小原型，记录它如何改变了自己的理解。"
+      ],
+      "blockers": [],
+      "source_ids": [
+        "48d586f4f9c2d9e26258bb9ab0525fd8136a7837ba6edf6290838c5bbda54fca"
+      ],
+      "updated_at": "2026-11-12T08:02:00Z"
+    },
+    "demo-relationships": {
+      "project_id": "demo-relationships",
+      "title": "给重要的关系留出时间",
+      "intent": "每周为家人与朋友留出一段不被打扰的时间，少一点分心，多一点交流。",
+      "domain": "life",
+      "status": "in_progress",
+      "verified": false,
+      "decisions": [
+        "先理解对方，再尝试解决问题。"
+      ],
+      "next_steps": [
+        "这周安排一次不赶时间的交流。"
+      ],
+      "blockers": [],
+      "source_ids": [
+        "62840963585448f2d2b8c6e16bdd57525fa5e8c90c5c84b110a9a6adc09b0c8f"
+      ],
+      "updated_at": "2026-11-12T08:03:00Z"
+    },
+    "demo-knowledge": {
+      "project_id": "demo-knowledge",
+      "title": "让个人知识库持续生长",
+      "intent": "把日常 AI 对话中的有用信息整理到同一个地方，保留来处，形成自己的积累。",
+      "domain": "personal",
+      "status": "in_progress",
+      "verified": false,
+      "decisions": [
+        "把长期认知与临时请求分开。"
+      ],
+      "next_steps": [
+        "回顾新知识，让下一步行动保持清晰。"
+      ],
+      "blockers": [],
+      "source_ids": [
+        "cc97ac8a6d63718c92ba114829882c80956e059f71731ed653a02ed6774f8748"
+      ],
+      "updated_at": "2026-11-12T08:04:00Z"
+    }
+  },
+  "sources": {
+    "43112076b720d4e6dbbe3973d464ea5cecd01622a546cfaca9c121c40b24d7b6": {
+      "id": "43112076b720d4e6dbbe3973d464ea5cecd01622a546cfaca9c121c40b24d7b6",
+      "role": "user",
+      "text": "让职业成长更有方向\n把零散的工作积累成作品集，记录做过的决定、实际结果与学到的经验。\n每周整理一个项目案例。\n写清最近一次技术选择背后的思考。",
+      "source": "codex",
+      "path": "synthetic-career.jsonl",
+      "timestamp": "2026-11-12T08:00:00Z",
+      "project_id": "demo-career",
+      "project": "career",
+      "session_id": "demo-career"
+    },
+    "bef2dbcfd8db19b433c352b1ce5b780d6734de4993dab86012969bfc2a84e5ee": {
+      "id": "bef2dbcfd8db19b433c352b1ce5b780d6734de4993dab86012969bfc2a84e5ee",
+      "role": "user",
+      "text": "建立可持续的健康节奏\n围绕每周三次运动、规律睡眠与充分恢复，建立忙碌时也能坚持的习惯。\n把计划缩小到忙碌时也做得到。\n先回顾精力和睡眠，再考虑增加训练量。",
+      "source": "claude",
+      "path": "synthetic-health.jsonl",
+      "timestamp": "2026-11-12T08:01:00Z",
+      "project_id": "demo-health",
+      "project": "health",
+      "session_id": "demo-health"
+    },
+    "48d586f4f9c2d9e26258bb9ab0525fd8136a7837ba6edf6290838c5bbda54fca": {
+      "id": "48d586f4f9c2d9e26258bb9ab0525fd8136a7837ba6edf6290838c5bbda54fca",
+      "role": "user",
+      "text": "通过做出东西来学习\n把 AI 阅读、动手实验与知识笔记连接起来，让学习留下可复用的成果。\n完成一个有用的小实验，比同时开十门课程更重要。\n做一个小原型，记录它如何改变了自己的理解。",
+      "source": "codex",
+      "path": "synthetic-learning.jsonl",
+      "timestamp": "2026-11-12T08:02:00Z",
+      "project_id": "demo-learning",
+      "project": "learning",
+      "session_id": "demo-learning"
+    },
+    "62840963585448f2d2b8c6e16bdd57525fa5e8c90c5c84b110a9a6adc09b0c8f": {
+      "id": "62840963585448f2d2b8c6e16bdd57525fa5e8c90c5c84b110a9a6adc09b0c8f",
+      "role": "user",
+      "text": "给重要的关系留出时间\n每周为家人与朋友留出一段不被打扰的时间，少一点分心，多一点交流。\n先理解对方，再尝试解决问题。\n这周安排一次不赶时间的交流。",
+      "source": "claude",
+      "path": "synthetic-relationships.jsonl",
+      "timestamp": "2026-11-12T08:03:00Z",
+      "project_id": "demo-relationships",
+      "project": "relationships",
+      "session_id": "demo-relationships"
+    },
+    "cc97ac8a6d63718c92ba114829882c80956e059f71731ed653a02ed6774f8748": {
+      "id": "cc97ac8a6d63718c92ba114829882c80956e059f71731ed653a02ed6774f8748",
+      "role": "user",
+      "text": "让个人知识库持续生长\n把日常 AI 对话中的有用信息整理到同一个地方，保留来处，形成自己的积累。\n把长期认知与临时请求分开。\n回顾新知识，让下一步行动保持清晰。",
+      "source": "codex",
+      "path": "synthetic-knowledge.jsonl",
+      "timestamp": "2026-11-12T08:04:00Z",
+      "project_id": "demo-knowledge",
+      "project": "knowledge",
+      "session_id": "demo-knowledge"
+    },
+    "b479db5da8034c6318be430a5cfb03a5184aadf4bc663412de0d369ce65dd443": {
+      "id": "b479db5da8034c6318be430a5cfb03a5184aadf4bc663412de0d369ce65dd443",
+      "role": "user",
+      "text": "我是一名产品工程师，喜欢把想法做成有用的工具。",
+      "source": "claude",
+      "path": "synthetic-career.jsonl",
+      "timestamp": "2026-11-12T08:05:00Z",
+      "project_id": "demo-career",
+      "project": "career",
+      "session_id": "demo-career"
+    },
+    "bf27a107f29571ba2b7ee5918336c61ef7ac4fa2b1459572fc6456a87c2dd3d5": {
+      "id": "bf27a107f29571ba2b7ee5918336c61ef7ac4fa2b1459572fc6456a87c2dd3d5",
+      "role": "user",
+      "text": "我正在学习 AI 系统如何帮助日常工作与个人复盘。",
+      "source": "codex",
+      "path": "synthetic-learning.jsonl",
+      "timestamp": "2026-11-12T08:06:00Z",
+      "project_id": "demo-learning",
+      "project": "learning",
+      "session_id": "demo-learning"
+    },
+    "b3491c9fc83eecd620cb53e71bde65abc0e6195870a8ca04bd9eae9f2a281c66": {
+      "id": "b3491c9fc83eecd620cb53e71bde65abc0e6195870a8ca04bd9eae9f2a281c66",
+      "role": "user",
+      "text": "跑步和力量训练是我日常生活的一部分。",
+      "source": "claude",
+      "path": "synthetic-health.jsonl",
+      "timestamp": "2026-11-12T08:07:00Z",
+      "project_id": "demo-health",
+      "project": "health",
+      "session_id": "demo-health"
+    },
+    "71ddc5475b7e66b96c4aa86a4b0f6e59cdaf20258268691d41032417195a2bd6": {
+      "id": "71ddc5475b7e66b96c4aa86a4b0f6e59cdaf20258268691d41032417195a2bd6",
+      "role": "user",
+      "text": "在工作沟通中，我偏好简洁的说明，以及清楚的下一步行动。",
+      "source": "codex",
+      "path": "synthetic-career.jsonl",
+      "timestamp": "2026-11-12T08:08:00Z",
+      "project_id": "demo-career",
+      "project": "career",
+      "session_id": "demo-career"
+    },
+    "160216eb569429e32db5532123fb22b011d9319e064bcc09f96c922b113b9796": {
+      "id": "160216eb569429e32db5532123fb22b011d9319e064bcc09f96c922b113b9796",
+      "role": "user",
+      "text": "我偏好通过做小项目来学习，而不是只收藏课程。",
+      "source": "claude",
+      "path": "synthetic-learning.jsonl",
+      "timestamp": "2026-11-12T08:09:00Z",
+      "project_id": "demo-learning",
+      "project": "learning",
+      "session_id": "demo-learning"
+    },
+    "fd668601188ec540fe4439f5299b2255d170591da2efbb0c07bfca7d8f7b92be": {
+      "id": "fd668601188ec540fe4439f5299b2255d170591da2efbb0c07bfca7d8f7b92be",
+      "role": "user",
+      "text": "运动计划上，我更重视可以持续的节奏，而不是短期追求极高强度。",
+      "source": "codex",
+      "path": "synthetic-health.jsonl",
+      "timestamp": "2026-11-12T08:10:00Z",
+      "project_id": "demo-health",
+      "project": "health",
+      "session_id": "demo-health"
+    },
+    "8489134cd8a4c4734a164f9f3660a2c75664d366aeff714c90f9f82fc35ebe4c": {
+      "id": "8489134cd8a4c4734a164f9f3660a2c75664d366aeff714c90f9f82fc35ebe4c",
+      "role": "user",
+      "text": "我喜欢每周安静地复盘一次，把日常选择与长期目标连接起来。",
+      "source": "claude",
+      "path": "synthetic-knowledge.jsonl",
+      "timestamp": "2026-11-12T08:11:00Z",
+      "project_id": "demo-knowledge",
+      "project": "knowledge",
+      "session_id": "demo-knowledge"
+    },
+    "dbfeec9356d65727a19c8491e61603748b27d7b49195fefe82b4a324a6ec9e84": {
+      "id": "dbfeec9356d65727a19c8491e61603748b27d7b49195fefe82b4a324a6ec9e84",
+      "role": "user",
+      "text": "当一个习惯的最小版本在忙碌时也能完成，它就更容易持续。",
+      "source": "codex",
+      "path": "synthetic-health.jsonl",
+      "timestamp": "2026-11-12T08:12:00Z",
+      "project_id": "demo-health",
+      "project": "health",
+      "session_id": "demo-health"
+    },
+    "73cad133ee81f29f85a1791e8d50093bfdce0fbf47ec186729e13ac2d73d1941": {
+      "id": "73cad133ee81f29f85a1791e8d50093bfdce0fbf47ec186729e13ac2d73d1941",
+      "role": "user",
+      "text": "调整计划之前，先分清已经观察到的结果与还没有验证的解释。",
+      "source": "claude",
+      "path": "synthetic-career.jsonl",
+      "timestamp": "2026-11-12T08:13:00Z",
+      "project_id": "demo-career",
+      "project": "career",
+      "session_id": "demo-career"
+    },
+    "0a7a97c76b1951c3a2f1d602e21bb572bb31488588238f973a530cce7c1bb051": {
+      "id": "0a7a97c76b1951c3a2f1d602e21bb572bb31488588238f973a530cce7c1bb051",
+      "role": "user",
+      "text": "可复用的笔记应说明一个选择为什么有效，以及什么时候可以再次使用。",
+      "source": "codex",
+      "path": "synthetic-learning.jsonl",
+      "timestamp": "2026-11-12T08:14:00Z",
+      "project_id": "demo-learning",
+      "project": "learning",
+      "session_id": "demo-learning"
+    },
+    "25f42528b01cd06ef76be41bc426666be11e972b8db251cc7463f81fd9c8ce31": {
+      "id": "25f42528b01cd06ef76be41bc426666be11e972b8db251cc7463f81fd9c8ce31",
+      "role": "user",
+      "text": "在困难的交流里，先理解对方需要什么，再给出解决方案。",
+      "source": "claude",
+      "path": "synthetic-relationships.jsonl",
+      "timestamp": "2026-11-12T08:15:00Z",
+      "project_id": "demo-relationships",
+      "project": "relationships",
+      "session_id": "demo-relationships"
+    },
+    "cceb80a94fd9ba7196d444dc3572e21952fa89fbc958dad2d6570dd74cbd65a0": {
+      "id": "cceb80a94fd9ba7196d444dc3572e21952fa89fbc958dad2d6570dd74cbd65a0",
+      "role": "user",
+      "text": "每周复盘的价值，在于最后形成少量清晰、可以执行的下一步行动。",
+      "source": "codex",
+      "path": "synthetic-knowledge.jsonl",
+      "timestamp": "2026-11-12T08:16:00Z",
+      "project_id": "demo-knowledge",
+      "project": "knowledge",
+      "session_id": "demo-knowledge"
+    },
+    "1e9777097a6737b389d04e43dc0713e16379d4d5e7477c4949d83021c55438aa": {
+      "id": "1e9777097a6737b389d04e43dc0713e16379d4d5e7477c4949d83021c55438aa",
+      "role": "user",
+      "text": "从每天训练改为每周三次，为恢复留出空间。",
+      "source": "claude",
+      "path": "synthetic-health.jsonl",
+      "timestamp": "2026-11-12T08:17:00Z",
+      "project_id": "demo-health",
+      "project": "health",
+      "session_id": "demo-health"
+    },
+    "acefbc0c58cb2343919427de325cad93309dcf62e09a2932792ade2aec197487": {
+      "id": "acefbc0c58cb2343919427de325cad93309dcf62e09a2932792ade2aec197487",
+      "role": "user",
+      "text": "完成了一个 AI 辅助的小原型，并记录了设计中的取舍。",
+      "source": "codex",
+      "path": "synthetic-learning.jsonl",
+      "timestamp": "2026-11-12T08:18:00Z",
+      "project_id": "demo-learning",
+      "project": "learning",
+      "session_id": "demo-learning"
+    },
+    "ea6713433be440651ae313fde99bc3798a93542c160aa7c8de687f227517954a": {
+      "id": "ea6713433be440651ae313fde99bc3798a93542c160aa7c8de687f227517954a",
+      "role": "user",
+      "text": "每周留出一个晚上，与家人或朋友进行一次不赶时间的交流。",
+      "source": "claude",
+      "path": "synthetic-relationships.jsonl",
+      "timestamp": "2026-11-12T08:19:00Z",
+      "project_id": "demo-relationships",
+      "project": "relationships",
+      "session_id": "demo-relationships"
+    },
+    "c2f54c84e2873e9c60f1cd71043eca6cf4b786ae62dc309f4ec12eb587f647d4": {
+      "id": "c2f54c84e2873e9c60f1cd71043eca6cf4b786ae62dc309f4ec12eb587f647d4",
+      "role": "user",
+      "text": "从散落的聊天记录，转向分类整理并保留来源的个人笔记。",
+      "source": "codex",
+      "path": "synthetic-knowledge.jsonl",
+      "timestamp": "2026-11-12T08:20:00Z",
+      "project_id": "demo-knowledge",
+      "project": "knowledge",
+      "session_id": "demo-knowledge"
+    }
+  },
+  "lessons": [
+    {
+      "key": "lesson.small",
+      "value": "让下一步小到可以开始",
+      "text": "当一个习惯的最小版本在忙碌时也能完成，它就更容易持续。",
+      "domain": "health",
+      "kind": "inference",
+      "temporal": "current",
+      "source_ids": [
+        "dbfeec9356d65727a19c8491e61603748b27d7b49195fefe82b4a324a6ec9e84"
+      ],
+      "evidence": "当一个习惯的最小版本在忙碌时也能完成，它就更容易持续。",
+      "observed_at": "2026-11-12T08:12:00Z"
+    },
+    {
+      "key": "lesson.evidence",
+      "value": "把事实与假设分开",
+      "text": "调整计划之前，先分清已经观察到的结果与还没有验证的解释。",
+      "domain": "work",
+      "kind": "inference",
+      "temporal": "current",
+      "source_ids": [
+        "73cad133ee81f29f85a1791e8d50093bfdce0fbf47ec186729e13ac2d73d1941"
+      ],
+      "evidence": "调整计划之前，先分清已经观察到的结果与还没有验证的解释。",
+      "observed_at": "2026-11-12T08:13:00Z"
+    },
+    {
+      "key": "lesson.reuse",
+      "value": "记录推理，而不只是答案",
+      "text": "可复用的笔记应说明一个选择为什么有效，以及什么时候可以再次使用。",
+      "domain": "learning",
+      "kind": "inference",
+      "temporal": "current",
+      "source_ids": [
+        "0a7a97c76b1951c3a2f1d602e21bb572bb31488588238f973a530cce7c1bb051"
+      ],
+      "evidence": "可复用的笔记应说明一个选择为什么有效，以及什么时候可以再次使用。",
+      "observed_at": "2026-11-12T08:14:00Z"
+    },
+    {
+      "key": "lesson.listen",
+      "value": "先理解，再给出建议",
+      "text": "在困难的交流里，先理解对方需要什么，再给出解决方案。",
+      "domain": "life",
+      "kind": "inference",
+      "temporal": "current",
+      "source_ids": [
+        "25f42528b01cd06ef76be41bc426666be11e972b8db251cc7463f81fd9c8ce31"
+      ],
+      "evidence": "在困难的交流里，先理解对方需要什么，再给出解决方案。",
+      "observed_at": "2026-11-12T08:15:00Z"
+    },
+    {
+      "key": "lesson.review",
+      "value": "复盘让信息变成方向",
+      "text": "每周复盘的价值，在于最后形成少量清晰、可以执行的下一步行动。",
+      "domain": "personal",
+      "kind": "inference",
+      "temporal": "current",
+      "source_ids": [
+        "cceb80a94fd9ba7196d444dc3572e21952fa89fbc958dad2d6570dd74cbd65a0"
+      ],
+      "evidence": "每周复盘的价值，在于最后形成少量清晰、可以执行的下一步行动。",
+      "observed_at": "2026-11-12T08:16:00Z"
+    }
+  ],
+  "personal_facts": [
+    {
+      "key": "work.role",
+      "value": "产品工程师",
+      "text": "我是一名产品工程师，喜欢把想法做成有用的工具。",
+      "domain": "work",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "b479db5da8034c6318be430a5cfb03a5184aadf4bc663412de0d369ce65dd443"
+      ],
+      "evidence": "我是一名产品工程师，喜欢把想法做成有用的工具。",
+      "observed_at": "2026-11-12T08:05:00Z"
+    },
+    {
+      "key": "learning.interest",
+      "value": "持续学习 AI 系统",
+      "text": "我正在学习 AI 系统如何帮助日常工作与个人复盘。",
+      "domain": "learning",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "bf27a107f29571ba2b7ee5918336c61ef7ac4fa2b1459572fc6456a87c2dd3d5"
+      ],
+      "evidence": "我正在学习 AI 系统如何帮助日常工作与个人复盘。",
+      "observed_at": "2026-11-12T08:06:00Z"
+    },
+    {
+      "key": "life.activity",
+      "value": "跑步与力量训练",
+      "text": "跑步和力量训练是我日常生活的一部分。",
+      "domain": "health",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "b3491c9fc83eecd620cb53e71bde65abc0e6195870a8ca04bd9eae9f2a281c66"
+      ],
+      "evidence": "跑步和力量训练是我日常生活的一部分。",
+      "observed_at": "2026-11-12T08:07:00Z"
+    }
+  ],
+  "preferences": [
+    {
+      "key": "communication.work",
+      "value": "简洁、可行动的工作沟通",
+      "text": "在工作沟通中，我偏好简洁的说明，以及清楚的下一步行动。",
+      "domain": "work",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "71ddc5475b7e66b96c4aa86a4b0f6e59cdaf20258268691d41032417195a2bd6"
+      ],
+      "evidence": "在工作沟通中，我偏好简洁的说明，以及清楚的下一步行动。",
+      "observed_at": "2026-11-12T08:08:00Z"
+    },
+    {
+      "key": "learning.method",
+      "value": "用小项目推动学习",
+      "text": "我偏好通过做小项目来学习，而不是只收藏课程。",
+      "domain": "learning",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "160216eb569429e32db5532123fb22b011d9319e064bcc09f96c922b113b9796"
+      ],
+      "evidence": "我偏好通过做小项目来学习，而不是只收藏课程。",
+      "observed_at": "2026-11-12T08:09:00Z"
+    },
+    {
+      "key": "health.routine",
+      "value": "持续性优先于强度",
+      "text": "运动计划上，我更重视可以持续的节奏，而不是短期追求极高强度。",
+      "domain": "health",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "fd668601188ec540fe4439f5299b2255d170591da2efbb0c07bfca7d8f7b92be"
+      ],
+      "evidence": "运动计划上，我更重视可以持续的节奏，而不是短期追求极高强度。",
+      "observed_at": "2026-11-12T08:10:00Z"
+    },
+    {
+      "key": "life.review",
+      "value": "每周安静地复盘一次",
+      "text": "我喜欢每周安静地复盘一次，把日常选择与长期目标连接起来。",
+      "domain": "personal",
+      "kind": "user_fact",
+      "temporal": "current",
+      "source_ids": [
+        "8489134cd8a4c4734a164f9f3660a2c75664d366aeff714c90f9f82fc35ebe4c"
+      ],
+      "evidence": "我喜欢每周安静地复盘一次，把日常选择与长期目标连接起来。",
+      "observed_at": "2026-11-12T08:11:00Z"
+    }
+  ],
+  "history": [
+    {
+      "key": "history.training",
+      "value": "调整了运动计划",
+      "text": "从每天训练改为每周三次，为恢复留出空间。",
+      "domain": "health",
+      "kind": "user_fact",
+      "temporal": "historical",
+      "source_ids": [
+        "1e9777097a6737b389d04e43dc0713e16379d4d5e7477c4949d83021c55438aa"
+      ],
+      "evidence": "从每天训练改为每周三次，为恢复留出空间。",
+      "observed_at": "2026-11-12T08:17:00Z"
+    },
+    {
+      "key": "history.learning",
+      "value": "完成了第一个小原型",
+      "text": "完成了一个 AI 辅助的小原型，并记录了设计中的取舍。",
+      "domain": "learning",
+      "kind": "user_fact",
+      "temporal": "historical",
+      "source_ids": [
+        "acefbc0c58cb2343919427de325cad93309dcf62e09a2932792ade2aec197487"
+      ],
+      "evidence": "完成了一个 AI 辅助的小原型，并记录了设计中的取舍。",
+      "observed_at": "2026-11-12T08:18:00Z"
+    },
+    {
+      "key": "history.connection",
+      "value": "开始每周的交流习惯",
+      "text": "每周留出一个晚上，与家人或朋友进行一次不赶时间的交流。",
+      "domain": "life",
+      "kind": "user_fact",
+      "temporal": "historical",
+      "source_ids": [
+        "ea6713433be440651ae313fde99bc3798a93542c160aa7c8de687f227517954a"
+      ],
+      "evidence": "每周留出一个晚上，与家人或朋友进行一次不赶时间的交流。",
+      "observed_at": "2026-11-12T08:19:00Z"
+    },
+    {
+      "key": "history.knowledge",
+      "value": "开始积累自己的知识库",
+      "text": "从散落的聊天记录，转向分类整理并保留来源的个人笔记。",
+      "domain": "personal",
+      "kind": "user_fact",
+      "temporal": "historical",
+      "source_ids": [
+        "c2f54c84e2873e9c60f1cd71043eca6cf4b786ae62dc309f4ec12eb587f647d4"
+      ],
+      "evidence": "从散落的聊天记录，转向分类整理并保留来源的个人笔记。",
+      "observed_at": "2026-11-12T08:20:00Z"
+    }
+  ]
+}
