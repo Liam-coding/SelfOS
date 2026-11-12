@@ -7,6 +7,8 @@ from selfos.sources.text import redact
 from selfos.knowledge.identity import digest
 from selfos.sources.conversations import extract_conversations
 from selfos.sources.conversations import local_roots
+from selfos.knowledge.search import search_terms, date_bound, match_fields
+from selfos.sources.documents import SourceUnavailable, document_source, source_page
 
 CATEGORIES=('projects','lessons','personal_facts','preferences','history')
 
@@ -50,7 +52,8 @@ def _sources(state,ids):
     for identity in dict.fromkeys(ids):
         source=state.get('sources',{}).get(identity)
         if not isinstance(source,dict):continue
-        result.append({'id':identity,'file':Path(source.get('path','')).name,
+        filename=source.get('original_filename') if source.get('source')=='uploaded_file' else source.get('path','')
+        result.append({'id':identity,'file':redact(str(filename or '').replace('\\','/').split('/')[-1]),
             **{key:redact(str(source.get(key,''))) for key in ('source','timestamp','role','provenance','session_id')}})
     return result
 
@@ -64,6 +67,9 @@ def _record_identity(category, record):
 def _records(state):
     rows=[]
     metadata={}
+    aliases=state.get('project_aliases',{})
+    def project_identity(identity):
+        return aliases.get(identity,identity) if isinstance(identity,str) and isinstance(aliases,dict) else identity
     def sources_for(ids):
         missing=[identity for identity in ids if identity not in metadata]
         for source in _sources(state,missing):metadata[source['id']]=source
@@ -72,11 +78,23 @@ def _records(state):
         if not isinstance(record,dict):return
         ids=record.get('source_ids',[])
         sources=sources_for(ids)
+        direct_project = project_identity(record.get('project_id'))
+        project_ids = [direct_project]
+        project_ids.extend(project_identity(metadata.get('project_id')) for identity in ids
+                           if isinstance(metadata:=state.get('sources',{}).get(identity),dict))
+        contexts = []
+        for project_id in dict.fromkeys(identity for identity in project_ids if isinstance(identity, str) and identity):
+            token = digest(['project_context', project_id])
+            card = state.get('cards', {}).get(project_id, {})
+            known_title = card.get('title') or (record.get('project_title') if project_id==direct_project else None)
+            title = known_title or ('Project ' + token[:8])
+            contexts.append({'id': token, 'title': redact(str(title)),
+                             'title_known': bool(known_title)})
         date=record.get('updated_at') or record.get('observed_at') or max((s['timestamp'] for s in sources),default='')
         if record.get('source_scope')=='project_context':date=''
         text=record.get('intent','') if category=='projects' else record.get('text','')
         title=record.get('title','') if category=='projects' else record.get('project_title') or record.get('value') or text[:80]
-        row={'id':_record_identity(category,record),
+        row={'id':digest([category,record.get('project_id'),record.get('key'),record.get('value'),text,ids,record.get('domain')]),
             'category':category,'title':redact(str(title)),'summary':redact(str(text)),
             'date':date,'domain':record.get('domain','work' if category=='projects' else ''),
             'kind':record.get('kind','inference'),'status':record.get('status',''),
@@ -84,7 +102,9 @@ def _records(state):
             'original_category':record.get('original_category',''),
             'support_review':'summary_model_review' if record.get('support_review')=='summary_model_review' else '',
             'conflict':bool(record.get('conflict')),'verified':bool(record.get('verified')),
-            'source_count':len(sources)}
+            'source_count':len(sources), 'missing_source_count':len(set(ids) - {source['id'] for source in sources}),
+            'project_contexts':contexts,
+            'source_types':sorted({source['source'] for source in sources if source['source']})}
         details={**row,'evidence':redact(str(record.get('evidence',''))),
             'source_scope':record.get('source_scope','record'),
             'original_category':record.get('original_category',''),
@@ -97,18 +117,50 @@ def _records(state):
     for category in CATEGORIES[1:-1]:
         for record in state.get(category,[]):add(category,record)
     for record in _history(state):add('history',record)
-    return sorted(rows,key=lambda row:row[0]['date'],reverse=True)
+    ordered=sorted(rows,key=lambda row:(row[0]['date'],row[0]['id']),reverse=True)
+    known_contexts={}
+    for row,_,_,_ in ordered:
+        for context in row['project_contexts']:
+            if context['title_known'] and context['id'] not in known_contexts:
+                known_contexts[context['id']]=dict(context)
+    for row,_,_,_ in ordered:
+        for context in row['project_contexts']:
+            if context['id'] in known_contexts:context.update(known_contexts[context['id']])
+    return ordered
 
 
-def list_knowledge(vault,category='all',query='',offset=0,limit=50):
+def list_knowledge(vault,category='all',query='',offset=0,limit=50, *, project='', source='', date_from='', date_to=''):
     if not isinstance(category,str) or category not in ('all',*CATEGORIES):raise ValueError('Unknown knowledge category')
-    if not isinstance(query,str) or len(query)>500:raise ValueError('Search query is too long')
+    terms = search_terms(query)
+    if not isinstance(project,str) or len(project)>100:raise ValueError('Invalid project filter')
+    if not isinstance(source,str) or len(source)>80:raise ValueError('Invalid source filter')
+    date_from,date_to = date_bound(date_from),date_bound(date_to)
+    if date_from and date_to and date_from>date_to:raise ValueError('Date range is reversed')
     if isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=200:raise ValueError('Limit must be 1..200')
     if isinstance(offset,bool) or not isinstance(offset,int) or offset<0:raise ValueError('Offset must be non-negative')
-    records,counts=_view(vault);query=query.strip().casefold()
-    rows=[row for row in records if (category=='all' or row[0]['category']==category) and (not query or query in row[3])]
-    return copy.deepcopy({'items':[r[0] for r in rows[offset:offset+limit]],'total':len(rows),
-        'offset':offset,'limit':limit,'counts':counts})
+    records,counts=_view(vault)
+    projects = {context['id']:context for row,_,_,_ in records for context in row['project_contexts']}
+    sources = sorted({kind for row,_,_,_ in records for kind in row['source_types']})
+    rows=[];filtered_counts=dict.fromkeys(CATEGORIES,0)
+    for row,details,_,_ in records:
+        if project and not any(context['id']==project for context in row['project_contexts']):continue
+        if source and source not in row['source_types']:continue
+        if date_from or date_to:
+            try:observed=date_bound(row['date'][:10])
+            except (ValueError,TypeError):continue
+            if not observed or (date_from and observed<date_from) or (date_to and observed>date_to):continue
+        fields={name:' '.join(details[name]) for name in ('decisions','blockers','next_steps')}
+        fields.update(title=row['title'],summary=row['summary'],evidence=details['evidence'],
+                      domain=row['domain'],project_context=' '.join(context['title'] for context in row['project_contexts'] if context['title_known']))
+        match=match_fields(fields,query,terms)
+        if match is None:continue
+        filtered_counts[row['category']]+=1
+        if category=='all' or row['category']==category:rows.append({**row,**match})
+    rows.sort(key=lambda row:(row['search_score'],row['date'],row['id']),reverse=True)
+    return copy.deepcopy({'items':rows[offset:offset+limit],'total':len(rows),
+        'offset':offset,'limit':limit,'counts':counts,'filtered_counts':filtered_counts,
+        'filters':{'projects':sorted(projects.values(),key=lambda context:(context['title'],context['id'])),
+                   'sources':sources}})
 
 
 def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
@@ -122,16 +174,22 @@ def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
     raise KeyError('Knowledge item not found; it may have changed after organizing')
 
 
-def knowledge_source(vault,identity):
+def knowledge_source(vault,identity, *, offset=0,limit=24000):
     state=_state(vault);source=state.get('sources',{}).get(identity)
     if not isinstance(source,dict):raise KeyError('Unknown conversation source')
+    if source.get('source')=='uploaded_file':
+        return {**_sources(state,[identity])[0],**document_source(vault,source,offset,limit)}
     path=Path(source.get('path','')).resolve()
-    if path.suffix.lower()!='.jsonl' or not path.is_file() or not any(path.is_relative_to(Path(root).resolve()) for root in local_roots()):
-        raise ValueError('Conversation source unavailable or outside supported source folders')
+    if path.suffix.lower()!='.jsonl':
+        raise SourceUnavailable('unsupported_source_format','Conversation source format is not supported')
+    if not any(path.is_relative_to(Path(root).resolve()) for root in local_roots()):
+        raise SourceUnavailable('source_denied','Conversation source is outside supported source folders')
+    if not path.is_file():
+        raise SourceUnavailable('source_missing','Conversation source is missing or has moved')
     for message in extract_conversations([path]):
         if message['id']==identity:
-            return {**_sources(state,[identity])[0],'text':message['text']}
-    raise ValueError('Conversation source changed; the original message could not be verified')
+            return {**_sources(state,[identity])[0],**source_page(message['text'],offset,limit)}
+    raise SourceUnavailable('source_changed','Conversation source changed; the original message could not be verified')
 
 
 def knowledge_timeline(vault, identity, category="all", offset=0, limit=50, revision=''):

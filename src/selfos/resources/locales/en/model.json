@@ -1,0 +1,13 @@
+{
+  "defaultModel": "Default model",
+  "proxySource": "Proxy source",
+  "key": "API key",
+  "configured": "Configured",
+  "notConfigured": "Not configured",
+  "namePlaceholder": "e.g. claude-haiku-4-5-20251001 / gpt-4.1-mini",
+  "keyPlaceholder": "Leave blank to keep the saved key",
+  "requestFailed": "Request failed",
+  "testing": "Testing network, authentication and structured output (sends one test request)…",
+  "passed": "Network, authentication and structured output passed",
+  "unavailable": "Start the local server to configure a model"
+}

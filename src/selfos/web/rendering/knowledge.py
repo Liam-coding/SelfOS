@@ -50,6 +50,7 @@ async function knowledgeRequest(url, body) {
   return data;
 }
 function displayKnowledgeStatus(data) {
+  renderImportPublication(data);
   knowledgeOperation = data.last_operation ? data.last_operation.id : null;
   document.getElementById('knowledge-undo').disabled = !knowledgeOperation;
   if(data.needs_rebuild)setKnowledgeStatus('设置已变化，下次整理会自动重建。','Settings changed. The next import will rebuild automatically.');
@@ -95,3 +96,8 @@ async function undoKnowledge() {
 }
 </script>
 '''
+
+from selfos.web.rendering.import_status import HTML as PUBLICATION_HTML, SCRIPT as PUBLICATION_SCRIPT
+CONTROLS = CONTROLS.replace('<dialog id="knowledge-settings"', PUBLICATION_HTML + '\n<dialog id="knowledge-settings"', 1)
+CONTROLS = CONTROLS.replace('<div id="knowledge-domains">', '<p id="import-modal-published" role="status"></p><p id="import-modal-boundary"></p><div id="knowledge-domains">', 1)
+CONTROLS = CONTROLS.replace('let knowledgeOperation = null;', 'let knowledgeOperation = null;\n' + PUBLICATION_SCRIPT, 1)

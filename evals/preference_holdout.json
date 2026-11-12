@@ -1,0 +1,28 @@
+{
+  "scope":"record_validation_retention_and_merge_only",
+  "candidates":[
+    {"id":"explicit-style","text":"I prefer concise explanations in our conversations.","value":"concise","expected":true},
+    {"id":"research-context","text":"For research reviews, I prefer detailed discussion.","value":"detailed","scope":"research","expected":true},
+    {"id":"explicit-language","text":"Please use English for our conversations from now on.","key":"communication.language","value":"English","expected":true},
+    {"id":"accessibility","text":"I prefer captions when watching videos.","key":"media.captions","value":"enabled","expected":true},
+    {"id":"food-choice","text":"I generally prefer vegetarian meals.","key":"food.style","value":"vegetarian","expected":true},
+    {"id":"today-only","text":"Today, answer this question briefly.","value":"concise","expected":false},
+    {"id":"one-off-command","text":"Open a new branch for this change.","key":"work.branches","value":"new branch","expected":false},
+    {"id":"project-constraint","text":"This repository should use Python for its backend.","key":"work.language","value":"Python","expected":false},
+    {"id":"language-use","text":"你好，帮我测试一下。","key":"communication.language","value":"Chinese","expected":false},
+    {"id":"repeated-language","text":"你好，继续测试这个功能。","context":"请再运行一次测试。","context_role":"user","source_ids":["m1","m2"],"key":"communication.language","value":"Chinese","expected":false},
+    {"id":"assistant-advice","text":"You should prefer short explanations.","role":"assistant","value":"concise","expected":false},
+    {"id":"quoted-ai-profile","text":"An AI wrote a fictional profile: I prefer short answers.","provenance":"quoted_dialogue","value":"concise","expected":false},
+    {"id":"past-choice","text":"I used to prefer short explanations.","value":"concise","temporal":"historical","expected":false},
+    {"id":"inferred-choice","text":"I selected the detailed setting twice.","value":"detailed","kind":"inference","expected":false},
+    {"id":"wrong-quote","text":"I prefer concise explanations.","value":"concise","evidence":"I prefer detailed explanations.","expected":false},
+    {"id":"excluded-domain","text":"I prefer captions when watching videos.","key":"media.captions","value":"enabled","domains":["work"],"expected":false}
+  ],
+  "sequences":[
+    {"id":"explicit-revision","records":[{"text":"I prefer concise explanations.","value":"concise","at":"2026-01-01T10:00:00Z"},{"text":"From now on, I prefer detailed explanations.","value":"detailed","at":"2026-02-01T10:00:00Z"}],"expected_current":[["global","detailed"]],"expected_history":["concise"]},
+    {"id":"older-arrives-later","records":[{"text":"I prefer detailed explanations.","value":"detailed","at":"2026-02-01T10:00:00Z"},{"text":"I prefer concise explanations.","value":"concise","at":"2026-01-01T10:00:00Z"}],"expected_current":[["global","detailed"]],"expected_history":["concise"]},
+    {"id":"equivalent-statements","records":[{"text":"I prefer concise explanations.","value":"concise","at":"2026-01-01T10:00:00Z"},{"text":"I like short explanations as my usual style.","value":"concise","at":"2026-02-01T10:00:00Z"}],"expected_current":[["global","concise"]],"expected_support":2},
+    {"id":"independent-scopes","records":[{"text":"For work updates, I prefer concise explanations.","value":"concise","scope":"work","at":"2026-01-01T10:00:00Z"},{"text":"For research reviews, I prefer detailed explanations.","value":"detailed","scope":"research","at":"2026-02-01T10:00:00Z"}],"expected_current":[["work","concise"],["research","detailed"]]},
+    {"id":"tied-contradictions","records":[{"text":"I prefer concise explanations.","value":"concise","at":"2026-01-01T10:00:00Z"},{"text":"I prefer detailed explanations.","value":"detailed","at":"2026-01-01T10:00:00Z"}],"expected_current":[["global","concise"],["global","detailed"]]}
+  ]
+}
