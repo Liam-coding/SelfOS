@@ -13,6 +13,9 @@ DOCUMENT_FIELDS = ('document_id', 'normalization_version', 'text_sha256', 'text_
 
 def source_metadata(message, existing=None):
     """Keep immutable document provenance alongside ordinary source identity."""
+    if message.get('source') == 'opencode':
+        from selfos.sources.opencode_records import opencode_metadata
+        return opencode_metadata(message, existing)
     if existing and existing.get('source')=='uploaded_file':
         if message.get('source') != 'uploaded_file':
             raise ValueError('Uploaded source identity changed')

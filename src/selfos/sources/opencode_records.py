@@ -17,6 +17,9 @@ NAMESPACE = 'selfos-opencode-message-v1'
 MAX_MESSAGE_BYTES = 256 * 1024
 MAX_PARTS = 256
 MAX_LOCATORS = 8
+METADATA_FIELDS = ('id', 'path', 'timestamp', 'role', 'source', 'project_id', 'session_id', 'provenance',
+    'cwd', 'native_project_id', 'native_session_id', 'native_message_id', 'source_locator',
+    'source_locators', 'document_id', 'content_sha256', 'original_filename')
 _ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9._:-]{0,199}')
 _HASH = re.compile(r'[a-f0-9]{64}')
 
@@ -167,6 +170,42 @@ def _check_locator(locator, message):
         raise ValueError('OpenCode locator semantic metadata changed')
     if len({_native_id(identity) for identity in locator['part_ids']}) != len(locator['part_ids']):
         raise ValueError('Duplicate OpenCode locator parts')
+
+
+def opencode_metadata(message, existing=None):
+    """Retain adapter-owned metadata; fresh byte verification remains an IO boundary."""
+    if message.get('source') != 'opencode' or not isinstance(message.get('id'), str) or not _HASH.fullmatch(message['id']):
+        raise ValueError('Invalid OpenCode source metadata')
+    locators = message.get('source_locators')
+    if not isinstance(locators, list) or not 1 <= len(locators) <= MAX_LOCATORS:
+        raise ValueError('Missing OpenCode copy locators')
+    for locator in locators:
+        # A compact piece preserves the original logical ID and text digest;
+        # it must not recompute that identity from its shorter slice.
+        if (not isinstance(locator, dict) or locator.get('source_id') != message['id']
+                or locator.get('profile') != PROFILE or locator.get('version') != 1
+                or locator.get('project_id') != message.get('native_project_id')
+                or locator.get('session_id') != message.get('native_session_id')
+                or locator.get('message_id') != message.get('native_message_id')):
+            raise ValueError('OpenCode locator metadata conflicts with source')
+        origin_keys = ('kind', 'path') if locator.get('kind') == 'database' else (
+            'kind', 'path', 'document_id', 'content_sha256', 'original_filename')
+        _origin({key: locator.get(key) for key in origin_keys})
+        metadata_keys = {'version', 'profile', 'project_id', 'session_id', 'message_id', 'part_ids', 'text_sha256', 'source_id'}
+        if (set(locator) != set(origin_keys) | metadata_keys or not isinstance(locator.get('text_sha256'), str)
+                or not _HASH.fullmatch(locator['text_sha256']) or not isinstance(locator.get('part_ids'), list)
+                or not 1 <= len(locator['part_ids']) <= MAX_PARTS
+                or len({_native_id(value) for value in locator['part_ids']}) != len(locator['part_ids'])):
+            raise ValueError('Invalid OpenCode locator structure')
+    if message.get('source_locator') not in locators:
+        raise ValueError('OpenCode primary locator is not a registered copy')
+    result = {key: copy.deepcopy(message[key]) for key in METADATA_FIELDS if key in message}
+    if existing:
+        semantic = ('id', 'timestamp', 'role', 'source', 'project_id', 'session_id', 'provenance',
+                    'cwd', 'native_project_id', 'native_session_id', 'native_message_id')
+        if any(existing.get(key) != result.get(key) for key in semantic):
+            raise ValueError('OpenCode source identity changed')
+    return result
 
 
 def merge_records(messages, *, diagnostics=None):
