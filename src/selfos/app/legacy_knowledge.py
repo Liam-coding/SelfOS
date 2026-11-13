@@ -98,6 +98,8 @@ def import_knowledge(vault, messages, generate, progress=print, max_attempts=3):
                 source_log[message['id']] = {k: message[k] for k in ('source', 'path', 'timestamp', 'role', 'project')}
             writes[STATE] = json.dumps({'processed': sorted(processed), 'facts': sorted(known)}, ensure_ascii=False, indent=2).encode('utf-8')
             writes[SOURCES] = json.dumps(source_log, ensure_ascii=False, indent=2).encode('utf-8')
+            if enforce:
+                guard_request(vault, expected_privacy, batch)
             _commit(vault, run_id, index, writes)
             count += batch_count
             progress(f'Saved batch {index}/{len(batches)}: {batch_count} facts; backup {run_id}')

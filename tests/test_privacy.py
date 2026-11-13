@@ -136,3 +136,140 @@ def test_legacy_allowed_import_preserves_privacy_settings(tmp_path):
     import_knowledge(vault,messages,lambda *args:[],progress=lambda _:None)
     assert load_sources(vault)==selection
     assert import_knowledge(vault,messages,lambda *args:[],progress=lambda _:None)['batches']==0
+
+
+def migration_fixture():
+    import base64
+    return dict(format='selfos-portable', version=1, files={
+        '.knowledge_pipeline.json': base64.b64encode(json.dumps(dict(cards={}, lessons=[], sources={})).encode()).decode()},
+        settings=dict(provider='openai', model='local', base_url='http://localhost:9999/v1'))
+
+
+def test_migration_model_config_failure_rolls_back_knowledge(tmp_path, monkeypatch):
+    import selfos.app.migration as migration
+    original = migration._atomic_write
+    def write(path, raw):
+        if path.name == '.selfos-model.json':
+            raise OSError('synthetic config failure')
+        return original(path, raw)
+    monkeypatch.setattr(migration, '_atomic_write', write)
+    vault = tmp_path / 'vault'
+    with pytest.raises(OSError):
+        migration.import_package(vault, tmp_path, migration_fixture())
+    assert not (vault / '.knowledge_pipeline.json').exists()
+    assert not (tmp_path / '.selfos-model.json').exists()
+    monkeypatch.setattr(migration, '_atomic_write', original)
+    assert migration.import_package(vault, tmp_path, migration_fixture())['imported'] == 1
+
+
+def test_migration_preserves_existing_model_configuration(tmp_path):
+    from selfos.app.migration import import_package
+    config = tmp_path / '.selfos-model.json'
+    original = b'{"provider":"anthropic","api_key":"synthetic-existing-key"}'
+    config.write_bytes(original)
+    with pytest.raises(ValueError, match='model configuration'):
+        import_package(tmp_path / 'vault', tmp_path, migration_fixture())
+    assert config.read_bytes() == original
+    assert not (tmp_path / 'vault' / '.knowledge_pipeline.json').exists()
+
+
+def test_export_checks_original_size_before_allocating(tmp_path, monkeypatch):
+    import selfos.app.migration as migration
+    vault = tmp_path / 'vault'
+    original = vault / '.knowledge_uploads/originals/large.md'
+    original.parent.mkdir(parents=True)
+    original.write_bytes(b'x' * 32)
+    monkeypatch.setattr(migration, 'MAX_BYTES', 16)
+    read_bytes = Path.read_bytes
+    def bounded_read(path):
+        if path == original:
+            raise AssertionError('allocated an oversized original')
+        return read_bytes(path)
+    monkeypatch.setattr(Path, 'read_bytes', bounded_read)
+    with pytest.raises(ValueError, match='64 MiB'):
+        migration.export_package(vault, tmp_path, include_originals=True)
+
+
+def test_legacy_import_rechecks_privacy_before_commit(tmp_path):
+    from selfos.app.legacy_knowledge import import_knowledge
+    from selfos.sources.selection import save_sources
+    from selfos.knowledge.contracts import STATE
+    root = tmp_path / 'sources'
+    root.mkdir()
+    vault = tmp_path / 'vault'
+    save_sources(vault, dict(roots=[str(root)], exclusions=[]))
+    messages = [dict(id='a', text='public source', path=str(root / 'a.jsonl'),
+        source='codex', role='user', timestamp='2026-01-01', project='public')]
+    def generate(*args):
+        save_sources(vault, dict(roots=[str(root)], exclusions=[str(root)]))
+        return []
+    with pytest.raises(ValueError, match='Privacy rules changed'):
+        import_knowledge(vault, messages, generate, progress=lambda _: None)
+    assert not (vault / STATE).exists()
+
+
+@pytest.mark.parametrize('state', [
+    {'sources': {}, 'cards': []},
+    {'sources': {}, 'cards': {'p': []}},
+    {'sources': {}, 'lessons': ['not a record']},
+    {'sources': {}, 'preferences': {}},
+    {'sources': {}, 'summaries': []},
+    {'sources': {}, 'cards': {'p': {'source_ids': 's1'}}},
+    {'sources': {}, 'summaries': {'s': {'lessons': ['not a record']}}},
+])
+def test_migration_rejects_invalid_consumer_state_without_writes(tmp_path, state):
+    import base64
+    from selfos.app.migration import import_package
+    package = migration_fixture()
+    package['files']['.knowledge_pipeline.json'] = base64.b64encode(json.dumps(state).encode()).decode()
+    with pytest.raises(ValueError):
+        import_package(tmp_path / 'vault', tmp_path, package)
+    assert not (tmp_path / 'vault' / '.knowledge_pipeline.json').exists()
+    assert not (tmp_path / '.selfos-model.json').exists()
+
+
+@pytest.mark.parametrize('ledger', [
+    {'version': 1, 'actions': [{}]},
+    {'version': 1, 'actions': [], 'receipts': {'request': {'fingerprint': 42}}},
+])
+def test_migration_rejects_invalid_correction_ledger_without_writes(tmp_path, ledger):
+    import base64
+    from selfos.app.migration import import_package
+    package = migration_fixture()
+    package['files']['.knowledge_corrections.json'] = base64.b64encode(json.dumps(ledger).encode()).decode()
+    with pytest.raises(ValueError):
+        import_package(tmp_path / 'vault', tmp_path, package)
+    assert not (tmp_path / 'vault' / '.knowledge_pipeline.json').exists()
+
+
+def test_foreign_platform_migration_preserves_roots_and_rebases_private_upload(tmp_path):
+    import base64
+    import os
+    from selfos.app.migration import import_package
+    from selfos.sources.selection import load_sources
+    from selfos.app.privacy import permitted_source
+    origin = '/home/person/vault' if os.name == 'nt' else 'C:/Users/person/vault'
+    harness = '/home/person/harness' if os.name == 'nt' else 'C:/Users/person/harness'
+    original = origin + '/.knowledge_uploads/originals/private.md'
+    selection = dict(version=1, roots=[harness], exclusions=[harness + '/secret'], privacy_exclusions=[original])
+    state = dict(cards={}, lessons=[], sources={
+        'external': dict(path=harness + '/a.jsonl'),
+        'doc': dict(path=original, source='document')})
+    package = migration_fixture()
+    package.update(origin_vault=origin, origin_platform='posix' if os.name == 'nt' else 'nt')
+    package['files'].update({
+        '.knowledge_pipeline.json': base64.b64encode(json.dumps(state).encode()).decode(),
+        '.knowledge_sources.json': base64.b64encode(json.dumps(selection).encode()).decode(),
+        '.knowledge_uploads/originals/private.md': base64.b64encode(b'private original').decode()})
+    vault = tmp_path / 'vault'
+    result = import_package(vault, tmp_path, package)
+    migrated = json.loads((vault / '.knowledge_pipeline.json').read_text())
+    assert migrated['sources']['external']['path'] == harness + '/a.jsonl'
+    assert next(s for s in result['sources'] if s['id'] == 'external')['status'] == 'unresolved'
+    assert migrated['sources']['doc']['path'] == str(vault / '.knowledge_uploads/originals/private.md')
+    assert next(s for s in result['sources'] if s['id'] == 'doc')['status'] == 'resolved'
+    local = load_sources(vault)
+    assert local['roots'] == []
+    assert not permitted_source(migrated['sources']['doc'], local, vault)
+    metadata = json.loads((vault / '.knowledge_migration.json').read_text())
+    assert metadata['unresolved_selection'] == selection
