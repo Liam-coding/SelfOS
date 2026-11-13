@@ -27,11 +27,20 @@ def rendering_hashes(tmp_path, monkeypatch):
     return {key: hashlib.sha256(value.encode('utf-8')).hexdigest() for key, value in outputs.items()}
 
 
-def test_styles_preserve_pre_refactor_bytes_and_ui_messages_use_catalogs(tmp_path, monkeypatch):
-    baseline = json.loads((ROOT / 'tests/fixtures/frontend_rendering_main_baseline.json').read_text(encoding='utf-8'))
-    actual=rendering_hashes(tmp_path,monkeypatch)
-    for name in ('auth_style','library_style','visual_style'):
-        assert actual[name]==baseline['hashes'][name]
+def test_shared_styles_load_from_package_and_ui_messages_use_catalogs(tmp_path, monkeypatch):
+    # The frozen extraction baseline remains historical evidence. #48 intentionally
+    # changes CSS; browser coverage now verifies appearance and accessibility.
+    from selfos.web.rendering import auth, overall
+    from selfos.web.rendering.resources import frontend_text
+    tokens = frontend_text('styles/tokens.css')
+    controls = frontend_text('styles/controls.css')
+    login = auth.login_page()
+    assert tokens in login and controls in login
+    assert controls in overall.STYLE
+    for name in ('auth', 'knowledge-browser', 'visual-system'):
+        component = frontend_text(f'styles/{name}.css')
+        assert ':root' not in component
+        assert 'prefers-reduced-motion' not in component
     import re
     from selfos.web.i18n import catalogs
     messages=catalogs()['locales']['en']['messages']
