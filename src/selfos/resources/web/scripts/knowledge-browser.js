@@ -144,6 +144,7 @@
    updateTabs();updateFilters();
  }
  window.browseKnowledge=key=>{if(categories.includes(key))category=key;clearTimeout(timer);load();el('knowledge-library').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});el('kb-heading').focus();};
+ window.openKnowledgeDetail=id=>openDetail(id);
  el('kb-search-form').addEventListener('submit',event=>{event.preventDefault();clearTimeout(timer);load();});
  el('kb-search').oninput=()=>{generation++;clearTimeout(timer);timer=setTimeout(()=>load(),250);};
  for(const id of ['kb-project','kb-source-filter','kb-date-from','kb-date-to'])el(id).onchange=()=>{clearTimeout(timer);load();};
