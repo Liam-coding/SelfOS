@@ -218,6 +218,9 @@ def test_legacy_import_rechecks_privacy_before_commit(tmp_path):
     {'sources': {}, 'summaries': {'s': {'lessons': ['not a record']}}},
     {'sources': {}, 'lessons': [{'text': 42, 'source_ids': []}]},
     {'sources': {}, 'cards': {'p': {'title': []}}},
+    {'sources': {}, 'lessons': [{'text': 'lesson', 'source_ids': [], 'revision': 42}]},
+    {'sources': {}, 'lessons': [{'text': 'lesson', 'source_ids': [], 'conflict_source_ids': 42}]},
+    {'sources': {}, 'lessons': [{'text': 'lesson', 'source_ids': [], 'observed_at': 42}]},
 ])
 def test_migration_rejects_invalid_consumer_state_without_writes(tmp_path, state):
     import base64
@@ -369,3 +372,27 @@ def test_migration_coordinates_source_rule_writes(tmp_path, monkeypatch):
         migration.import_package(vault, tmp_path, package)
     assert not (vault / '.knowledge_pipeline.json').exists()
     assert not (vault / '.knowledge_sources.json').exists()
+
+
+@pytest.mark.parametrize('concurrent_replacement', [False, True])
+def test_interruption_after_model_link_cleans_only_owned_config(tmp_path, monkeypatch, concurrent_replacement):
+    import selfos.app.migration as migration
+    from selfos.providers.settings import save_config
+    link = migration.os.link
+    def interrupted_link(source, destination):
+        link(source, destination)
+        if concurrent_replacement:
+            save_config(tmp_path, dict(provider='openai', model='replacement',
+                base_url='http://localhost:9999/v1', api_key='synthetic-replacement-key', proxy_mode='direct'))
+        raise KeyboardInterrupt('synthetic interruption after publication')
+    monkeypatch.setattr(migration.os, 'link', interrupted_link)
+    with pytest.raises(KeyboardInterrupt):
+        migration.import_package(tmp_path / 'vault', tmp_path, migration_fixture())
+    assert not (tmp_path / 'vault' / '.knowledge_pipeline.json').exists()
+    config = tmp_path / '.selfos-model.json'
+    if concurrent_replacement:
+        assert json.loads(config.read_text())['api_key'] == 'synthetic-replacement-key'
+    else:
+        assert not config.exists()
+        monkeypatch.setattr(migration.os, 'link', link)
+        assert migration.import_package(tmp_path / 'vault', tmp_path, migration_fixture())['imported'] == 1

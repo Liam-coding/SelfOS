@@ -20,6 +20,14 @@ def _publish_model(path, raw):
             os.link(temporary, path)
         except FileExistsError:
             raise ValueError('Import would replace existing model configuration') from None
+    except BaseException:
+        # Remove our own partial publication, preserving concurrent replacements.
+        try:
+            if os.path.samefile(temporary, path):
+                path.unlink()
+        except OSError:
+            pass
+        raise
     finally:
         try: temporary.unlink(missing_ok=True)
         except OSError: pass
@@ -45,13 +53,17 @@ def _validate_state(state):
     def record(value):
         if not isinstance(value, dict): raise ValueError('Invalid knowledge record')
         for field in ('text', 'value', 'evidence', 'kind', 'domain', 'key', 'title',
-                'intent', 'status', 'updated_at', 'project_id', 'timestamp', 'role', 'source'):
+                'intent', 'status', 'updated_at', 'observed_at', 'project_id', 'timestamp', 'role', 'source'):
             if field in value and not isinstance(value[field], str):
                 raise ValueError('Invalid knowledge text field')
-        for field in ('source_ids', 'supporting_source_ids', 'context_source_ids'):
+        for field in ('source_ids', 'supporting_source_ids', 'context_source_ids',
+                'conflict_source_ids', 'superseded_by_source_ids', 'validity_source_ids'):
             if field in value and (not isinstance(value[field], list) or
                     any(not isinstance(identity, str) for identity in value[field])):
                 raise ValueError('Invalid record sources')
+        for field in ('revision', 'proposed_revision'):
+            if value.get(field) is not None and not isinstance(value[field], dict):
+                raise ValueError('Invalid record revision')
     def records(value):
         if not isinstance(value, list): raise ValueError('Invalid knowledge state list')
         for entry in value: record(entry)
@@ -71,6 +83,13 @@ def _validate_state(state):
         for field in ('lessons', 'personal_facts', 'preferences', 'history'): records(summary.get(field, []))
     for field in ('sources', 'quality_sessions', 'quality_refinements'):
         for entry in state.get(field, {}).values(): record(entry)
+    # Validate the in-memory projection before any imported file is published.
+    from selfos.app.library import _records, knowledge_counts
+    try:
+        _records(state)
+        knowledge_counts(state)
+    except (TypeError, AttributeError, KeyError, IndexError, ValueError):
+        raise ValueError('Invalid knowledge consumer state') from None
 
 
 def export_package(vault, root, *, include_originals=False, include_backups=False):
