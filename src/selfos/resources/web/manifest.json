@@ -47,6 +47,8 @@
     "templates/overview.html",
     "templates/project-timeline.html",
     "templates/settings-model.html",
-    "templates/visual-system.html"
+    "templates/visual-system.html",
+    "templates/privacy.html",
+    "scripts/privacy.js"
   ]
 }

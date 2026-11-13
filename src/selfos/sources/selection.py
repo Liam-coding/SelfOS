@@ -26,10 +26,12 @@ def validate_selection(value, require_available=False):
     exclusions = _paths(value.get("exclusions", []), 100)
     if require_available and any(not Path(root).is_dir() for root in roots):
         raise ValueError("Custom source directories must exist")
-    if any(not any(Path(item).is_relative_to(Path(root)) for root in roots)
-           for item in exclusions):
+    if any(not any(Path(item).is_relative_to(Path(root)) for root in roots) for item in exclusions):
         raise ValueError("Exclusions must be inside selected roots")
-    return {"version": 1, "roots": roots, "exclusions": exclusions}
+    result = {"version": 1, "roots": roots, "exclusions": exclusions}
+    if value.get('privacy_exclusions'):
+        result['privacy_exclusions'] = _paths(value['privacy_exclusions'], 100)
+    return result
 
 
 def load_sources(vault, defaults=None):
@@ -56,7 +58,7 @@ def discover_sources(defaults=None):
 def allowed_source(path, selection):
     resolved = Path(path).resolve()
     return (any(resolved.is_relative_to(Path(root)) for root in selection["roots"])
-            and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"]))
+            and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"] + selection.get("privacy_exclusions", [])))
 
 
 def select_files(selection, file_limit=2, entry_limit=2000, max_bytes=8 * 1024 * 1024):

@@ -46,6 +46,17 @@ def import_knowledge(vault, messages, generate, progress=print, max_attempts=3):
     if not isinstance(max_attempts, int) or isinstance(max_attempts, bool) or not 1 <= max_attempts <= 5:
         raise ValueError('max_attempts must be an integer between 1 and 5')
     vault = Path(vault).resolve()
+    from selfos.sources.selection import load_sources
+    from selfos.app.privacy import selection_hash, guard_request, permitted_source, request_scope
+    selection = load_sources(vault)
+    expected_privacy = selection_hash(vault)
+    enforce = (vault / '.knowledge_sources.json').exists()
+    if enforce:
+        messages = [m for m in messages if permitted_source(m,selection,vault)]
+        original_generate = generate
+        def generate(batch, context):
+            with request_scope(vault,expected_privacy,batch):
+                return original_generate(batch, {} if selection['exclusions'] or selection.get('privacy_exclusions') else context)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:12]
     count, changed = 0, set()
     with _locked(vault):

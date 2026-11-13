@@ -9,9 +9,11 @@
   <p style="margin:20px 0"><label><span data-i18n="ui.model.language">Language</span>
     <select id="settings-language" onchange="setSettingsLanguage(this.value)" style="padding:10px;border-radius:8px"></select></label></p>
   <button class="harvest-btn" onclick="document.getElementById('app-settings').close();openModelSettings()" data-i18n="ui.model.model_and_network">Model and network</button>
+  <button type="button" class="harvest-btn" onclick="openPrivacySettings()" data-i18n="privacy.title">Privacy and migration</button>
   <p id="current-model" style="font-size:12px;margin:16px 0" aria-live="polite"></p>
   <button class="harvest-btn" onclick="document.getElementById('app-settings').close()" data-i18n="ui.model.close">Close</button>
 </dialog>
+@@SELFOS_RESOURCE:templates/privacy.html@@
 <dialog id="model-settings" style="background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:24px;width:min(540px,90vw)">
   <h3 data-i18n="ui.model.model_and_network">Model and network</h3>
   <p data-i18n="ui.model.imports_project_refinement_and_chat_share_this_configuration_keys_stay_o">Imports, project refinement and chat share this configuration. Keys stay on the local server. Leave the key blank to keep it.</p>
@@ -31,3 +33,4 @@
   </form>
 </dialog>
 <script>@@SELFOS_RESOURCE:scripts/settings-model.js@@</script>
+<script>@@SELFOS_RESOURCE:scripts/privacy.js@@</script>

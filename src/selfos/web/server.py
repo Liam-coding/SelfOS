@@ -58,7 +58,9 @@ def _get_config() -> tuple[str, str]:
 
 
 def _call_claude(messages, api_key, base_url):
-    return chat.call_model(messages, api_key, base_url, ROOT, _load_vault_context())
+    from selfos.app.privacy import request_scope, selection_hash
+    with request_scope(VAULT, selection_hash(VAULT), []):
+        return chat.call_model(messages, api_key, base_url, ROOT, _load_vault_context())
 
 
 

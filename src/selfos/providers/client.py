@@ -55,6 +55,8 @@ def request_opener(root, budget=None):
             class NoRedirect(HTTPRedirectHandler):
                 def redirect_request(self,*args,**kwargs): return None
             opener=build_opener(ProxyHandler(proxies),NoRedirect())
+            from selfos.app.privacy import check_request_scope
+            check_request_scope()
             if budget is not None:
                 budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())
