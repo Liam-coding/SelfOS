@@ -16,4 +16,6 @@ Import a JSON export through the same panel into a destination without canonical
 
 Imports containing model settings reject an existing destination model configuration instead of erasing its key. Model configuration writes participate in failure rollback together with imported knowledge. Record structures and correction ledgers are validated before writing.
 
+Model settings are published atomically without replacing an existing file, including one created during migration. Filesystems without the required atomic file-link operation fail the import and roll back the imported knowledge. Supported source-rule writes coordinate with publication and migration; rule changes are checked again at the canonical commit boundary.
+
 Windows and POSIX source paths use the export's origin-platform semantics. Foreign source roots and exclusions are preserved as unresolved metadata in `.knowledge_migration.json`; active local roots remain empty until configured on the destination. Included uploaded originals and their privacy exclusions are rebased to the new vault. External harness paths remain unresolved rather than being interpreted as relative paths on the new operating system.

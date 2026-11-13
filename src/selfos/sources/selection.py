@@ -1,9 +1,25 @@
 """Shared local source selection and directory-prefix exclusions."""
 from pathlib import Path
 import os
+from contextlib import contextmanager, ExitStack
 
 from selfos.sources.conversations import local_roots
 from selfos.storage.onboarding import read_metadata, write_metadata
+
+
+@contextmanager
+def policy_lock(vault):
+    """Coordinate supported rule writes with canonical publication."""
+    from selfos.storage.files import _locked
+    vault = Path(vault).resolve()
+    guard = vault / '.knowledge_policy_guard'
+    if not guard.resolve().is_relative_to(vault):
+        raise ValueError('Privacy guard escapes vault')
+    with ExitStack() as stack:
+        try: stack.enter_context(_locked(guard))
+        except RuntimeError:
+            raise ValueError('Privacy rules are being published; retry later') from None
+        yield
 
 
 def _paths(value, limit):
@@ -47,7 +63,8 @@ def load_sources(vault, defaults=None):
 
 def save_sources(vault, value):
     selected = validate_selection(value, require_available=True)
-    write_metadata(vault, ".knowledge_sources.json", selected)
+    with policy_lock(vault):
+        write_metadata(vault, ".knowledge_sources.json", selected)
     return selected
 
 

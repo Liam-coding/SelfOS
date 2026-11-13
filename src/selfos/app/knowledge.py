@@ -183,7 +183,8 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if selection_hash(vault) != privacy_hash: raise ValueError('Privacy rules changed; restart the import')
         journal.update(phase='publishing')
         install_rebuilt(vault, scratch, expected_hash=expected, run_id=operation,
-                        expected_policy_hash=policy_hash(settings), selected_projects=selected_projects)
+                        expected_policy_hash=policy_hash(settings), selected_projects=selected_projects,
+                        expected_privacy_hash=privacy_hash)
         result.update(installed=True, operation_id=operation)
         return result
     except Exception as error:

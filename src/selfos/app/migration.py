@@ -2,12 +2,27 @@
 import base64
 import json
 import os
+import uuid
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from selfos.storage.files import _atomic_write, _locked
 
 MAX_BYTES = 64 * 1024 * 1024
 CANONICAL = {'.knowledge_pipeline.json', '.knowledge_corrections.json', '.knowledge_settings.json', '.knowledge_sources.json', '.knowledge_migration.json'}
 MODEL_FIELDS = ('provider','model','base_url','proxy_mode','proxy_url')
+
+
+def _publish_model(path, raw):
+    """Publish an existing durable file atomically, without replacing a key."""
+    temporary = path.with_name('.selfos-model-migration-' + uuid.uuid4().hex + '.tmp')
+    try:
+        _atomic_write(temporary, raw)
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            raise ValueError('Import would replace existing model configuration') from None
+    finally:
+        try: temporary.unlink(missing_ok=True)
+        except OSError: pass
 
 
 def _name(name):
@@ -29,6 +44,10 @@ def _validate_state(state):
         if not isinstance(state.get(field, {}), dict): raise ValueError('Invalid knowledge state map')
     def record(value):
         if not isinstance(value, dict): raise ValueError('Invalid knowledge record')
+        for field in ('text', 'value', 'evidence', 'kind', 'domain', 'key', 'title',
+                'intent', 'status', 'updated_at', 'project_id', 'timestamp', 'role', 'source'):
+            if field in value and not isinstance(value[field], str):
+                raise ValueError('Invalid knowledge text field')
         for field in ('source_ids', 'supporting_source_ids', 'context_source_ids'):
             if field in value and (not isinstance(value[field], list) or
                     any(not isinstance(identity, str) for identity in value[field])):
@@ -183,7 +202,8 @@ def import_package(vault, root, package):
         raise ValueError('Import would replace existing model configuration')
     if not model_path.resolve().is_relative_to(root):
         raise ValueError('Model configuration path escapes root')
-    with _locked(vault):
+    from selfos.sources.selection import policy_lock
+    with _locked(vault), policy_lock(vault):
         if any((vault/name).exists() for name in CANONICAL | set(decoded)): raise ValueError('Import destination changed')
         if config and (model_path.exists() or model_path.is_symlink()):
             raise ValueError('Import would replace existing model configuration')
@@ -193,8 +213,8 @@ def import_package(vault, root, package):
                 written.append(vault/name)
                 _atomic_write(vault/name,raw)
             if config:
+                _publish_model(model_path,json.dumps({**config,'api_key':''}).encode())
                 written.append(model_path)
-                _atomic_write(model_path,json.dumps({**config,'api_key':''}).encode())
         except BaseException:
             for path in written: path.unlink(missing_ok=True)
             raise

@@ -347,13 +347,19 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
                 'model_calls':model_calls,'history_upgraded':history_upgraded}
 
 
-def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None, selected_projects=None):
+def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None, selected_projects=None,
+                    expected_privacy_hash=None):
     from selfos.storage.files import _locked
     from selfos.storage.settings import load_settings
+    from selfos.sources.selection import policy_lock
     vault, scratch = Path(vault).resolve(), Path(scratch).resolve()
     run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:12]
-    with _locked(vault):
+    with _locked(vault), policy_lock(vault):
         recover(vault)
+        if expected_privacy_hash is not None:
+            from selfos.app.privacy import selection_hash
+            if selection_hash(vault) != expected_privacy_hash:
+                raise ValueError('Privacy rules changed; restart the import')
         state_path = safe_path(vault, ".knowledge_pipeline.json")
         actual_hash = hashlib.sha256(state_path.read_bytes()).hexdigest() if state_path.exists() else 'absent'
         if expected_hash and actual_hash != expected_hash:
@@ -420,6 +426,8 @@ def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_po
             # Rebuild outputs can predate a user action. Project the latest local
             # ledger under this same lock without rewriting generated state.
             writes.update(record_writes(vault,new,corrections=ledger))
+        if expected_privacy_hash is not None and selection_hash(vault) != expected_privacy_hash:
+            raise ValueError('Privacy rules changed; restart the import')
         commit(vault, writes, run_id, 1)
     return run_id
 
