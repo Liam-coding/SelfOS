@@ -1,0 +1,14 @@
+<fieldset id="workload-controls" style="margin:16px 0;padding:16px;border:1px solid var(--line,#ccc);border-radius:12px;min-width:0">
+  <legend data-i18n="workload.title">Workload and request allowance</legend>
+  <p data-i18n="workload.hint">Preview uses saved import settings and a bounded sample. It does not call a model.</p>
+  <p><label><span data-i18n="workload.limit">Maximum requests per import checkpoint</span> <input id="workload-limit" type="number" min="1" max="10000" step="1" required value="100" style="box-sizing:border-box;max-width:100%;width:100px"></label></p>
+  <p data-i18n="workload.limit_hint">Retries and review requests share this allowance. Exhaustion stops safely; increasing it explicitly allows saved work to resume.</p>
+  <p><label><span data-i18n="workload.input_price">Input price (USD per million tokens, optional)</span> <input id="workload-input-price" type="number" min="0" max="100000" step="any" style="box-sizing:border-box;max-width:100%;width:100px"></label></p>
+  <p><label><span data-i18n="workload.output_price">Output price (USD per million tokens, optional)</span> <input id="workload-output-price" type="number" min="0" max="100000" step="any" style="box-sizing:border-box;max-width:100%;width:100px"></label></p>
+  <p data-i18n="workload.price_hint">Prices apply to the current model and endpoint. Missing pricing or provider usage stays unknown; this is a request limit, not a guaranteed spending cap.</p>
+  <button id="workload-preview" type="button" onclick="loadWorkloadPreview()" data-i18n="workload.preview">Preview workload</button>
+  <button id="workload-save" type="button" onclick="saveWorkloadBudget()" data-i18n="workload.save">Save allowance and prices</button>
+  <p id="workload-status" role="status" aria-live="polite"></p>
+  <div id="workload-preview-result" aria-live="polite" style="overflow-wrap:anywhere"></div>
+  <p id="workload-usage" style="overflow-wrap:anywhere"></p>
+</fieldset>

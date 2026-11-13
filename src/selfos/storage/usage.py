@@ -5,10 +5,24 @@ import os
 import re
 import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 from selfos.storage.files import _atomic_write
 from selfos.storage.onboarding import ModelBudgetExceeded
+
+_REQUEST_USAGE = ContextVar('selfos_request_usage', default=None)
+
+def current_request_usage():
+    return _REQUEST_USAGE.get()
+
+@contextmanager
+def request_usage_scope(usage):
+    token = _REQUEST_USAGE.set(usage)
+    try:
+        yield
+    finally:
+        _REQUEST_USAGE.reset(token)
 
 
 def _canonical(path):
@@ -99,14 +113,17 @@ def _usage_lock(path):
 
 
 class RequestUsage:
-    def __init__(self, vault, identity, limit, delegate=None):
+    def __init__(self, vault, identity, limit, delegate=None, model_identity=None):
         if not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{32}', identity):
             raise ValueError('Invalid usage identity')
         if limit is not None and (type(limit) is not int or not 1 <= limit <= 10000):
             raise ValueError('Invalid request allowance')
         if limit is None and delegate is None:
             raise ValueError('An allowance is required')
+        if model_identity is not None and (not isinstance(model_identity, str) or not re.fullmatch('[a-f0-9]{64}', model_identity)):
+            raise ValueError('Invalid model identity')
         self.vault, self.identity, self.limit, self.delegate = vault, identity, limit, delegate
+        self.model_identity = model_identity
         self.path = _path(vault, f'.knowledge_usage/{identity}.json')
 
     def _read(self):
@@ -138,9 +155,22 @@ class RequestUsage:
         with _usage_lock(_path(self.vault, f'.knowledge_usage/{self.identity}.json')):
             value = self._read()
             if value['used'] >= (self.limit if self.limit is not None else 10000):
+                value['quota_rejected'] = True
+                self._write(value)
                 raise ModelBudgetExceeded('Organization request allowance exhausted; saved work is retained. Raise the allowance explicitly to resume.')
             if self.delegate is not None:
-                self.delegate.claim()
+                try:
+                    self.delegate.claim()
+                except ModelBudgetExceeded:
+                    value['quota_rejected'] = True
+                    self._write(value)
+                    raise
+                value['sample_id'] = self.delegate.preview_id
+            value['quota_rejected'] = False
+            if self.model_identity is not None:
+                if value.get('model_identity') not in (None, self.model_identity):
+                    value['mixed_models'] = True
+                value.setdefault('model_identity', self.model_identity)
             value['used'] += 1
             value['attempts'][str(value['used'])] = {'status': 'pending'}
             self._write(value)
@@ -189,8 +219,16 @@ class RequestUsage:
         attempts = list(value['attempts'].values())
         missing = sum(any(field not in attempt for field in ('input_tokens', 'output_tokens')) for attempt in attempts)
         elapsed = value.get('elapsed_seconds', 0) + (max(0, time.time() - value['run_started']) if value.get('run_started') is not None else 0)
-        return {'id': self.identity, 'used': value['used'], 'limit': self.limit,
-            'remaining': max(0, self.limit - value['used']) if self.limit is not None else self.delegate.status()['remaining'],
+        allowance = self.delegate.status() if self.delegate is not None else None
+        if allowance is None and value.get('sample_id'):
+            from selfos.storage.onboarding import SampleBudget
+            allowance = SampleBudget(self.vault, value['sample_id']).status()
+        used = max(value['used'], allowance['used']) if allowance is not None else value['used']
+        missing += used - value['used']
+        return {'id': self.identity, 'used': used, 'limit': allowance['limit'] if allowance is not None else self.limit,
+            'exhausted': bool(value.get('quota_rejected')), 'recorded_attempts': value['used'],
+            'model_identity': value.get('model_identity'), 'mixed_models': bool(value.get('mixed_models')),
+            'remaining': allowance['remaining'] if allowance is not None else max(0, self.limit - value['used']),
             'failed_attempts': sum(attempt['status'] == 'failed' for attempt in attempts),
             'input_tokens': sum(attempt.get('input_tokens', 0) for attempt in attempts),
             'output_tokens': sum(attempt.get('output_tokens', 0) for attempt in attempts),

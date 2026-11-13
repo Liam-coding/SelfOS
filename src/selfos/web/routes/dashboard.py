@@ -11,6 +11,15 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path == '/__knowledge_workload__':
+            with self.runtime.KNOWLEDGE_RUN_LOCK:
+                if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409, {'code':'budget_import_active'})
+            try:
+                from selfos.app.workload import workload_preview
+                return self._send_json(200, workload_preview(self.runtime.VAULT, self.runtime.ROOT))
+            except (ValueError, TypeError, OSError, RuntimeError):
+                return self._send_json(503, {'code':'workload_unavailable'})
         if parsed_path.path == '/__onboarding__':
             try:
                 from selfos.app.onboarding import onboarding_status

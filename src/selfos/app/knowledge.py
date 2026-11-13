@@ -57,6 +57,9 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
     from selfos.app.import_status import RunJournal
     journal = RunJournal(vault, operation, mode, expected, policy_hash(settings))
     journal.update()
+    usage = None
+    usage_used_at_start = 0
+    real_transport = summarize is None and refine is None
     try:
         budget = None
         budget_used_at_start = 0
@@ -94,6 +97,22 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             session['fingerprint'] = hashlib.sha256((session['fingerprint'] + policy_hash(settings)).encode()).hexdigest()
         checkpoint = hashlib.sha256(json.dumps([expected, policy_hash(settings), mode,
             [(s['project_id'],s['session_id'],s['fingerprint']) for s in sessions]],sort_keys=True).encode()).hexdigest()
+        from selfos.app.budget import read_budget, model_identity
+        from selfos.storage.usage import RequestUsage
+        allowance = read_budget(vault, vault.parent)
+        usage = RequestUsage(vault, sample_id or checkpoint[:32], None if budget is not None else allowance['max_requests'],
+                             delegate=budget, model_identity=model_identity(vault.parent))
+        usage_used_at_start = usage.status()['used']
+        usage.timer(True)
+        journal.update(usage_id=usage.identity)
+        from selfos.storage.usage import request_usage_scope
+        def scoped_callback(callback):
+            def invoke(item):
+                # Each worker establishes its own scope; prebuilt provider
+                # callbacks share the same durable transport allowance.
+                with request_usage_scope(usage):
+                    return callback(item)
+            return invoke
         # Keep nested transaction paths within Windows' default path budget.
         scratch = vault / '.knowledge_rebuild' / checkpoint[:24]
         if not scratch.resolve().is_relative_to(vault):
@@ -121,15 +140,18 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             result['status'] = 'stopped'
             return result
         journal.update(phase='extracting')
-        imported = consolidate_sessions(scratch, sessions, summarize or api_summarizer(vault.parent, budget=budget),
+        imported = consolidate_sessions(scratch, sessions, scoped_callback(summarize or api_summarizer(vault.parent, budget=usage)),
             max_workers=max_workers, cancel=cancel, progress=progress, settings=settings,
             cached_summaries={} if rebuild else _saved_summaries(vault,settings,cancel), upgrade_history=not scoped)
         result.update(imported)
         if imported['failed_sessions'] or cancel():
             result['status'] = 'stopped' if cancel() else 'failed'
+            if usage.status()['exhausted']:
+                result.update(status='stopped', budget_exhausted=True)
+                progress('Request allowance reached; saved work is retained. Raise the allowance explicitly to resume.')
             return result
         journal.update(phase='refining')
-        refined = refine_projects(scratch, refine or api_refiner(vault.parent,cancel=cancel,budget=budget),
+        refined = refine_projects(scratch, scoped_callback(refine or api_refiner(vault.parent,cancel=cancel,budget=usage)),
                                   cancel=cancel, progress=progress, project_ids=selected_projects,
                                   context_filter=context_filter, upgrade_history=not scoped)
         result['model_calls'] += refined.get('model_calls',refined['projects'])
@@ -170,12 +192,22 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
     except Exception as error:
         from selfos.sources.text import redact
         result.update(status='failed', error=redact(str(error)))
+        if usage is not None and usage.status()['exhausted']:
+            result.update(status='stopped', budget_exhausted=True)
         progress('Knowledge failed: ' + result['error'])
         return result
     except BaseException:
         result['status'] = 'interrupted'
         raise
     finally:
+        if usage is not None:
+            try:
+                usage.timer(False)
+                result['request_usage'] = usage.status()
+                if real_transport or result['request_usage']['used'] > usage_used_at_start:
+                    result['model_calls'] = max(0, result['request_usage']['used'] - usage_used_at_start)
+            except (ValueError, OSError, RuntimeError):
+                pass
         if budget is not None:
             try:
                 result['request_budget'] = budget.status()

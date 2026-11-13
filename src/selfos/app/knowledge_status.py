@@ -16,8 +16,10 @@ def get_status(vault):
     from selfos.app.import_status import publication_status
     from selfos.storage.corrections import load_corrections
     from selfos.knowledge.corrections import apply_corrections
+    from selfos.app.workload import usage_status
     return {'settings': settings, 'counts': knowledge_counts(apply_corrections(state,load_corrections(vault))),
         'publication': publication_status(vault, state, settings),
+        'usage': usage_status(vault, Path(vault).resolve().parent),
         'saved_checkpoints':len(_saved_summaries(Path(vault).resolve(),settings,lambda:False)),
         'last_operation': state.get('last_operation'),
         'needs_rebuild': bool(state) and (state.get('schema_version') != VERSION or
