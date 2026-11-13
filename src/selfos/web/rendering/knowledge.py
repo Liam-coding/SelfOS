@@ -9,7 +9,7 @@ def refresh_controls(html):
                   lambda _:CONTROLS.rstrip(),html,count=1,flags=re.S)
 
 
-CONTROLS = frontend_text('templates/import-controls.html')
+CONTROLS = frontend_text('templates/knowledge-quality.html') + frontend_text('templates/import-controls.html')
 
 from selfos.web.rendering.import_status import HTML as PUBLICATION_HTML, SCRIPT as PUBLICATION_SCRIPT
 CONTROLS = CONTROLS.replace('<dialog id="knowledge-settings"', PUBLICATION_HTML + '\n<dialog id="knowledge-settings"', 1)

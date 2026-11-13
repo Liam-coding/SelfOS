@@ -81,8 +81,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         messages = (selected_messages if selected_messages is not None else
                     [m for s in selected_sessions for m in s['messages']] if selected_sessions is not None else
                     extract_conversations(local_roots() if roots is None else roots, cancel=cancel))
+        filtering = {}
         sessions = copy.deepcopy(selected_sessions) if selected_sessions is not None else prepare_sessions(
-            messages, max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}))
+            messages, max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}), audit=filtering)
+        if filtering:
+            journal.update(filtering=filtering)
         for session in sessions:
             session['project_id'] = previous.get('project_aliases', {}).get(session['project_id'], session['project_id'])
         selected_projects = {s['project_id'] for s in sessions} if scoped else None
@@ -141,6 +144,10 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if mode == 'incremental' and not imported['run_id'] and not refined['run_id'] and staged_hash == expected:
             return result
         state = _state(scratch) or {'cards': {}, 'lessons': [], 'sources': {}, 'summaries': {}}
+        # Keep references to filtered input, without storing its raw content.
+        for message in messages:
+            state.setdefault('sources', {}).setdefault(message['id'], {key: message.get(key, '')
+                for key in ('path','timestamp','role','source','project_id','session_id','provenance')})
         state.update(schema_version=VERSION, policy_hash=policy_hash(settings), policy=settings,
                      quality_version=2, project_aliases=previous.get('project_aliases', {}))
         if scoped:

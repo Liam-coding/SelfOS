@@ -93,6 +93,9 @@ def merge_records(state,category,records,settings):
                  and (category!='personal_facts' or relation(normalize_scope(old))==relation(normalize_scope(r)))]
         equal=next((old for old in matches if normalized(old['value'])==normalized(r['value'])),None)
         if equal:
+            state['retention_audit'].append({'stage':'record_merge','category':category,
+                'merge_applied':True,'reason':'consolidated',
+                'source_ids':unique(equal['source_ids']+r['source_ids'])})
             if category=='personal_facts':
                 from selfos.knowledge.personal_facts import merge_fact_support, mark_conflicts
                 merge_fact_support(equal,r)

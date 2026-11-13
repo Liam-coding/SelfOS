@@ -165,6 +165,11 @@ def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts
                             state["lessons"].append(lesson)
                     state["cache"][key] = item["fingerprint"]
                     state["summaries"][key] = candidate
+                    state.setdefault('quality_sessions', {})[key] = {
+                        'run_id': run_id,
+                        'source_ids': [message['id'] for message in item['messages']],
+                        'categories': {category: len(candidate.get(category, []))
+                            for category in ('personal_facts', 'preferences', 'history', 'lessons')}}
                     for category in ('personal_facts','preferences','history'):
                         merge_records(state,category,candidate.get(category,[]),settings)
                     for m in item["messages"]:
