@@ -20,6 +20,12 @@ identifier offered by the service. Knowledge extraction requires function/tool c
 compatibility alone does not guarantee extraction quality. Existing source validation, retries,
 checkpoints and rollback still apply.
 
+**Load available models** reads model metadata using the current interface, base URL, key
+and proxy fields, including unsaved edits. It does not save settings or generate model output.
+Select a returned model to fill the model name, or keep entering a name manually. Blank keys
+reuse the saved key only for the same interface; the clear-key option applies to discovery
+without deleting the saved key. Empty or unsupported lists leave manual entry available.
+
 **Save and test connection** saves the form and sends one small, potentially billable request
 containing synthetic test text. It verifies network access, authentication and a structured tool
 result without sending vault contents or starting an import. A failed test leaves settings saved.
