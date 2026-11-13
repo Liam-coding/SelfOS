@@ -1,4 +1,7 @@
 {
+  "settings.general": "通用设置",
+  "settings.setup": "初始配置",
+  "settings.account": "账户与安全",
   "common.greeting": "\u4f60\u597d\uff0c{name}",
   "common.count": "\u627e\u5230 {count} \u6761\u8bb0\u5f55",
   "common.unknown": "\u672a\u77e5",

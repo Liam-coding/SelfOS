@@ -1,4 +1,7 @@
 {
+  "settings.general": "General",
+  "settings.setup": "Setup",
+  "settings.account": "Account and security",
   "common.greeting": "Hello, {name}",
   "common.count": "Found {count} records",
   "common.unknown": "Unknown",
