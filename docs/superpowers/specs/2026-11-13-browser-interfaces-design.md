@@ -16,6 +16,8 @@ Proceed with option 2 as the proposed technical choice. Full delivery is several
 
 ## Current inventory (static source audit)
 
+[The compatibility inventory](../../browser-compatibility.md) lists 78 current top-level callable/export names with definition and packaged/rendering reference locations. It is a textual audit, with renderer migration strings distinguished from executable consumers during review; before each removal, also inspect browser-test callers and dynamic bindings.
+
 Nine templates contain 63 inline handler attributes: account-controls 4, dashboard-card 1, dashboard-page 16, import-controls 5, onboarding 14, overview 3, privacy 4, settings-model 15, workload 1. These counts include event attributes only, not dynamically assigned properties. Dynamic controls in knowledge browser/corrections, timeline, staging, quality and publication also assign onclick/onchange/onsubmit. Those assignments are legitimate node ownership but will move to explicit listener cleanup where nodes survive reinitialization.
 
 Startup is distributed: settings, account, locale/theme, publication, knowledge browser, onboarding, quality and overview use DOMContentLoaded. Imports performs a recovery GET at script evaluation; chat/dimensions/staging attach immediately; workload owns a timer and three document subscriptions. The import controller is the only EventSource creator. Current cached refresh retires scripts via implementation text such as 'let isDark' and 'let knowledgeOperation'.
