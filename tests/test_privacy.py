@@ -377,7 +377,8 @@ def test_migration_coordinates_source_rule_writes(tmp_path, monkeypatch):
 @pytest.mark.parametrize('concurrent_replacement', [False, True])
 def test_interruption_after_model_link_cleans_only_owned_config(tmp_path, monkeypatch, concurrent_replacement):
     import selfos.app.migration as migration
-    from selfos.providers.settings import save_config
+    # Simulate an external writer bypassing the supported shared config lock.
+    from selfos.providers.settings import _save_config as save_config
     link = migration.os.link
     def interrupted_link(source, destination):
         link(source, destination)
@@ -396,3 +397,28 @@ def test_interruption_after_model_link_cleans_only_owned_config(tmp_path, monkey
         assert not config.exists()
         monkeypatch.setattr(migration.os, 'link', link)
         assert migration.import_package(tmp_path / 'vault', tmp_path, migration_fixture())['imported'] == 1
+def test_interrupted_cleanup_blocks_config_replacement_during_ownership_check(tmp_path, monkeypatch):
+    import selfos.app.migration as migration
+    from selfos.providers.settings import save_config
+    link, samefile = migration.os.link, migration.os.path.samefile
+    blocked = []
+    def interrupted_link(source, destination):
+        link(source, destination)
+        raise KeyboardInterrupt('synthetic interruption')
+    def racing_samefile(source, destination):
+        owned = samefile(source, destination)
+        try:
+            save_config(tmp_path, dict(provider='openai', model='replacement',
+                base_url='http://localhost:9999/v1', api_key='synthetic-key', proxy_mode='direct'))
+        except ValueError:
+            blocked.append(True)
+        return owned
+    monkeypatch.setattr(migration.os, 'link', interrupted_link)
+    monkeypatch.setattr(migration.os.path, 'samefile', racing_samefile)
+    with pytest.raises(KeyboardInterrupt):
+        migration.import_package(tmp_path / 'vault', tmp_path, migration_fixture())
+    assert blocked == [True]
+    assert not (tmp_path / '.selfos-model.json').exists()
+    save_config(tmp_path, dict(model='after-cleanup', api_key='synthetic-key'))
+    assert json.loads((tmp_path / '.selfos-model.json').read_text())['api_key'] == 'synthetic-key'
+

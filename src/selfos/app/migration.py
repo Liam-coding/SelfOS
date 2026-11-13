@@ -12,6 +12,12 @@ MODEL_FIELDS = ('provider','model','base_url','proxy_mode','proxy_url')
 
 
 def _publish_model(path, raw):
+    from selfos.providers.settings import config_lock
+    with config_lock(path.parent):
+        _publish_model_locked(path, raw)
+
+
+def _publish_model_locked(path, raw):
     """Publish an existing durable file atomically, without replacing a key."""
     temporary = path.with_name('.selfos-model-migration-' + uuid.uuid4().hex + '.tmp')
     try:
