@@ -41,6 +41,11 @@ def load_corrections(vault):
     if not path.exists():return {'version':1,'actions':[]}
     if path.stat().st_size>32*1024*1024:raise ValueError('Correction ledger is too large')
     ledger=json.loads(path.read_text(encoding='utf-8'))
+    return validate_corrections(ledger)
+
+
+def validate_corrections(ledger):
+    """Validate in-memory migration data with the same rules as the loader."""
     if not isinstance(ledger,dict) or ledger.get('version')!=1 or not isinstance(ledger.get('actions'),list):
         raise ValueError('Invalid correction ledger')
     for action in ledger['actions']:

@@ -29,4 +29,6 @@ vault/.knowledge_pending.json
 vault/.knowledge_rebuild/
 vault/.knowledge_settings.json
 vault/.knowledge_jobs/
+vault/.knowledge_policy_guard/
 .knowledge_uploads/
+.selfos_model_guard/

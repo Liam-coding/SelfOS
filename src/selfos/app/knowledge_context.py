@@ -7,9 +7,11 @@ from selfos.sources.selection import allowed_source
 
 
 def filter_project_context(payload, state, selection):
+    from selfos.app.privacy import model_state
+    state = model_state(state, selection, selection.get('_vault', '.'))
     project_id = payload['project']['project_id']
     permitted = {identity for identity, source in state.get('sources', {}).items()
-                 if source.get('path') and allowed_source(source['path'], selection)}
+                 if source.get('path')}
     def supported(record):
         ids = record.get('source_ids', []) if isinstance(record, dict) else []
         return bool(ids) and all(identity in permitted for identity in ids)

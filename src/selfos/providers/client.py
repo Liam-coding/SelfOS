@@ -48,6 +48,8 @@ def request_opener(root, budget=None):
         req=adapt_request(request,config)
         try:
             opener=provider_opener(config,req.full_url)
+            from selfos.app.privacy import check_request_scope
+            check_request_scope()
             if budget is not None:
                 budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())

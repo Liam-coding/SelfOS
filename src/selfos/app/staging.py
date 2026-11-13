@@ -57,6 +57,13 @@ def _read_vault_file(path: Path, max_chars: int = 1500) -> str:
 
 
 def auto_generate_staging(vault: Path, digest_path: Path) -> list[Path]:
+    from selfos.sources.selection import load_sources
+    from selfos.app.privacy import request_scope, selection_hash
+    expected_privacy = selection_hash(vault)
+    selection = load_sources(vault)
+    # Legacy digests have no record-level provenance, so fail closed.
+    if selection['exclusions'] or selection.get('privacy_exclusions'):
+        return []
     """Call Claude API to generate staging files from the latest digest.
     Returns list of written staging file paths."""
     root = vault.parent
@@ -99,7 +106,7 @@ def auto_generate_staging(vault: Path, digest_path: Path) -> list[Path]:
             },
             method="POST",
         )
-        with __import__('selfos.providers.client', fromlist=['*']).request_opener(root)(req, timeout=60) as resp:
+        with request_scope(vault,expected_privacy,[]), __import__('selfos.providers.client', fromlist=['*']).request_opener(root)(req, timeout=60) as resp:
             data = json.loads(resp.read())
         raw = data["content"][0]["text"].strip()
     except URLError as e:

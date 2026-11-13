@@ -46,6 +46,18 @@ def import_knowledge(vault, messages, generate, progress=print, max_attempts=3):
     if not isinstance(max_attempts, int) or isinstance(max_attempts, bool) or not 1 <= max_attempts <= 5:
         raise ValueError('max_attempts must be an integer between 1 and 5')
     vault = Path(vault).resolve()
+    from selfos.sources.selection import load_sources, policy_lock
+    from selfos.app.privacy import selection_hash, guard_request, permitted_source, request_scope
+    selection = load_sources(vault)
+    expected_privacy = selection_hash(vault)
+    config_path = vault / '.knowledge_sources.json'
+    enforce = config_path.exists() and 'roots' in json.loads(config_path.read_text(encoding='utf-8'))
+    if enforce:
+        messages = [m for m in messages if permitted_source(m,selection,vault)]
+        original_generate = generate
+        def generate(batch, context):
+            with request_scope(vault,expected_privacy,batch):
+                return original_generate(batch, {} if selection['exclusions'] or selection.get('privacy_exclusions') else context)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:12]
     count, changed = 0, set()
     with _locked(vault):
@@ -86,7 +98,12 @@ def import_knowledge(vault, messages, generate, progress=print, max_attempts=3):
                 source_log[message['id']] = {k: message[k] for k in ('source', 'path', 'timestamp', 'role', 'project')}
             writes[STATE] = json.dumps({'processed': sorted(processed), 'facts': sorted(known)}, ensure_ascii=False, indent=2).encode('utf-8')
             writes[SOURCES] = json.dumps(source_log, ensure_ascii=False, indent=2).encode('utf-8')
-            _commit(vault, run_id, index, writes)
+            with policy_lock(vault):
+                if selection_hash(vault) != expected_privacy:
+                    raise ValueError('Privacy rules changed; restart the import')
+                if enforce:
+                    guard_request(vault, expected_privacy, batch)
+                _commit(vault, run_id, index, writes)
             count += batch_count
             progress(f'Saved batch {index}/{len(batches)}: {batch_count} facts; backup {run_id}')
     return {'facts': count, 'files': sorted(changed), 'run_id': run_id if batches else None, 'batches': len(batches)}

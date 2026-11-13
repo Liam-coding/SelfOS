@@ -60,11 +60,15 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
     try:
         budget = None
         budget_used_at_start = 0
+        from selfos.app.privacy import selection_hash, guard_request, permitted_source, request_scope
+        from selfos.sources.selection import load_sources
+        privacy_hash = selection_hash(vault)
+        selection = load_sources(vault)
         context_filter = None
         if scoped or (vault / '.knowledge_sources.json').exists():
             from selfos.sources.selection import load_sources, allowed_source
             from selfos.app.knowledge_context import filter_project_context
-            selection = load_sources(vault)
+            selection = {**load_sources(vault), '_vault': str(vault)}
             context_filter = lambda payload, state: filter_project_context(payload, state, selection)
         if sample_id is not None:
             from selfos.app.onboarding import resolve_preview
@@ -81,6 +85,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         messages = (selected_messages if selected_messages is not None else
                     [m for s in selected_sessions for m in s['messages']] if selected_sessions is not None else
                     extract_conversations(local_roots() if roots is None else roots, cancel=cancel))
+        if (vault / '.knowledge_sources.json').exists():
+            messages = [m for m in messages if permitted_source(m, selection, vault)]
+            if selected_sessions is not None:
+                selected_sessions = [dict(s, messages=[m for m in s['messages'] if permitted_source(m, selection, vault)]) for s in selected_sessions]
+                selected_sessions = [s for s in selected_sessions if s['messages']]
         filtering = {}
         sessions = copy.deepcopy(selected_sessions) if selected_sessions is not None else prepare_sessions(
             messages, max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}), audit=filtering)
@@ -96,7 +105,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                 session['partial_input'] = True
             session['fingerprint'] = hashlib.sha256((session['fingerprint'] + policy_hash(settings)).encode()).hexdigest()
         checkpoint = hashlib.sha256(json.dumps([expected, policy_hash(settings), mode,
-            [(s['project_id'],s['session_id'],s['fingerprint']) for s in sessions]],sort_keys=True).encode()).hexdigest()
+            [(s['project_id'],s['session_id'],s['fingerprint']) for s in sessions], privacy_hash],sort_keys=True).encode()).hexdigest()
         # Keep nested transaction paths within Windows' default path budget.
         scratch = vault / '.knowledge_rebuild' / checkpoint[:24]
         if not scratch.resolve().is_relative_to(vault):
@@ -124,7 +133,16 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             result['status'] = 'stopped'
             return result
         journal.update(phase='extracting')
-        imported = consolidate_sessions(scratch, sessions, summarize or api_summarizer(vault.parent, budget=budget),
+        raw_summarize = summarize or api_summarizer(vault.parent, budget=budget)
+        raw_refine = refine or api_refiner(vault.parent,cancel=cancel,budget=budget)
+        enforce = (vault / '.knowledge_sources.json').exists()
+        def safe_summarize(item):
+            if not enforce: return raw_summarize(item)
+            with request_scope(vault,privacy_hash,item['messages']): return raw_summarize(item)
+        def safe_refine(payload):
+            if not enforce: return raw_refine(payload)
+            with request_scope(vault,privacy_hash,payload['sources'].values()): return raw_refine(payload)
+        imported = consolidate_sessions(scratch, sessions, safe_summarize,
             max_workers=max_workers, cancel=cancel, progress=progress, settings=settings,
             cached_summaries={} if rebuild else _saved_summaries(vault,settings,cancel), upgrade_history=not scoped)
         result.update(imported)
@@ -132,7 +150,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             result['status'] = 'stopped' if cancel() else 'failed'
             return result
         journal.update(phase='refining')
-        refined = refine_projects(scratch, refine or api_refiner(vault.parent,cancel=cancel,budget=budget),
+        refined = refine_projects(scratch, safe_refine,
                                   cancel=cancel, progress=progress, project_ids=selected_projects,
                                   context_filter=context_filter, upgrade_history=not scoped)
         result['model_calls'] += refined.get('model_calls',refined['projects'])
@@ -169,9 +187,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         # Empty selected project domains must also clear previously managed lessons.
         if not (scratch / '05_Life/lessons.md').exists():
             _atomic_write(scratch / '05_Life/lessons.md', b'# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n<!-- /selfos-managed-lessons -->\n')
+        if selection_hash(vault) != privacy_hash: raise ValueError('Privacy rules changed; restart the import')
         journal.update(phase='publishing')
         install_rebuilt(vault, scratch, expected_hash=expected, run_id=operation,
-                        expected_policy_hash=policy_hash(settings), selected_projects=selected_projects)
+                        expected_policy_hash=policy_hash(settings), selected_projects=selected_projects,
+                        expected_privacy_hash=privacy_hash)
         result.update(installed=True, operation_id=operation)
         return result
     except Exception as error:

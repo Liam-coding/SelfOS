@@ -2,12 +2,28 @@
 import json
 import os
 import tempfile
+from contextlib import contextmanager, ExitStack
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import getproxies_environment, getproxies
 from selfos.paths import AppPaths
 
 FILE = '.selfos-model.json'
+
+
+@contextmanager
+def config_lock(root):
+    from selfos.storage.files import _locked
+    root = Path(root).resolve()
+    guard = root / '.selfos_model_guard'
+    if not guard.resolve().is_relative_to(root):
+        raise ValueError('Model configuration lock escapes root')
+    with ExitStack() as stack:
+        try:
+            stack.enter_context(_locked(guard))
+        except RuntimeError:
+            raise ValueError('Model configuration is being updated; retry later') from None
+        yield
 
 
 def _url(value, name):
@@ -56,6 +72,11 @@ def resolve_config(root, patch):
 
 
 def save_config(root, patch):
+    with config_lock(root):
+        return _save_config(root, patch)
+
+
+def _save_config(root, patch):
     c=resolve_config(root,patch)
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
     fd,name=tempfile.mkstemp(dir=root,prefix='.selfos-model-',suffix='.tmp')

@@ -7,6 +7,29 @@ class ActionsRoutes:
     def do_POST(self):
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
+        if self.path == '/__privacy__':
+            with self.runtime.KNOWLEDGE_RUN_LOCK:
+                if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409, {'code':'privacy_import_active'})
+                try:
+                    size = int(self.headers.get('Content-Length','0'))
+                    if not 0 < size <= 90 * 1024 * 1024: raise ValueError('Invalid package size')
+                    body = json.loads(self._read_body())
+                    from selfos.app.privacy import privacy_status
+                    from selfos.app.migration import export_package, import_package
+                    from selfos.sources.selection import save_sources
+                    action = body.get('action')
+                    if action == 'save':
+                        save_sources(self.runtime.VAULT,body['selection'])
+                        result = privacy_status(self.runtime.VAULT,self.runtime.ROOT)
+                    elif action == 'export':
+                        result = export_package(self.runtime.VAULT,self.runtime.ROOT,
+                            include_originals=body.get('originals',False),include_backups=body.get('backups',False))
+                    elif action == 'import': result = import_package(self.runtime.VAULT,self.runtime.ROOT,body['package'])
+                    else: raise ValueError('Invalid privacy action')
+                    return self._send_json(200,result)
+                except (ValueError,TypeError,KeyError): return self._send_json(400,{'code':'privacy_invalid'})
+                except OSError: return self._send_json(503,{'code':'privacy_unavailable'})
         if self.path == '/__onboarding__':
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:

@@ -1,9 +1,25 @@
 """Shared local source selection and directory-prefix exclusions."""
 from pathlib import Path
 import os
+from contextlib import contextmanager, ExitStack
 
 from selfos.sources.conversations import local_roots
 from selfos.storage.onboarding import read_metadata, write_metadata
+
+
+@contextmanager
+def policy_lock(vault):
+    """Coordinate supported rule writes with canonical publication."""
+    from selfos.storage.files import _locked
+    vault = Path(vault).resolve()
+    guard = vault / '.knowledge_policy_guard'
+    if not guard.resolve().is_relative_to(vault):
+        raise ValueError('Privacy guard escapes vault')
+    with ExitStack() as stack:
+        try: stack.enter_context(_locked(guard))
+        except RuntimeError:
+            raise ValueError('Privacy rules are being published; retry later') from None
+        yield
 
 
 def _paths(value, limit):
@@ -26,15 +42,20 @@ def validate_selection(value, require_available=False):
     exclusions = _paths(value.get("exclusions", []), 100)
     if require_available and any(not Path(root).is_dir() for root in roots):
         raise ValueError("Custom source directories must exist")
-    if any(not any(Path(item).is_relative_to(Path(root)) for root in roots)
-           for item in exclusions):
+    if any(not any(Path(item).is_relative_to(Path(root)) for root in roots) for item in exclusions):
         raise ValueError("Exclusions must be inside selected roots")
-    return {"version": 1, "roots": roots, "exclusions": exclusions}
+    result = {"version": 1, "roots": roots, "exclusions": exclusions}
+    if value.get('privacy_exclusions'):
+        result['privacy_exclusions'] = _paths(value['privacy_exclusions'], 100)
+    return result
 
 
 def load_sources(vault, defaults=None):
     value = read_metadata(vault, ".knowledge_sources.json")
-    if value is None:
+    # Historical import provenance used this filename before source selection.
+    legacy = isinstance(value,dict) and 'roots' not in value and all(
+        isinstance(item,dict) and 'path' in item and 'source' in item for item in value.values())
+    if value is None or legacy:
         roots = local_roots() if defaults is None else defaults
         value = {"version": 1, "roots": [str(Path(p).resolve()) for p in roots], "exclusions": []}
     return validate_selection(value)
@@ -42,7 +63,8 @@ def load_sources(vault, defaults=None):
 
 def save_sources(vault, value):
     selected = validate_selection(value, require_available=True)
-    write_metadata(vault, ".knowledge_sources.json", selected)
+    with policy_lock(vault):
+        write_metadata(vault, ".knowledge_sources.json", selected)
     return selected
 
 
@@ -56,7 +78,7 @@ def discover_sources(defaults=None):
 def allowed_source(path, selection):
     resolved = Path(path).resolve()
     return (any(resolved.is_relative_to(Path(root)) for root in selection["roots"])
-            and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"]))
+            and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"] + selection.get("privacy_exclusions", [])))
 
 
 def select_files(selection, file_limit=2, entry_limit=2000, max_bytes=8 * 1024 * 1024):
