@@ -52,6 +52,19 @@ class ActionsRoutes:
                     return self._send_json(409 if code!='invalid_correction' else 400,{'code':code})
                 except OSError:
                     return self._send_json(503,{'code':'correction_unavailable'})
+        if self.path=='/__model_list__':
+            from selfos.providers.client import list_models, ModelListUnsupported
+            try:
+                size=int(self.headers.get('Content-Length','0'))
+                if not 0<size<=32768: raise ValueError('Invalid request size')
+                body=json.loads(self._read_body())
+                return self._send_json(200,list_models(self.runtime.ROOT,body))
+            except ModelListUnsupported:
+                return self._send_json(422,{'code':'model_list_unsupported'})
+            except (ValueError,TypeError,KeyError):
+                return self._send_json(400,{'code':'model_list_invalid'})
+            except Exception:
+                return self._send_json(502,{'code':'model_list_failed'})
         if self.path in ('/__model_settings__','/__model_test__'):
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
