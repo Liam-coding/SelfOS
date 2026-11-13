@@ -49,6 +49,11 @@
     "templates/project-timeline.html",
     "templates/settings-model.html",
     "templates/visual-system.html",
-    "templates/workload.html"
+    "templates/workload.html",
+    "templates/privacy.html",
+    "scripts/privacy.js",
+    "templates/knowledge-quality.html",
+    "styles/knowledge-quality.css",
+    "scripts/knowledge-quality.js"
   ]
 }

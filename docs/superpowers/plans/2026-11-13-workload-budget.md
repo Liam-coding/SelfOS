@@ -1,5 +1,7 @@
 # Workload and request budget implementation plan
 
+Superseded for PR #66 by `2026-11-13-token-statistics.md`: the user deferred prices and workload prediction. The original plan below is retained as historical design context, not the current acceptance criteria.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Implement #22's bounded preview, request limits and measured usage.

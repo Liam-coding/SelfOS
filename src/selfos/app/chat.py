@@ -11,25 +11,29 @@ _CONTEXT_FILES = [
 ]
 
 def load_vault_context(vault) -> str:
+    from selfos.sources.selection import load_sources
+    from selfos.app.privacy import model_state
+    selection = load_sources(vault)
+    restricted = bool(selection['exclusions'] or selection.get('privacy_exclusions'))
     parts = []
 
     # Current scores — most important context for the chat
     scores_file = vault / "SCORES.md"
-    if scores_file.exists():
+    if scores_file.exists() and not restricted:
         text = scores_file.read_text(encoding="utf-8").strip()
         if text:
             parts.append(f"## Current Scores\n{text}")
 
     for name in _CONTEXT_FILES:
         p = vault / name
-        if p.exists():
+        if p.exists() and not restricted:
             text = p.read_text(encoding="utf-8").strip()
             if text:
                 parts.append(f"## {name}\n{text}")
 
     # Latest digest
     inbox = vault / "90_Inbox"
-    if inbox.exists():
+    if inbox.exists() and not restricted:
         digests = sorted(inbox.glob("*-sessions-digest.md"), reverse=True)
         if digests:
             text = digests[0].read_text(encoding="utf-8").strip()
@@ -43,6 +47,7 @@ def load_vault_context(vault) -> str:
         from selfos.knowledge.corrections import apply_corrections
         from selfos.storage.corrections import load_corrections
         state=apply_corrections(state,load_corrections(vault))
+        if (vault / '.knowledge_sources.json').exists(): state=model_state(state,selection,vault)
         for category in ('personal_facts', 'preferences'):
             records = [{k: r.get(k) for k in ('text', 'domain', 'conflict', 'observed_at','kind','manual_correction')}
                        for r in state.get(category, [])]
@@ -55,7 +60,7 @@ def load_vault_context(vault) -> str:
                 limit = 2000 if field == "next_steps" else 400
                 current[field] = [str(v)[:limit] for v in card.get(field, [])[-8:]]
             parts.append("## Current project state\n" + json.dumps(current, ensure_ascii=False))
-    else:
+    elif not restricted:
         cards = sorted((vault / "02_Work/projects").glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
         for card in cards[:20]:
             parts.append("## Project summary\n" + card.read_text(encoding="utf-8")[:4000])
@@ -63,14 +68,14 @@ def load_vault_context(vault) -> str:
     if state_path.exists():
         retained=[{k:r.get(k) for k in ('text','domain','kind','manual_correction','conflict')} for r in state.get('lessons',[])]
         if retained:parts.append('## Reusable lessons'+chr(10)+json.dumps(retained,ensure_ascii=False))
-        if lessons.exists():
+        if lessons.exists() and not restricted:
             notes=lessons.read_text(encoding='utf-8')
             notes=re.sub(r'<!-- selfos-managed-lessons -->.*?<!-- /selfos-managed-lessons -->','',notes,flags=re.S)
             for lesson in generated_lessons:
                 block='- ['+lesson.get('kind','inference')+'] '+lesson['text']+'\n  Source: '+', '.join(lesson.get('source_ids',[]))
                 notes=notes.replace(block,'')
             if notes.strip():parts.append('## Personal lesson notes\n'+notes.strip()[-8000:])
-    elif lessons.exists():
+    elif lessons.exists() and not restricted:
         parts.append("## Reusable lessons\n" + lessons.read_text(encoding="utf-8")[-8000:])
     return "\n\n---\n\n".join(parts)
 

@@ -51,8 +51,15 @@ def request_opener(root, budget=None):
         effective_budget = current_request_usage() or budget
         try:
             opener=provider_opener(config,req.full_url)
+            from selfos.app.privacy import check_request_scope
+            check_request_scope()
             if effective_budget is not None:
-                ticket=effective_budget.claim()
+                from selfos.storage.usage import RequestUsage
+                if isinstance(effective_budget, RequestUsage):
+                    from selfos.app.budget import config_identity
+                    ticket=effective_budget.claim(model_identity=config_identity({**config, 'model': json.loads(req.data)['model']}))
+                else:
+                    ticket=effective_budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())
             if hasattr(effective_budget,'observe'):
                 effective_budget.observe(ticket,data,config['provider'])

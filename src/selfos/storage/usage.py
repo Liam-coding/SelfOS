@@ -62,18 +62,12 @@ def _read(path, default, maximum=4 * 1024 * 1024):
 
 
 def _validate_budget(value):
-    if not isinstance(value, dict) or set(value) - {'max_requests', 'input_price', 'output_price'}:
+    if not isinstance(value, dict) or set(value) - {'max_requests'}:
         raise ValueError('Invalid organization budget settings')
     limit = value.get('max_requests', 100)
     if type(limit) is not int or not 1 <= limit <= 10000:
         raise ValueError('Request allowance must be 1..10000')
-    result = {'max_requests': limit}
-    for field in ('input_price', 'output_price'):
-        price = value.get(field)
-        if price is not None and (type(price) not in (int, float) or not math.isfinite(price) or not 0 <= price <= 100000):
-            raise ValueError('Token price must be a finite nonnegative number')
-        result[field] = price
-    return result
+    return {'max_requests': limit}
 
 
 @contextmanager
@@ -136,7 +130,7 @@ class RequestUsage:
             if (not isinstance(key, str) or not key.isdigit() or not 1 <= int(key) <= value['used']
                     or not isinstance(attempt, dict) or attempt.get('status') not in ('pending', 'response', 'failed')):
                 raise ValueError('Invalid usage attempt')
-            for field in ('input_tokens', 'output_tokens'):
+            for field in ('input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_creation_tokens'):
                 if attempt.get(field) is not None and (type(attempt[field]) is not int or not 0 <= attempt[field] <= 10**12):
                     raise ValueError('Invalid measured token usage')
         for key in ('elapsed_seconds', 'run_started'):
@@ -151,7 +145,10 @@ class RequestUsage:
             raise ValueError('Usage journal exceeds size limit')
         _atomic_write(_path(self.vault, f'.knowledge_usage/{self.identity}.json'), raw)
 
-    def claim(self):
+    def claim(self, model_identity=None):
+        identity = model_identity or self.model_identity
+        if identity is not None and (not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{64}', identity)):
+            raise ValueError('Invalid transport model identity')
         with _usage_lock(_path(self.vault, f'.knowledge_usage/{self.identity}.json')):
             value = self._read()
             if value['used'] >= (self.limit if self.limit is not None else 10000):
@@ -167,12 +164,12 @@ class RequestUsage:
                     raise
                 value['sample_id'] = self.delegate.preview_id
             value['quota_rejected'] = False
-            if self.model_identity is not None:
-                if value.get('model_identity') not in (None, self.model_identity):
+            if identity is not None:
+                if value.get('model_identity') not in (None, identity):
                     value['mixed_models'] = True
-                value.setdefault('model_identity', self.model_identity)
+                value.setdefault('model_identity', identity)
             value['used'] += 1
-            value['attempts'][str(value['used'])] = {'status': 'pending'}
+            value['attempts'][str(value['used'])] = {'status': 'pending', 'model_identity': identity}
             self._write(value)
             return value['used']
 
@@ -186,14 +183,23 @@ class RequestUsage:
                 if type(tokens) is int and 0 <= tokens <= 10**12:
                     report[field] = tokens
             details = usage.get('prompt_tokens_details', {})
-            report['cache_billing_unknown'] = bool(usage.get('cache_read_input_tokens') or usage.get('cache_creation_input_tokens')
-                or (isinstance(details, dict) and details.get('cached_tokens')))
+            read = usage.get('cache_read_input_tokens', 0) if provider == 'anthropic' else details.get('cached_tokens', 0) if isinstance(details, dict) else 0
+            created = usage.get('cache_creation_input_tokens', 0) if provider == 'anthropic' else 0
+            for field, tokens in (('cache_read_tokens', read), ('cache_creation_tokens', created)):
+                if type(tokens) is int and 0 <= tokens <= 10**12:
+                    report[field] = tokens
+            if provider == 'anthropic' and 'input_tokens' in report:
+                if 'cache_read_tokens' in report and 'cache_creation_tokens' in report:
+                    report['input_tokens'] += report['cache_read_tokens'] + report['cache_creation_tokens']
+                else:
+                    report.pop('input_tokens')
         with _usage_lock(_path(self.vault, f'.knowledge_usage/{self.identity}.json')):
             value = self._read()
             previous = value['attempts'].get(str(ticket))
             if not previous:
                 raise ValueError('Unknown request ticket')
             if previous['status'] == 'pending':
+                report['model_identity'] = previous.get('model_identity')
                 value['attempts'][str(ticket)] = report
                 self._write(value)
 
@@ -232,6 +238,8 @@ class RequestUsage:
             'failed_attempts': sum(attempt['status'] == 'failed' for attempt in attempts),
             'input_tokens': sum(attempt.get('input_tokens', 0) for attempt in attempts),
             'output_tokens': sum(attempt.get('output_tokens', 0) for attempt in attempts),
+            'total_tokens': sum(attempt.get('input_tokens', 0) + attempt.get('output_tokens', 0) for attempt in attempts),
+            'cache_read_tokens': sum(attempt.get('cache_read_tokens', 0) for attempt in attempts),
+            'cache_creation_tokens': sum(attempt.get('cache_creation_tokens', 0) for attempt in attempts),
             'missing_usage': missing, 'complete_usage': missing == 0,
-            'cache_billing_unknown': any(attempt.get('cache_billing_unknown') for attempt in attempts),
             'elapsed_seconds': elapsed}

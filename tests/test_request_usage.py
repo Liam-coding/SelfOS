@@ -83,8 +83,8 @@ def test_pending_attempt_and_cached_billing_remain_visible(tmp_path):
     meter.claim()  # A process exits before a response; the attempt remains charged.
     result = RequestUsage(tmp_path, 'd' * 32, 4).status()
     assert result['used'] == 2 and result['missing_usage'] == 1
-    assert result['cache_billing_unknown'] is True
-    assert result['input_tokens'] == 12 and result['output_tokens'] == 7
+    assert result['cache_read_tokens'] == 100
+    assert result['input_tokens'] == 112 and result['output_tokens'] == 7
 
 
 def test_read_only_status_and_invalid_identity_create_nothing(tmp_path):
@@ -119,19 +119,6 @@ def test_journal_with_duplicate_numeric_ticket_spellings_is_rejected(tmp_path):
         'attempts': {'1': {'status': 'pending'}, '01': {'status': 'pending'}}, 'elapsed_seconds': 0, 'run_started': None}))
     with pytest.raises(ValueError):
         RequestUsage(tmp_path, 'f' * 32, 3).status()
-
-
-def test_saved_pricing_is_invalidated_when_model_changes(tmp_path):
-    from selfos.app.budget import read_budget, save_budget
-    from selfos.providers.settings import save_config
-    vault = tmp_path / 'vault'
-    save_config(tmp_path, {'provider': 'openai', 'model': 'first', 'base_url': 'http://localhost:1234/v1', 'proxy_mode': 'direct'})
-    save_budget(vault, tmp_path, {'max_requests': 8, 'input_price': 1.5, 'output_price': 6})
-    assert read_budget(vault, tmp_path)['pricing_known']
-    save_config(tmp_path, {'model': 'second'})
-    result = read_budget(vault, tmp_path)
-    assert not result['pricing_known'] and result['max_requests'] == 8
-    assert result['input_price'] is None and result['output_price'] is None
 
 
 @pytest.mark.parametrize('patch', [{'max_requests': True}, {'max_requests': 0}, {'max_requests': 10001}, {'input_price': -1}, {'output_price': float('nan')}, {'api_key': 'secret'}])

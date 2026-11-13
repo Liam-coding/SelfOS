@@ -1,0 +1,18 @@
+{
+  "title": "Privacy and migration",
+  "transmission": "Imports send selected source text, provenance and sourced knowledge context to the model. Chat sends your messages and permitted vault context. Model responses and knowledge stay in your local vault. Redaction cannot guarantee removal of all sensitive content.",
+  "effect": "Excluded source and project paths are withheld from new model requests, including retries and cached context. Existing knowledge and backups remain locally inspectable. Unsourced vault notes and digests are withheld from chat while exclusions are active. Remove local data separately if required.",
+  "rules": "Excluded projects, directories and files: one absolute path per line",
+  "save": "Save exclusions",
+  "export_note": "Exports contain knowledge, provenance and settings and may be sensitive. API keys and account credentials are omitted. Originals and backups are omitted unless selected below. Import into an empty knowledge vault; unresolved source links are reported.",
+  "originals": "Include uploaded originals",
+  "backups": "Include knowledge backups",
+  "export": "Download local export",
+  "import": "Import local export",
+  "close": "Close",
+  "error": "Privacy action failed. Check paths, package format, size and whether the destination is empty.",
+  "withheld": "Sources withheld from model requests:",
+  "saved": "Exclusions saved. Existing local knowledge remains available.",
+  "exported": "Export downloaded. Store this sensitive file securely.",
+  "imported": "Import completed. Source resolution report:"
+}

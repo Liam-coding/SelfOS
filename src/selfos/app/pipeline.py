@@ -165,6 +165,11 @@ def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts
                             state["lessons"].append(lesson)
                     state["cache"][key] = item["fingerprint"]
                     state["summaries"][key] = candidate
+                    state.setdefault('quality_sessions', {})[key] = {
+                        'run_id': run_id,
+                        'source_ids': [message['id'] for message in item['messages']],
+                        'categories': {category: len(candidate.get(category, []))
+                            for category in ('personal_facts', 'preferences', 'history', 'lessons')}}
                     for category in ('personal_facts','preferences','history'):
                         merge_records(state,category,candidate.get(category,[]),settings)
                     for m in item["messages"]:
@@ -324,6 +329,11 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
                 for record in observations]
             state["quality_version"] = 2
             state["refined"][project_id] = fingerprint
+            # Save recovery evidence atomically with the successful refinement.
+            # Extraction outcomes cannot establish synthesis/review success.
+            state.setdefault('quality_refinements', {})[run_id + ':' + project_id] = {
+                'run_id': run_id, 'review_run_id': run_id + f'-review-{completed+1}',
+                'source_ids': list(source_ids), 'fingerprint': fingerprint}
             text = "# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n" + "\n".join(
                 "- [" + l["kind"] + "] " + l["text"] + "\n  Source: " + ", ".join(l["source_ids"])
                 for l in state["lessons"]) + "\n<!-- /selfos-managed-lessons -->\n"
@@ -347,13 +357,19 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
                 'model_calls':model_calls,'history_upgraded':history_upgraded}
 
 
-def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None, selected_projects=None):
+def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_policy_hash=None, selected_projects=None,
+                    expected_privacy_hash=None):
     from selfos.storage.files import _locked
     from selfos.storage.settings import load_settings
+    from selfos.sources.selection import policy_lock
     vault, scratch = Path(vault).resolve(), Path(scratch).resolve()
     run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:12]
-    with _locked(vault):
+    with _locked(vault), policy_lock(vault):
         recover(vault)
+        if expected_privacy_hash is not None:
+            from selfos.app.privacy import selection_hash
+            if selection_hash(vault) != expected_privacy_hash:
+                raise ValueError('Privacy rules changed; restart the import')
         state_path = safe_path(vault, ".knowledge_pipeline.json")
         actual_hash = hashlib.sha256(state_path.read_bytes()).hexdigest() if state_path.exists() else 'absent'
         if expected_hash and actual_hash != expected_hash:
@@ -420,6 +436,8 @@ def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_po
             # Rebuild outputs can predate a user action. Project the latest local
             # ledger under this same lock without rewriting generated state.
             writes.update(record_writes(vault,new,corrections=ledger))
+        if expected_privacy_hash is not None and selection_hash(vault) != expected_privacy_hash:
+            raise ValueError('Privacy rules changed; restart the import')
         commit(vault, writes, run_id, 1)
     return run_id
 
