@@ -9,6 +9,30 @@ MAX_BYTES = 20 * 1024 * 1024
 TEXT_SUFFIXES = {'.txt', '.md', '.json', '.jsonl'}
 
 
+def source_metadata(message, existing=None):
+    """Keep immutable document provenance alongside ordinary source identity."""
+    if existing and existing.get('source')=='uploaded_file':
+        if message.get('source') != 'uploaded_file':
+            raise ValueError('Uploaded source identity changed')
+    fields=('path','timestamp','role','source','project_id','session_id','provenance')
+    result={key:message.get(key,'') for key in fields}
+    if message.get('source')=='uploaded_file':
+        from selfos.knowledge.filtering import content_identity
+        result['provenance']=content_identity(message)
+        existing=existing if existing and existing.get('source')=='uploaded_file' else {}
+        if existing and (any(result[key] != existing.get(key,'') for key in ('source','role'))
+                         or result['provenance'] != content_identity(existing)):
+            raise ValueError('Uploaded source identity changed')
+        for key in ('original_filename','content_sha256'):
+            if key in existing:
+                if key in message and message[key] != existing[key]:
+                    raise ValueError('Uploaded source identity changed')
+                result[key]=existing[key]
+            elif key in message:
+                result[key]=message[key]
+    return result
+
+
 class SourceUnavailable(ValueError):
     def __init__(self, code, message):
         super().__init__(message)
