@@ -26,3 +26,5 @@ Disabled sources suppress examples; legacy zeros remain uncertain; stopped stagi
 - [x] Document units/limits and request root review before integration.
 
 Validation: 103 focused and regression tests passed before the final correction-explanation addition; the final 17 report/auth/UI tests passed afterward. Synthetic Chromium smoke passed English 1280 and Chinese 390 layouts, live language switching and authenticated source reads (200). git diff --check passed. Root review/integration gate remains pending; no PR or merge.
+
+Root review corrections: deduplicated checkpoint diagnostics; separated later published recovery from unresolved failures; recorded synthesis/review success per run without overwriting historical receipts; reused bounded import-center retry eligibility; repaired cached-control refresh idempotence. Regression fixtures observed RED then GREEN. Final code `f82cec6`: 986 passed in 190.41s; final EN1280/ZH390 Chromium/source-200 checks passed. Independent re-review is pending final confirmation; no merge.
