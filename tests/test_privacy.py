@@ -125,3 +125,14 @@ def test_nested_transport_guard_rechecks_policy(tmp_path):
         save_sources(vault,{'roots':[str(root)],'exclusions':[str(root)]})
         with pytest.raises(ValueError,match='Privacy rules changed'): check_request_scope()
     check_request_scope()
+
+
+def test_legacy_allowed_import_preserves_privacy_settings(tmp_path):
+    from selfos.app.legacy_knowledge import import_knowledge
+    from selfos.sources.selection import save_sources,load_sources
+    root=tmp_path/'sources';root.mkdir();vault=tmp_path/'vault'
+    selection=save_sources(vault,{'roots':[str(root)],'exclusions':[]})
+    messages=[{'id':'a','text':'public source','path':str(root/'a.jsonl'),'source':'codex','role':'user','timestamp':'2026-01-01','project':'public'}]
+    import_knowledge(vault,messages,lambda *args:[],progress=lambda _:None)
+    assert load_sources(vault)==selection
+    assert import_knowledge(vault,messages,lambda *args:[],progress=lambda _:None)['batches']==0

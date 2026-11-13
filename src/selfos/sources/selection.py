@@ -36,7 +36,10 @@ def validate_selection(value, require_available=False):
 
 def load_sources(vault, defaults=None):
     value = read_metadata(vault, ".knowledge_sources.json")
-    if value is None:
+    # Historical import provenance used this filename before source selection.
+    legacy = isinstance(value,dict) and 'roots' not in value and all(
+        isinstance(item,dict) and 'path' in item and 'source' in item for item in value.values())
+    if value is None or legacy:
         roots = local_roots() if defaults is None else defaults
         value = {"version": 1, "roots": [str(Path(p).resolve()) for p in roots], "exclusions": []}
     return validate_selection(value)

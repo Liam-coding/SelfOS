@@ -50,7 +50,8 @@ def import_knowledge(vault, messages, generate, progress=print, max_attempts=3):
     from selfos.app.privacy import selection_hash, guard_request, permitted_source, request_scope
     selection = load_sources(vault)
     expected_privacy = selection_hash(vault)
-    enforce = (vault / '.knowledge_sources.json').exists()
+    config_path = vault / '.knowledge_sources.json'
+    enforce = config_path.exists() and 'roots' in json.loads(config_path.read_text(encoding='utf-8'))
     if enforce:
         messages = [m for m in messages if permitted_source(m,selection,vault)]
         original_generate = generate
