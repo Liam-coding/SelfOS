@@ -36,6 +36,8 @@ def _paths(value, limit):
 
 
 def validate_selection(value, require_available=False):
+    if isinstance(value, dict) and value.get('version') == 2:
+        return _validate_typed_selection(value, require_available)
     if not isinstance(value, dict) or value.get("version", 1) != 1:
         raise ValueError("Unsupported source settings")
     roots = _paths(value.get("roots"), 20)
@@ -48,6 +50,57 @@ def validate_selection(value, require_available=False):
     if value.get('privacy_exclusions'):
         result['privacy_exclusions'] = _paths(value['privacy_exclusions'], 100)
     return result
+
+
+def _validate_typed_selection(value, require_available):
+    if set(value) - {'version', 'roots', 'entries', 'exclusions', 'privacy_exclusions', 'project_exclusions'}:
+        raise ValueError('Unsupported typed source fields')
+    entries = value.get('entries')
+    if not isinstance(entries, list) or len(entries) > 20:
+        raise ValueError('Select at most twenty source entries')
+    normalized, seen = [], {}
+    for entry in entries:
+        if (not isinstance(entry, dict) or set(entry) != {'kind', 'path'}
+                or entry['kind'] not in ('directory', 'opencode_database')):
+            raise ValueError('Unsupported source adapter')
+        path = _paths([entry['path']], 1)[0]
+        if path in seen and seen[path] != entry['kind']:
+            raise ValueError('Source path has conflicting adapter kinds')
+        if require_available and not (Path(path).is_dir() if entry['kind'] == 'directory' else Path(path).is_file()):
+            raise ValueError('Selected source directory or database must exist')
+        if path not in seen:
+            normalized.append({'kind': entry['kind'], 'path': path})
+            seen[path] = entry['kind']
+    roots = [entry['path'] for entry in normalized if entry['kind'] == 'directory']
+    if 'roots' in value and _paths(value['roots'], 20) != roots:
+        raise ValueError('Compatibility roots must match directory entries')
+    exclusions = _paths(value.get('exclusions', []), 100)
+    if any(not any(Path(path).is_relative_to(Path(root)) for root in roots)
+           and not any(path == entry['path'] for entry in normalized if entry['kind'] == 'opencode_database')
+           for path in exclusions):
+        raise ValueError('Storage exclusions must be inside selected sources')
+    result = {'version': 2, 'roots': roots, 'entries': normalized, 'exclusions': exclusions,
+              'project_exclusions': _paths(value.get('project_exclusions', []), 100)}
+    if value.get('privacy_exclusions'):
+        result['privacy_exclusions'] = _paths(value['privacy_exclusions'], 100)
+    return result
+
+
+def source_entries(selection):
+    if selection.get('version', 1) == 2:
+        return [dict(entry) for entry in selection['entries']]
+    return [{'kind': 'directory', 'path': root} for root in selection['roots']]
+
+
+def project_allowed(directory, selection):
+    """Only explicit directory metadata; opaque project IDs are never paths."""
+    if not directory:
+        return not selection.get('project_exclusions')
+    if not isinstance(directory, str) or not Path(directory).is_absolute():
+        return False
+    resolved = Path(directory).resolve()
+    return not any(resolved.is_relative_to(Path(excluded)) for excluded in
+                   selection.get('project_exclusions', []) + selection.get('privacy_exclusions', []))
 
 
 def load_sources(vault, defaults=None):
@@ -77,7 +130,8 @@ def discover_sources(defaults=None):
 
 def allowed_source(path, selection):
     resolved = Path(path).resolve()
-    return (any(resolved.is_relative_to(Path(root)) for root in selection["roots"])
+    return (any(resolved == Path(entry['path']) if entry['kind'] == 'opencode_database'
+                else resolved.is_relative_to(Path(entry['path'])) for entry in source_entries(selection))
             and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"] + selection.get("privacy_exclusions", [])))
 
 

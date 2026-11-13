@@ -36,12 +36,20 @@ def permitted_source(source, selection, vault):
     path = source.get('path')
     if not path: return False
     path = resolved(path)
-    for field in ('path', 'project_id', 'project', 'cwd'):
+    directory = ''
+    for field in ('path', 'cwd', 'project_id', 'project'):
         value = source.get(field)
+        if field != 'path' and (not isinstance(value, str) or not Path(value).is_absolute()):
+            continue
+        if field != 'path' and not directory:
+            directory = value
         if value and any(resolved(value).is_relative_to(Path(rule)) for rule in selection['exclusions'] + selection.get('privacy_exclusions', [])):
             return False
+    from selfos.sources.selection import allowed_source, project_allowed
+    if (directory or source.get('source') == 'opencode') and not project_allowed(directory, selection):
+        return False
     uploads = (Path(vault)/'.knowledge_uploads/originals').resolve()
-    return path.is_relative_to(uploads) or any(path.is_relative_to(Path(root)) for root in selection['roots'])
+    return path.is_relative_to(uploads) or allowed_source(path, selection)
 
 
 def model_state(state, selection, vault):
