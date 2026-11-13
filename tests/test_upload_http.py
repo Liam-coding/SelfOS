@@ -41,7 +41,8 @@ def upload_http(tmp_path, monkeypatch):
             connection.putheader(key, value)
         connection.endheaders(body if body else None)
         response = connection.getresponse()
-        result = response.status, json.loads(response.read())
+        raw = response.read()
+        result = response.status, json.loads(raw) if 'application/json' in response.getheader('Content-Type', '') else raw.decode()
         connection.close()
         return result
     yield request, server, web.VAULT
@@ -136,3 +137,43 @@ def test_stream_timeout_leaves_no_ready_entry(upload_http, monkeypatch):
     assert request(body=b'', headers=headers)[0] == 408
     assert not list(vault.rglob('originals/*.txt'))
     assert not list(vault.rglob('incoming/*.tmp'))
+
+
+def test_selected_preview_and_original_view_are_local_only(upload_http):
+    request, _, vault = upload_http
+    raw = b'Synthetic project description. api_key=SyntheticPrivateValue'
+    _, admitted = request(body=raw)
+    identity = admitted['document']['id']
+    body = json.dumps({'ids': [identity]}).encode()
+    status, preview = request('/__knowledge_upload_preview__', body=body,
+        headers=[('Content-Type', 'application/json'), ('Content-Length', str(len(body)))])
+    assert status == 200 and preview['selected_ids'] == [identity]
+    assert len(preview['sessions']) == 1
+    status, original = request('/__knowledge_upload_source__?id=' + identity, body=b'', headers=[], method='GET')
+    assert status == 200 and '[REDACTED]' in original['text']
+    assert 'SyntheticPrivateValue' not in json.dumps(original)
+    assert (vault / admitted['document']['path']).read_bytes() == raw
+
+
+def test_excluded_original_cannot_be_viewed_through_upload_route(upload_http):
+    from selfos.sources.selection import save_sources
+    request, _, vault = upload_http
+    _, admitted = request()
+    identity = admitted['document']['id']
+    save_sources(vault, {'roots': [], 'exclusions': [],
+                        'privacy_exclusions': [str(vault / admitted['document']['path'])]})
+    assert request('/__knowledge_upload_source__?id=' + identity, body=b'', headers=[], method='GET')[0] == 403
+
+
+@pytest.mark.parametrize('query', ['upload_preview=bad', 'upload_preview=', 'upload_preview=a&upload_preview=b',
+                                  'upload_preview=a&preview=b', 'upload_preview=a&action=rebuild'])
+def test_invalid_upload_stream_never_falls_back_to_global_import(upload_http, query):
+    request, _, _ = upload_http
+    assert request('/__knowledge_stream__?' + query, body=b'', headers=[], method='GET')[0] == 400
+
+
+def test_running_job_blocks_preview_without_reading_body(upload_http, tmp_path, monkeypatch):
+    request, _, _ = upload_http
+    monkeypatch.setitem(web.KNOWLEDGE_RUN, 'stop_file', tmp_path / 'stop')
+    assert request('/__knowledge_upload_preview__', body=b'',
+                   headers=[('Content-Length', '1000'), ('Content-Type', 'application/json')])[0] == 409

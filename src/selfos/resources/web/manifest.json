@@ -1,6 +1,9 @@
 {
   "version": 1,
   "resources": [
+    "templates/uploads.html",
+    "styles/uploads.css",
+    "scripts/uploads.js",
     "scripts/account.js",
     "scripts/auth-common.js",
     "scripts/dashboard-chat.js",

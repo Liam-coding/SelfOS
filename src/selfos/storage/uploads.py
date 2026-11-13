@@ -6,6 +6,7 @@ import re
 import threading
 import uuid
 from datetime import datetime, timezone
+from contextlib import contextmanager
 from pathlib import Path
 
 from selfos.storage.files import _atomic_write, _locked
@@ -220,6 +221,13 @@ def recover_uploads(vault):
         _recover(root)
 
 
+@contextmanager
+def upload_lock(vault):
+    """Serialize external publication with admission's thread/filesystem locks."""
+    with _THREAD_LOCK, _locked(upload_root(vault)):
+        yield
+
+
 def discard_transfer(vault, temporary):
     """Remove this transfer only; a durable intent owns its staged bytes."""
     root = upload_root(vault)
@@ -246,3 +254,18 @@ def list_documents(vault, offset=0, limit=50):
         _recover(root)
         rows = sorted(_registry(root), key=lambda row: (row['uploaded_at'], row['id']), reverse=True)
         return {'items': rows[offset:offset + limit], 'total': len(rows), 'offset': offset, 'limit': limit}
+
+
+def get_document(vault, identity):
+    if not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{64}', identity):
+        raise ValueError('Invalid document identity')
+    root = upload_root(vault)
+    with _THREAD_LOCK, _locked(root):
+        _recover(root)
+        path = upload_path(root, 'registry/' + identity + '.json')
+        if not path.is_file():
+            raise ValueError('Uploaded document is unavailable')
+        row = _entry(_read(root, path))
+        if row['id'] != identity:
+            raise ValueError('Upload registry identity mismatch')
+        return row

@@ -13,6 +13,8 @@ class DashboardRoutes:
         parsed_path=urlparse(self.path)
         if parsed_path.path == '/__knowledge_uploads__':
             return self._upload_list()
+        if parsed_path.path == '/__knowledge_upload_source__':
+            return self._upload_source()
         if parsed_path.path == '/__knowledge_usage__':
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
@@ -124,6 +126,17 @@ class DashboardRoutes:
             cmd = command('knowledge' if knowledge else 'harvest', self.runtime.ROOT)
             if knowledge:
                 cmd.extend(['--vault', str(self.runtime.VAULT)])
+                if 'upload_preview' in qs:
+                    try:
+                        if len(qs['upload_preview']) != 1 or 'preview' in qs or 'action' in qs:
+                            raise ValueError('Invalid document preview request')
+                        from selfos.app.upload_preview import resolve_upload_preview
+                        document_preview = resolve_upload_preview(self.runtime.VAULT, qs['upload_preview'][0])
+                        if not document_preview['sessions']:
+                            raise ValueError('Document preview has no pending work')
+                        cmd.extend(['--upload-preview', document_preview['id']])
+                    except (ValueError, OSError, TypeError, KeyError):
+                        return self._send_json(400, {'code': 'upload_preview_invalid'})
                 if 'preview' in qs:
                     try:
                         if len(qs['preview']) != 1 or qs.get('action', [''])[0] == 'rebuild':

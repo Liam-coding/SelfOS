@@ -9,6 +9,8 @@ class ActionsRoutes:
             return self._upload_post()
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
+        if self.path == '/__knowledge_upload_preview__':
+            return self._upload_preview()
         if self.path == '/__knowledge_budget__':
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:

@@ -1,6 +1,7 @@
 """Authenticated raw-file transfer without the generic buffered body reader."""
 import re
 import time
+import json
 from urllib.parse import parse_qs, unquote, urlsplit
 
 UPLOAD_TIMEOUT = 30
@@ -79,7 +80,41 @@ class UploadRoutes:
         except ValueError:
             return self._send_json(400, {'code': 'upload_invalid_page'})
         try:
-            from selfos.storage.uploads import list_documents
-            return self._send_json(200, list_documents(self.runtime.VAULT, offset, limit))
+            from selfos.app.uploads import upload_status
+            return self._send_json(200, upload_status(self.runtime.VAULT, offset, limit))
         except (OSError, ValueError):
             return self._send_json(503, {'code': 'upload_registry_unavailable'})
+
+    def _upload_preview(self):
+        self.close_connection = True
+        with self.runtime.KNOWLEDGE_RUN_LOCK:
+            if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                return self._send_json(409, {'code': 'upload_import_active'})
+            try:
+                lengths = self.headers.get_all('Content-Length', [])
+                if len(lengths) != 1 or not re.fullmatch('[0-9]{1,5}', lengths[0]) or not 0 < int(lengths[0]) <= 8192:
+                    raise ValueError('Invalid preview size')
+                if self.headers.get_all('Transfer-Encoding'):
+                    raise ValueError('Invalid preview encoding')
+                body = json.loads(self._read_body())
+                if not isinstance(body, dict) or set(body) != {'ids'}:
+                    raise ValueError('Invalid document selection')
+                from selfos.app.uploads import upload_preview
+                return self._send_json(200, upload_preview(self.runtime.VAULT, body['ids']))
+            except (ValueError, TypeError, KeyError):
+                return self._send_json(400, {'code': 'upload_preview_invalid'})
+            except (OSError, RuntimeError):
+                return self._send_json(503, {'code': 'upload_preview_unavailable'})
+
+    def _upload_source(self):
+        try:
+            query = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
+            if set(query) - {'id', 'offset', 'limit'} or any(len(values) != 1 for values in query.values()):
+                raise ValueError('Invalid source request')
+            from selfos.app.uploads import upload_source
+            result = upload_source(self.runtime.VAULT, query.get('id', [''])[0],
+                                   int(query.get('offset', ['0'])[0]), int(query.get('limit', ['24000'])[0]))
+            return self._send_json(200, result)
+        except (ValueError, OSError) as error:
+            code = getattr(error, 'code', 'upload_source_unavailable')
+            return self._send_json(403 if code == 'upload_excluded' else 400, {'code': code})

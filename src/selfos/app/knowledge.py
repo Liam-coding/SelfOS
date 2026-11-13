@@ -27,17 +27,18 @@ from selfos.app.knowledge_status import _state, _saved_summaries, get_status
 
 def run_knowledge(vault, *, roots=None, summarize=None, refine=None, rebuild=False,
                   cancel=lambda: False, progress=lambda _: None, max_workers=3,
-                  selected_messages=None, selected_sessions=None, sample_id=None):
+                  selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None):
     # The job lock is separate from the canonical and staging commit locks.
     # It serializes imports while allowing the UI to signal cancellation.
     with _locked(Path(vault).resolve() / '.knowledge_jobs'):
         return _run_knowledge(vault, roots=roots, summarize=summarize, refine=refine,
             rebuild=rebuild, cancel=cancel, progress=progress, max_workers=max_workers,
-            selected_messages=selected_messages, selected_sessions=selected_sessions, sample_id=sample_id)
+            selected_messages=selected_messages, selected_sessions=selected_sessions, sample_id=sample_id,
+            upload_preview_id=upload_preview_id)
 
 
 def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress, max_workers,
-                   selected_messages=None, selected_sessions=None, sample_id=None):
+                   selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None):
     from selfos.providers.knowledge import api_summarizer, api_refiner
     vault = Path(vault).resolve()
     with _locked(vault):
@@ -48,7 +49,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         expected = hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else 'absent'
         mode = 'rebuild' if rebuild or (previous and (previous.get('schema_version') != VERSION or
             previous.get('policy_hash') != policy_hash(settings))) else 'incremental'
-        scoped = sample_id is not None or selected_messages is not None or selected_sessions is not None
+        scoped = sample_id is not None or selected_messages is not None or selected_sessions is not None or upload_preview_id is not None
         if scoped:
             mode = 'incremental'
         operation = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:12]
@@ -80,6 +81,12 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             selected_sessions = preview['sessions']
             budget = SampleBudget(vault, sample_id)
             budget_used_at_start = budget.status()['used']
+        if upload_preview_id is not None:
+            if sample_id is not None or selected_messages is not None or selected_sessions is not None:
+                raise ValueError('Document preview cannot be mixed with another selection')
+            from selfos.app.upload_preview import resolve_upload_preview
+            upload_preview = resolve_upload_preview(vault, upload_preview_id)
+            selected_sessions = upload_preview['sessions']
         if roots is None and (vault / '.knowledge_sources.json').exists() and selected_sessions is None:
             from selfos.sources.selection import load_sources, allowed_source
             selection = load_sources(vault)
@@ -112,7 +119,8 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         from selfos.app.budget import read_budget, model_identity
         from selfos.storage.usage import RequestUsage
         allowance = read_budget(vault, vault.parent)
-        usage = RequestUsage(vault, sample_id or checkpoint[:32], None if budget is not None else allowance['max_requests'],
+        request_limit = min(allowance['max_requests'], upload_preview['budget_limit']) if upload_preview_id else allowance['max_requests']
+        usage = RequestUsage(vault, sample_id or upload_preview_id or checkpoint[:32], None if budget is not None else request_limit,
                              delegate=budget, model_identity=model_identity(vault.parent))
         usage_used_at_start = usage.status()['used']
         usage.timer(True)
@@ -149,10 +157,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                         _atomic_write(safe_path(scratch, name), original.read_bytes())
         # Repair missing upload metadata in staging before cached refinement
         # fingerprints are checked. Existing immutable identities cannot change.
-        from selfos.sources.documents import source_metadata, document_source
+        from selfos.sources.documents import source_metadata, document_source, document_text, DOCUMENT_FIELDS
         document_state = _state(scratch)
         metadata_changed = False
         verified_documents = set()
+        immutable_documents = {}
         def original_path(source):
             value = Path(source.get('path', '').replace(chr(92), '/'))
             return (value if value.is_absolute() else vault / value).resolve()
@@ -169,7 +178,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                 if (any(known_identity.get(key, '') != incoming.get(key, '') for key in ('source', 'role', 'provenance'))
                         or original_path(known) != original_path(incoming)):
                     raise ValueError('Uploaded source identity changed')
-                for key in ('content_sha256', 'original_filename'):
+                for key in ('content_sha256', 'original_filename', *DOCUMENT_FIELDS):
                     if key in known and key in incoming and known[key] != incoming[key]:
                         raise ValueError('Uploaded source identity changed')
                     if key not in candidate and key in incoming:
@@ -179,6 +188,7 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             if verification is None or verification not in verified_documents:
                 document_source(vault, candidate, limit=1)
                 verified_documents.add(verification)
+                immutable_documents[verification] = candidate
             if known and candidate != known:
                 document_state['sources'][message['id']] = candidate
                 metadata_changed = True
@@ -217,6 +227,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             result['status'] = 'stopped'
             return result
         staged_state_path = scratch / '.knowledge_pipeline.json'
+        if upload_preview_id is not None:
+            from selfos.storage.upload_receipts import add_receipts
+            staged = _state(scratch)
+            add_receipts(staged, sessions, policy_hash(settings), operation)
+            _atomic_write(staged_state_path, json.dumps(staged, ensure_ascii=False, indent=2).encode())
         staged_hash = hashlib.sha256(staged_state_path.read_bytes()).hexdigest() if staged_state_path.exists() else 'absent'
         if mode == 'incremental' and not imported['run_id'] and not refined['run_id'] and staged_hash == expected:
             return result
@@ -247,6 +262,10 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if not (scratch / '05_Life/lessons.md').exists():
             _atomic_write(scratch / '05_Life/lessons.md', b'# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n<!-- /selfos-managed-lessons -->\n')
         if selection_hash(vault) != privacy_hash: raise ValueError('Privacy rules changed; restart the import')
+        # Originals may have changed while the model was running. Verify once per
+        # original again before any canonical knowledge/receipt publication.
+        for source in immutable_documents.values():
+            document_text(vault, source)
         journal.update(phase='publishing')
         install_rebuilt(vault, scratch, expected_hash=expected, run_id=operation,
                         expected_policy_hash=policy_hash(settings), selected_projects=selected_projects,

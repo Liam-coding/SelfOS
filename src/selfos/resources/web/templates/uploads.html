@@ -1,0 +1,22 @@
+<!-- selfos-uploads-start -->
+<button id="uploads-open" class="harvest-btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg> <span data-i18n="upload.open">Upload documents</span></button>
+<style>@@SELFOS_RESOURCE:styles/uploads.css@@</style>
+<dialog id="uploads-dialog" aria-labelledby="uploads-title">
+  <header><div><p class="uploads-eyebrow" data-i18n="upload.eyebrow">YOUR SOURCES</p><h2 id="uploads-title" data-i18n="upload.open">Upload documents</h2></div><button id="uploads-close" type="button" data-i18n="upload.close">Close</button></header>
+  <p class="uploads-muted" data-i18n="upload.local_only">Files are saved locally. Only Organize selected sends eligible excerpts to your configured model.</p>
+  <div id="uploads-drop" tabindex="0" role="group" aria-labelledby="uploads-drop-title">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 14h6m-3-3v6"/></svg>
+    <strong id="uploads-drop-title" data-i18n="upload.drop">Drop your documents here</strong>
+    <span class="uploads-muted" data-i18n="upload.formats">UTF-8 .txt or .md · up to 20 MiB each · 10 files at a time</span>
+    <button id="uploads-choose" type="button" data-i18n="upload.choose">Choose files</button>
+    <label class="uploads-hidden-label" for="uploads-files" data-i18n="upload.choose">Choose files</label><input id="uploads-files" type="file" multiple accept=".txt,.md" hidden>
+  </div>
+  <div id="uploads-queue" aria-live="polite"></div>
+  <p id="uploads-status" role="status" aria-live="polite"></p>
+  <section aria-labelledby="uploads-library-title"><div class="uploads-section-header"><h3 id="uploads-library-title" data-i18n="upload.retained">Retained documents</h3><span id="uploads-selection" class="uploads-muted"></span></div><div id="uploads-list"></div><button id="uploads-more" type="button" hidden data-i18n="upload.more">Load more</button></section>
+  <section id="uploads-source" hidden aria-labelledby="uploads-source-title"><div class="uploads-section-header"><h3 id="uploads-source-title" data-i18n="upload.original">Original document</h3><button id="uploads-source-close" type="button" data-i18n="upload.close_original">Close original</button></div><p class="uploads-muted" data-i18n="upload.redacted">Source viewing hides detected sensitive values. Original bytes remain unchanged.</p><pre id="uploads-source-text"></pre><button id="uploads-source-more" type="button" hidden data-i18n="upload.more_text">Read more</button></section>
+  <div class="uploads-processing"><p id="uploads-model" class="uploads-muted"></p><p id="uploads-preview-summary" role="status"></p></div>
+  <footer><button id="uploads-cancel" type="button" hidden data-i18n="upload.cancel_upload">Cancel upload</button><div class="uploads-actions"><button id="uploads-preview" type="button" disabled data-i18n="upload.preview">Prepare selected</button><button id="uploads-organize" class="uploads-primary" type="button" disabled data-i18n="upload.organize">Organize selected</button></div></footer>
+</dialog>
+<script>@@SELFOS_RESOURCE:scripts/uploads.js@@</script>
+<!-- selfos-uploads-end -->
