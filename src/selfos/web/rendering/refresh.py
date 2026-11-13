@@ -17,7 +17,7 @@ def refresh_dashboard(page):
         script=match[0]
         markers=('id="selfos-i18n"', 'let isDark', 'let knowledgeOperation',
                  'function openAppSettings', 'window.browseKnowledge',
-                 'function updateKnowledgeOverview', 'function authRequest', 'const selfosFetch', 'window.openProjectTimeline')
+                 'function updateKnowledgeOverview', 'function authRequest', 'const selfosFetch', 'window.openProjectTimeline', 'let privacySelection')
         return '' if any(marker in script for marker in markers) else script
     page=re.sub(r'<script\b[^>]*>.*?</script>',strip_script,page,flags=re.S)
     def remove(pattern):
@@ -31,7 +31,7 @@ def refresh_dashboard(page):
     remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')
     remove(r'<!-- selfos-quality-start -->.*?<!-- selfos-quality-end -->')
-    for identity in ('project-timeline','kb-detail','knowledge-settings','app-settings','model-settings','auth-change'):
+    for identity in ('project-timeline','kb-detail','knowledge-settings','app-settings','model-settings','auth-change','privacy-settings'):
         remove(r'<dialog id="'+identity+r'"[^>]*>.*?</dialog>')
     for identity in ('model-settings-entry','auth-account-buttons'):
         remove(r'<div id="'+identity+r'"[^>]*>.*?</div>')
@@ -49,6 +49,8 @@ def refresh_dashboard(page):
         else:missing+=component
     if body_start>0:page=page[:body_start]+missing+page[body_start:]
     page=overall.integrate_overall(page)
+    remove(r'<style id="selfos-shared-controls">.*?</style>')
+    remove(r'<style id="selfos-design-tokens">.*?</style>')
     page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:overall.STYLE,page,count=1,flags=re.S)
     template=frontend_text('templates/dashboard-page.html')
     main=next(match[0] for match in re.finditer(r'<script\b[^>]*>.*?</script>',template,re.S) if 'let isDark' in match[0])
@@ -56,5 +58,6 @@ def refresh_dashboard(page):
     if '<!--selfos-controls-anchor-->' in page:page=page.replace('<!--selfos-controls-anchor-->',knowledge.CONTROLS,1)
     else:controls=knowledge.CONTROLS+controls
     page=page.replace('</body>',controls+'</body>',1)
-    page=page.replace('</head>',runtime()+'</head>',1)
+    tokens='<style id="selfos-design-tokens">'+frontend_text('styles/tokens.css')+'</style>'
+    page=page.replace('</head>',tokens+runtime()+'</head>',1)
     return page

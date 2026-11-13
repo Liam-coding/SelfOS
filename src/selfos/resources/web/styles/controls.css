@@ -1,0 +1,88 @@
+/* Shared controls and surfaces, including legacy panels. */
+
+body,button,input,select,textarea { font-family:var(--font-ui); }
+button,input,select,textarea { font-size:13px; }
+button { transition:background .18s,border-color .18s,box-shadow .18s; }
+:is(body,body.dark) .modal,:is(body,body.dark) .chat-panel { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+:is(body,body.dark) .modal { width:min(520px,calc(100vw - 32px)); max-width:520px; padding:28px; max-height:calc(100dvh - 40px); overflow:auto; }
+:is(body,body.dark) .modal-title,:is(body,body.dark) .progress-title { font-size:22px; font-weight:650; letter-spacing:-.5px; color:var(--text); }
+:is(body,body.dark) .modal-body { color:var(--muted); font-size:13px; line-height:1.8; }
+:is(body,body.dark) .modal-icon { width:52px; height:52px; display:grid; place-items:center; margin:0 auto 16px; border-radius:16px; background:var(--soft); font-size:24px; }
+:is(body,body.dark) .modal-steps,:is(body,body.dark) .dim-modal-sugg,:is(body,body.dark) .progress-log,:is(body,body.dark) .staging-file-item { background:var(--soft); color:var(--muted); border:1px solid var(--line); border-radius:14px; padding:16px; }
+:is(body,body.dark) .modal-steps li,:is(body,body.dark) .staging-file-name { color:var(--text); font-size:13px; font-weight:550; }
+:is(body,body.dark) .staging-file-target { color:var(--muted); }
+:is(body,body.dark) .modal-cancel,:is(body,body.dark) .staging-skip,:is(body,body.dark) .chat-collapse-btn { color:var(--muted); background:var(--soft); border:1px solid var(--line); }
+.modal-actions button,.staging-actions button,.progress-done-btn,.dim-modal-chat { border-radius:12px; min-height:42px; padding:11px 16px; font-size:13px; font-weight:600; }
+:is(body,body.dark) .modal-confirm,:is(body,body.dark) .staging-apply-all,:is(body,body.dark) .progress-done-btn,:is(body,body.dark) .dim-modal-chat,:is(body,body.dark) .chat-send { background:var(--action-bg); color:var(--action-text); }
+:is(body,body.dark) .modal-confirm-full { background:var(--soft); color:var(--text); border:1px solid var(--line); }
+.progress-modal { max-width:580px!important; }
+:is(body,body.dark) .progress-bar-wrap { background:var(--soft); height:8px; }
+.progress-bar-fill { background:var(--blue); }
+.progress-log { height:180px; font-size:12px; line-height:1.8; overflow-wrap:anywhere; }
+.dim-modal-score { font-size:56px; font-weight:650; letter-spacing:-2px; font-variant-numeric:tabular-nums; }
+:is(body,body.dark) .dim-modal-status { color:var(--muted); font-size:13px; }
+:is(body,body.dark) .card { background:var(--surface); border-radius:var(--radius); }
+:is(body,body.dark) .dim-label { color:var(--muted); font-size:12px; letter-spacing:.06em; margin-bottom:14px; }
+:is(body,body.dark) .ring-score { color:var(--text); font-size:26px; font-weight:650; }
+:is(body,body.dark) .ring-bg { stroke:var(--line); }
+.dim-status { font-size:13px; margin-bottom:8px; }
+:is(body,body.dark) .dim-suggestion { font-size:12px; line-height:1.8; color:var(--muted); }
+.chat-panel { width:360px; height:min(560px,calc(100dvh - 48px)); }
+:is(body,body.dark) .chat-header,:is(body,body.dark) .chat-input-row { border-color:var(--line); padding:16px; }
+:is(body,body.dark) .chat-header-title { color:var(--text); font-size:13px; }
+:is(body,body.dark) .chat-header-sub { color:var(--muted); }
+.chat-messages { padding:18px; gap:12px; }
+.msg { font-size:13px; line-height:1.8; border-radius:16px; padding:12px 14px; }
+:is(body,body.dark) .msg-ai { background:var(--soft); color:var(--text); }
+:is(body,body.dark) .msg-user { background:var(--action-bg); color:var(--action-text); }
+:is(body,body.dark) .chat-input { background:var(--soft); color:var(--text); border:1px solid var(--control-line); border-radius:var(--radius-control); padding:11px 12px; min-width:0; }
+.chat-input:focus { border-color:var(--blue)!important; }
+.chat-send { border-radius:12px; }
+:is(body,body.dark) #knowledge-settings,:is(body,body.dark) #app-settings,:is(body,body.dark) #model-settings,:is(body,body.dark) #kb-detail { background:var(--panel)!important; color:var(--text); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--line); max-height:calc(100dvh - 40px); overflow:auto; }
+#app-settings h3,#model-settings h3,#knowledge-settings h3,.kb-detail-content h2 { font-size:22px; font-weight:650; letter-spacing:-.5px; }
+#app-settings p { font-size:13px; line-height:1.8; color:var(--muted); }
+#app-settings select,#model-settings input:not([type=checkbox]),#model-settings select,#knowledge-settings input:not([type=checkbox]),#knowledge-settings select { background:var(--soft)!important; color:var(--text); border:1px solid var(--line); padding:11px 12px; border-radius:12px; }
+#app-settings button,#model-settings button,#knowledge-settings > button { min-height:42px; border-radius:12px; font-size:13px; padding:11px 16px; }
+#app-settings .harvest-btn { background:var(--soft); color:var(--text); border:1px solid var(--line); }
+.knowledge-library { box-shadow:0 3px 16px rgba(38,59,96,.035); }
+.kb-list .kb-card { background:var(--panel); box-shadow:0 3px 16px rgba(38,59,96,.035); }
+.kb-list .kb-card:hover { box-shadow:0 10px 24px rgba(38,59,96,.08); }
+.kb-detail-content h3 { font-size:15px; font-weight:600; margin:22px 0 8px; }
+.kb-detail-content pre { background:var(--soft); font-size:13px; }
+:is(body,body.dark) footer { color:var(--muted); padding:20px 0; font-size:11px; }
+@media(max-width:700px) { :is(body,body.dark) .modal { padding:24px 20px; } .modal-actions,.staging-actions { flex-wrap:wrap; } .chat-panel { width:calc(100vw - 32px); max-width:360px; right:16px; bottom:16px; } .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .dim-label { font-size:11px; } }
+
+/* Interactive roles shared by standalone auth and dashboard feature panels. */
+:where(button,input,select,textarea,a,[tabindex]):focus-visible {
+  outline:var(--focus-width) solid var(--focus)!important; outline-offset:var(--focus-offset);
+}
+body :is(.auth-card,#app-settings,#model-settings,#knowledge-settings,#knowledge-library,#kb-detail,#onboarding-dialog,#privacy-settings) :is(input:not([type=checkbox]):not([type=file]),select,textarea) {
+  font-family:var(--font-ui); color:var(--text); border:1px solid var(--control-line);
+  border-radius:var(--radius-control); background:var(--soft); max-width:100%;
+}
+body :is(.auth-card,#app-settings,#model-settings,#knowledge-settings,#knowledge-library,#kb-detail,#onboarding-dialog,#privacy-settings) button:not(.kb-card) {
+  font-family:var(--font-ui); color:var(--text); background:var(--soft);
+  border:1px solid var(--control-line); border-radius:var(--radius-control); cursor:pointer;
+}
+body :is(.auth-card,#app-settings,#model-settings,#knowledge-settings,#knowledge-library,#kb-detail,#onboarding-dialog,#privacy-settings) button:not(.kb-card):disabled {
+  opacity:.5; cursor:wait;
+}
+body :is(.auth-card,#model-settings,#onboarding-dialog) button[type=submit],
+body .auth-card button,body #knowledge-btn,body .knowledge-primary,
+body .kb-tabs button[aria-pressed=true],body .modal-confirm,body .chat-send {
+  background:var(--action-bg); color:var(--action-text);
+}
+body .settings-signout { color:var(--red); }
+:is(body,body.dark) .header-btns #knowledge-btn { background:var(--action-bg); color:var(--action-text); }
+.selfos-controls { margin:var(--space-4) 0; padding:var(--space-4); border:1px solid var(--line); border-radius:var(--radius-control); min-width:0; }
+#privacy-settings { margin:auto; padding:var(--space-6); width:min(650px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+#privacy-settings::backdrop { background:rgba(31,42,66,.3); backdrop-filter:blur(6px); }
+
+:is(body,body.dark) .knowledge-library .kb-tabs button[aria-pressed=true] { background:var(--action-bg); color:var(--action-text); }
+body .kb-category,body #import-publication summary { color:var(--text-accent); }
+
+body #import-publication button,body #knowledge-quality button,.onboarding-welcome button {
+  border:1px solid var(--control-line); border-radius:var(--radius-control); background:var(--soft); color:var(--text); cursor:pointer;
+}
+body #app-settings :is(.settings-action,.settings-close) { border:1px solid var(--control-line); border-radius:var(--radius-control); background:var(--soft); color:var(--text); }
+body #app-settings button.settings-signout { color:var(--red); }

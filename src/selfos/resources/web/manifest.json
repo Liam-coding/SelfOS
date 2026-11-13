@@ -54,6 +54,8 @@
     "scripts/privacy.js",
     "templates/knowledge-quality.html",
     "styles/knowledge-quality.css",
-    "scripts/knowledge-quality.js"
+    "scripts/knowledge-quality.js",
+    "styles/tokens.css",
+    "styles/controls.css"
   ]
 }
