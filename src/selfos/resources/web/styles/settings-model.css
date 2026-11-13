@@ -8,6 +8,10 @@
 #model-settings button[type=submit] { background:var(--blue,#2474db); color:white; }
 #model-settings button:disabled { opacity:.5; cursor:wait; }
 #model-status { overflow-wrap:anywhere; color:var(--muted,#555); }
+.model-discovery { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+#model-available { width:100%; min-width:0; }
+#model-list-status { width:100%; overflow-wrap:anywhere; color:var(--muted,#555); }
+#model-settings input:not([type=checkbox]),#model-settings select { box-sizing:border-box; }
 
 #app-settings { box-sizing:border-box; margin:auto; background:var(--bg,#fff); color:var(--text,#222); border:1px solid var(--line,#ccc); border-radius:18px; padding:24px; width:min(440px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; box-shadow:0 24px 80px rgba(19,44,88,.2); }
 #app-settings h3 { margin:0 0 22px; font-size:22px; }

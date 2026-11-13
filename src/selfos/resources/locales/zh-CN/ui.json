@@ -237,5 +237,15 @@
   "overview.eyebrow": "\u4e2a\u4eba\u77e5\u8bc6",
   "chat.send": "\u53d1\u9001\u6d88\u606f",
   "model.anthropic_messages": "Anthropic Messages",
-  "model.openai_compatible": "OpenAI \u517c\u5bb9\u63a5\u53e3"
+  "model.openai_compatible": "OpenAI \u517c\u5bb9\u63a5\u53e3",
+  "model.load_models": "加载可用模型",
+  "model.available_models": "可用模型",
+  "model.choose_model": "选择模型",
+  "model.list_hint": "使用当前设置加载模型，也可手动输入模型名称。",
+  "model.list_loading": "正在加载可用模型...",
+  "model.list_empty": "未返回模型。你可以手动输入模型名称。",
+  "model.list_loaded": "有 {count} 个可用模型。选择一个，或保留手动输入。",
+  "model.list_unsupported": "此接口不支持模型发现，请手动输入模型名称。",
+  "model.list_invalid": "请检查接口、基础地址、密钥和代理设置后重试。",
+  "model.list_failed": "无法加载模型。请检查地址、密钥和代理，或手动输入模型名称。"
 }
