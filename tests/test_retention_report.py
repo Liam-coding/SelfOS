@@ -278,3 +278,26 @@ def test_report_retry_eligibility_matches_import_center(tmp_path):
         reported = next(j for j in report.quality_report(tmp_path)['jobs'] if j['id'] == old)
         existing = next(j for j in publication_status(tmp_path, canonical, DEFAULT_SETTINGS)['operations'] if j['id'] == old)
         assert reported['retryable'] == existing['resume_eligible'] == compatible
+
+
+def test_later_refinement_preserves_historical_recovery_evidence(tmp_path):
+    from selfos.app.pipeline import consolidate_sessions, refine_projects
+    from tests.test_project_knowledge_contract import session, summary
+    consolidate_sessions(tmp_path, [session()], summary, max_workers=1)
+    calls = 0
+    def refine(payload):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise ValueError('Invalid JSON during synthesis')
+        return dict(project=payload['project'], lessons=[], _lesson_review_errors=[
+            dict(batch_start=0, attempt=1, error='Invalid routing JSON', raw_response='synthetic')] if calls == 2 else [])
+    refine_projects(tmp_path, refine)
+    assert report.quality_report(tmp_path)['categories']['preferences']['explanation'] == 'reviewed_zero'
+    state = json.loads((tmp_path / '.knowledge_pipeline.json').read_text(encoding='utf-8'))
+    state['refined'] = {}
+    save(tmp_path, state)
+    refine_projects(tmp_path, refine)
+    data = report.quality_report(tmp_path)
+    assert data['categories']['preferences']['explanation'] == 'reviewed_zero'
+    assert all(e['reason'] == 'recovered_attempt' for e in data['examples'] if e['stage'] == 'validation')
