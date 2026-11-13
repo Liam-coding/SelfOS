@@ -67,7 +67,7 @@ Return all verdicts together through one review_retention tool call.'''
         elif action=='project_history':
             historical={**record,'original_category':category,'temporal':'historical'}
             output.setdefault('history',[]).append(historical)
-        audit.append({**verdict,'reason':redact(verdict['reason'])[:400],'source_ids':record['source_ids']})
+        audit.append({**verdict,'category':category,'reason':redact(verdict['reason'])[:400],'source_ids':record['source_ids']})
     output['_retention_review']=audit
     output['_additional_api_calls']=1
     return output

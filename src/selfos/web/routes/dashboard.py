@@ -15,6 +15,14 @@ class DashboardRoutes:
             from selfos.app.privacy import privacy_status
             try: return self._send_json(200,privacy_status(self.runtime.VAULT,self.runtime.ROOT))
             except (ValueError,OSError): return self._send_json(503,{'code':'privacy_unavailable'})
+        if parsed_path.path == '/__knowledge_quality__':
+            origin=self.headers.get('Origin');host=self.headers.get('Host','')
+            if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
+                return self._send_json(403, {'code':'quality_forbidden'})
+            from selfos.app.quality_report import quality_report
+            try:return self._send_json(200, quality_report(self.runtime.VAULT))
+            except (ValueError,OSError,TypeError,AttributeError,KeyError):
+                return self._send_json(503, {'code':'quality_unavailable'})
         if parsed_path.path == '/__onboarding__':
             try:
                 from selfos.app.onboarding import onboarding_status

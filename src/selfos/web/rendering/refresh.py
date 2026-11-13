@@ -30,6 +30,7 @@ def refresh_dashboard(page):
     remove(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->')
     remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')
+    remove(r'<!-- selfos-quality-start -->.*?<!-- selfos-quality-end -->')
     for identity in ('project-timeline','kb-detail','knowledge-settings','app-settings','model-settings','auth-change'):
         remove(r'<dialog id="'+identity+r'"[^>]*>.*?</dialog>')
     for identity in ('model-settings-entry','auth-account-buttons'):

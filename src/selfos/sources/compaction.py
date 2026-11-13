@@ -40,15 +40,25 @@ def canonical_project(identity):
 
 
 
-def prepare_sessions(messages, max_chars=12000, cancel=lambda: False, aliases=None):
+def prepare_sessions(messages, max_chars=12000, cancel=lambda: False, aliases=None, audit=None):
     if max_chars < 1:
         raise ValueError("max_chars must be positive")
     groups = defaultdict(dict)
+    if audit is not None:
+        audit.update(input_messages=0, filtered_messages=0, examples=[])
     for raw in messages:
         if cancel():
             break
         m = compact_message(raw)
+        if audit is not None:
+            audit['input_messages'] += 1
         if m is None:
+            if audit is not None:
+                from selfos.knowledge.filtering import transient_only
+                audit['filtered_messages'] += 1
+                if len(audit['examples']) < 10:
+                    audit['examples'].append({'source_ids':[raw['id']], 'reason':
+                        'transient_content' if transient_only(raw.get('text','')) else 'runtime_content'})
             continue
         m["project_id"] = canonical_project(raw.get("project_id") or raw.get("project") or "unknown")
         if aliases:
