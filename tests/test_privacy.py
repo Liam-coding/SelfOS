@@ -421,4 +421,3 @@ def test_interrupted_cleanup_blocks_config_replacement_during_ownership_check(tm
     assert not (tmp_path / '.selfos-model.json').exists()
     save_config(tmp_path, dict(model='after-cleanup', api_key='synthetic-key'))
     assert json.loads((tmp_path / '.selfos-model.json').read_text())['api_key'] == 'synthetic-key'
-
