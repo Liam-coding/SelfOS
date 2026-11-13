@@ -15,10 +15,15 @@
 <dialog id="model-settings" style="background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:24px;width:min(540px,90vw)">
   <h3 data-i18n="ui.model.model_and_network">Model and network</h3>
   <p data-i18n="ui.model.imports_project_refinement_and_chat_share_this_configuration_keys_stay_o">Imports, project refinement and chat share this configuration. Keys stay on the local server. Leave the key blank to keep it.</p>
-  <form onsubmit="event.preventDefault();saveModelSettings(false)">
+  <form onsubmit="event.preventDefault();saveModelSettings(false)" oninput="modelDiscoveryDraftChanged(event)" onchange="modelDiscoveryDraftChanged(event)">
     <p><label><span data-i18n="ui.model.interface">Interface</span> <select id="model-provider" onchange="changeModelProvider()"><option value="anthropic" data-i18n="ui.model.anthropic_messages">Anthropic Messages</option><option value="openai" data-i18n="ui.model.openai_compatible">OpenAI-compatible</option></select></label></p>
     <p><label><span data-i18n="ui.model.base_url">Base URL</span> <input id="model-base" type="url" required style="width:100%"></label></p>
     <p><label><span data-i18n="ui.model.model_name">Model name</span> <input id="model-name" required placeholder="For example: claude-haiku-4-5-20251001 / gpt-4.1-mini" data-i18n-placeholder="ui.model.name_placeholder" style="width:100%"></label></p>
+    <div class="model-discovery">
+      <button id="model-load-models" type="button" onclick="loadAvailableModels()" data-i18n="ui.model.load_models">Load available models</button>
+      <select id="model-available" hidden onchange="chooseAvailableModel()" aria-label="Available models" data-i18n-aria-label="ui.model.available_models"></select>
+      <p id="model-list-status" role="status" aria-live="polite"></p>
+    </div>
     <p><label><span data-i18n="ui.model.api_key">API key</span> <input id="model-key" type="password" autocomplete="new-password" placeholder="Leave blank to keep the saved key" data-i18n-placeholder="ui.model.key_placeholder" style="width:100%"></label></p>
     <p><label><input id="model-clear-key" type="checkbox"><span data-i18n="ui.model.clear_saved_key_optional_for_local_models">Clear saved key (optional for local models)</span></label></p>
     <p><label><span data-i18n="ui.model.proxy">Proxy</span> <select id="model-proxy-mode" onchange="updateModelProxy()"><option value="auto" data-i18n="ui.model.auto_environment_system_proxy">Auto: environment / system proxy</option><option value="manual" data-i18n="ui.model.manual_http_s_proxy">Manual HTTP(S) proxy</option><option value="direct" data-i18n="ui.model.direct">Direct</option></select></label></p>

@@ -234,5 +234,15 @@
   "overview.eyebrow": "Personal Intelligence",
   "chat.send": "Send message",
   "model.anthropic_messages": "Anthropic Messages",
-  "model.openai_compatible": "OpenAI-compatible"
+  "model.openai_compatible": "OpenAI-compatible",
+  "model.load_models": "Load available models",
+  "model.available_models": "Available models",
+  "model.choose_model": "Choose a model",
+  "model.list_hint": "Load models using the current settings, or enter a model name manually.",
+  "model.list_loading": "Loading available models...",
+  "model.list_empty": "No models were returned. You can enter a model name manually.",
+  "model.list_loaded": "{count} models available. Select one or keep your manual entry.",
+  "model.list_unsupported": "This endpoint does not support model discovery. Enter a model name manually.",
+  "model.list_invalid": "Check the interface, base URL, key and proxy settings, then retry.",
+  "model.list_failed": "Could not load models. Check the endpoint, key and proxy, or enter a model name manually."
 }

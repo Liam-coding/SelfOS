@@ -34,7 +34,7 @@ def load_config(root):
     return c
 
 
-def save_config(root, patch):
+def resolve_config(root, patch):
     if not isinstance(patch,dict) or set(patch)-{'provider','model','base_url','api_key','proxy_mode','proxy_url','clear_api_key'}:
         raise ValueError('Unknown model settings')
     c=load_config(root)
@@ -52,6 +52,11 @@ def save_config(root, patch):
     if c['proxy_mode'] not in ('auto','manual','direct'): raise ValueError('Unsupported proxy mode')
     if c['proxy_url']: c['proxy_url']=_url(c['proxy_url'],'Proxy URL')
     if c['proxy_mode']=='manual' and not c['proxy_url']: raise ValueError('Manual proxy URL is required')
+    return c
+
+
+def save_config(root, patch):
+    c=resolve_config(root,patch)
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
     fd,name=tempfile.mkstemp(dir=root,prefix='.selfos-model-',suffix='.tmp')
     try:
