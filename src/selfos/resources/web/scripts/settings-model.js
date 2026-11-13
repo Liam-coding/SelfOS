@@ -92,6 +92,10 @@ async function saveModelSettings(test) {
 }
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('model-settings').addEventListener?.('close',invalidateModelList);
+  const settings=document.getElementById('app-settings');
+  settings.addEventListener('close',()=>{
+    if(!document.querySelector('dialog[open]'))document.querySelector('#model-settings-entry button')?.focus();
+  });
   const header=document.querySelector('.header-btns');
   if(header)header.append(document.getElementById('model-settings-entry'));
   const languageButton=document.getElementById('lang-toggle');

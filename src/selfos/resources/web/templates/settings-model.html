@@ -3,14 +3,25 @@
 <div id="model-settings-entry" style="display:inline-flex">
   <button class="harvest-btn" onclick="openAppSettings()" data-i18n="ui.model.settings">⚙ Settings</button>
 </div>
-<dialog id="app-settings" style="margin:auto;background:var(--bg,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:28px;width:min(440px,90vw)">
-  <h3 data-i18n="ui.model.settings_button">Settings</h3>
-  <button type="button" class="harvest-btn" onclick="document.getElementById('app-settings').close();onboardingResumeSetup()" data-i18n="onboarding.resume_setup">Resume setup</button>
-  <p style="margin:20px 0"><label><span data-i18n="ui.model.language">Language</span>
-    <select id="settings-language" onchange="setSettingsLanguage(this.value)" style="padding:10px;border-radius:8px"></select></label></p>
-  <button class="harvest-btn" onclick="document.getElementById('app-settings').close();openModelSettings()" data-i18n="ui.model.model_and_network">Model and network</button>
-  <p id="current-model" style="font-size:12px;margin:16px 0" aria-live="polite"></p>
-  <button class="harvest-btn" onclick="document.getElementById('app-settings').close()" data-i18n="ui.model.close">Close</button>
+<dialog id="app-settings" aria-labelledby="app-settings-title">
+  <h3 id="app-settings-title" data-i18n="ui.model.settings_button">Settings</h3>
+  <section class="settings-section" aria-labelledby="settings-general-title">
+    <h4 id="settings-general-title" data-i18n="ui.settings.general">General</h4>
+    <label class="settings-language-row" for="settings-language"><span data-i18n="ui.model.language">Language</span>
+      <select id="settings-language" onchange="setSettingsLanguage(this.value)"></select></label>
+    <button type="button" class="settings-action" onclick="document.getElementById('app-settings').close();openModelSettings()" data-i18n="ui.model.model_and_network">Model and network</button>
+    <p id="current-model" class="settings-description" aria-live="polite"></p>
+  </section>
+  <section class="settings-section" aria-labelledby="settings-setup-title">
+    <h4 id="settings-setup-title" data-i18n="ui.settings.setup">Setup</h4>
+    <button type="button" class="settings-action" onclick="document.getElementById('app-settings').close();onboardingResumeSetup()" data-i18n="onboarding.resume_setup">Resume setup</button>
+  </section>
+  <section id="settings-account" class="settings-section" aria-labelledby="settings-account-title" hidden>
+    <h4 id="settings-account-title" data-i18n="ui.settings.account">Account and security</h4>
+  </section>
+  <footer class="settings-footer">
+    <button type="button" class="settings-close" onclick="document.getElementById('app-settings').close()" data-i18n="ui.model.close">Close</button>
+  </footer>
 </dialog>
 <dialog id="model-settings" style="background:var(--surface,#fff);color:var(--text,#222);border:1px solid var(--line,#ccc);border-radius:16px;padding:24px;width:min(540px,90vw)">
   <h3 data-i18n="ui.model.model_and_network">Model and network</h3>
