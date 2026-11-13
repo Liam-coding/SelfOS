@@ -69,21 +69,28 @@ def prepare_sessions(messages, max_chars=12000, cancel=lambda: False, aliases=No
     for (project, session), records in sorted(groups.items()):
         if cancel():
             break
-        parts, part, size = [], [], 0
-        for m in sorted(records.values(), key=lambda x: (x.get("timestamp", ""), x["id"])):
-            for offset in range(0, len(m["text"]), max_chars):
-                piece = {**m, "text": m["text"][offset:offset + max_chars]}
-                if part and size + len(piece["text"]) > max_chars:
-                    parts.append(part)
-                    part, size = [], 0
-                part.append(piece)
-                size += len(piece["text"])
+        parts, part = pack_records(sorted(records.values(), key=lambda x: (x.get("timestamp", ""), x["id"])), max_chars)
         if part:
             parts.append(part)
         for index, part in enumerate(parts):
             sessions.append(dict(project_id=project, session_id=session, part=index, messages=part,
                                  fingerprint=digest(part)))
     return sessions
+
+
+def pack_records(messages, max_chars, part=None):
+    """Pack already normalized, ordered records without changing existing slice metadata."""
+    parts, part = [], list(part or [])
+    size = sum(len(message['text']) for message in part)
+    for message in messages:
+        for offset in range(0, len(message['text']), max_chars):
+            piece = {**message, 'text': message['text'][offset:offset + max_chars]}
+            if part and size + len(piece['text']) > max_chars:
+                parts.append(part)
+                part, size = [], 0
+            part.append(piece)
+            size += len(piece['text'])
+    return parts, part
 
 from selfos.knowledge.filtering import compact_message
 from selfos.knowledge.identity import digest
