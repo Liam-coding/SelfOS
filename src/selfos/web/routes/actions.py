@@ -5,6 +5,8 @@ from urllib.error import URLError
 
 class ActionsRoutes:
     def do_POST(self):
+        if self.path == '/__knowledge_upload__':
+            return self._upload_post()
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
         if self.path == '/__knowledge_budget__':
