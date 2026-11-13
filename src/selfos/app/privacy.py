@@ -45,7 +45,11 @@ def permitted_source(source, selection, vault):
             directory = value
         if value and any(resolved(value).is_relative_to(Path(rule)) for rule in selection['exclusions'] + selection.get('privacy_exclusions', [])):
             return False
-    from selfos.sources.selection import allowed_source, project_allowed
+    from selfos.sources.selection import allowed_source, allowed_database, project_allowed
+    locator = source.get('source_locator', {})
+    if source.get('source') == 'opencode' and (not isinstance(locator, dict) or locator.get('kind') != 'document'):
+        if not allowed_database(path, selection):
+            return False
     if (directory or source.get('source') == 'opencode') and not project_allowed(directory, selection):
         return False
     uploads = (Path(vault)/'.knowledge_uploads/originals').resolve()

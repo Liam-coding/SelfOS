@@ -36,6 +36,7 @@ def test_native_record_orders_parts_retains_linkage_and_redacts_before_identity(
     assert locator['profile'] == PROFILE and locator['version'] == 1
     assert locator['part_ids'] == ['prt_a', 'prt_b']
     assert locator['text_sha256'] == hashlib.sha256(result['text'].encode()).hexdigest()
+    assert locator['source_id'] == result['id']
     assert result['source_locators'] == [locator]
 
 
@@ -148,3 +149,12 @@ def test_oversize_message_is_skipped_instead_of_truncated(tmp_path):
     diagnostics = []
     assert normalize_record(session, record, origin, diagnostics=diagnostics) is None
     assert diagnostics
+
+
+def test_locator_cannot_claim_a_different_semantic_source_identity(tmp_path):
+    from selfos.sources.opencode_records import merge_records
+    message = normalize(tmp_path)
+    message['source_locator']['source_id'] = '0' * 64
+    message['source_locators'] = [copy.deepcopy(message['source_locator'])]
+    with pytest.raises(ValueError):
+        merge_records([message])

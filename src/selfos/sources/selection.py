@@ -135,6 +135,12 @@ def allowed_source(path, selection):
             and not any(resolved.is_relative_to(Path(excluded)) for excluded in selection["exclusions"] + selection.get("privacy_exclusions", [])))
 
 
+def allowed_database(path, selection):
+    resolved = Path(path).resolve()
+    return (any(entry['kind'] == 'opencode_database' and resolved == Path(entry['path'])
+                for entry in source_entries(selection)) and allowed_source(resolved, selection))
+
+
 def select_files(selection, file_limit=2, entry_limit=2000, max_bytes=8 * 1024 * 1024):
     """Bound enumeration before any conversation reads; never follow directory links."""
     found, warnings, seen, entries = [], [], set(), 0

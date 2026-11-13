@@ -105,6 +105,12 @@ def test_native_opaque_project_id_is_never_resolved_as_a_filesystem_path(tmp_pat
     assert permitted_source({'source': 'opencode', 'path': str(database), 'project_id': 'opencode-project:opaque'}, selected, tmp_path)
 
 
+def test_legacy_directory_selection_does_not_enable_a_new_native_database_adapter(tmp_path):
+    selected = validate_selection({'version': 1, 'roots': [str(tmp_path)], 'exclusions': []})
+    assert not permitted_source({'source': 'opencode', 'path': str(tmp_path / 'native.db'),
+                                 'project_id': 'opencode-project:opaque'}, selected, tmp_path)
+
+
 @pytest.mark.parametrize('override', [None, 'custom.db', 'nested/channel.db', 'absolute'])
 def test_discovery_respects_xdg_and_explicit_database_filename(tmp_path, override):
     from selfos.sources.opencode_discovery import discover_opencode

@@ -141,6 +141,8 @@ def normalize_record(session, record, origin, *, diagnostics=None):
         if owned_origin['kind'] == 'document':
             normalized.update({key: owned_origin[key] for key in ('document_id', 'content_sha256', 'original_filename')})
         normalized['id'] = _logical_identity(normalized)
+        locator['source_id'] = normalized['id']
+        normalized['source_locators'] = [copy.deepcopy(locator)]
         return normalized
     except (ValueError, TypeError, OverflowError, OSError):
         _diagnostic(diagnostics, 'invalid_record')
@@ -153,11 +155,11 @@ def _check_locator(locator, message):
     origin_keys = {'kind', 'path'}
     if locator.get('kind') == 'document':
         origin_keys |= {'document_id', 'content_sha256', 'original_filename'}
-    metadata_keys = {'version', 'profile', 'project_id', 'session_id', 'message_id', 'part_ids', 'text_sha256'}
+    metadata_keys = {'version', 'profile', 'project_id', 'session_id', 'message_id', 'part_ids', 'text_sha256', 'source_id'}
     if set(locator) != origin_keys | metadata_keys:
         raise ValueError('Invalid OpenCode locator fields')
     _origin({key: locator[key] for key in origin_keys})
-    if (locator['project_id'] != message['native_project_id']
+    if (locator['source_id'] != message['id'] or locator['project_id'] != message['native_project_id']
             or locator['session_id'] != message['native_session_id']
             or locator['message_id'] != message['native_message_id']
             or locator['text_sha256'] != hashlib.sha256(message['text'].encode('utf-8')).hexdigest()
