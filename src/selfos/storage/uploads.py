@@ -16,13 +16,14 @@ MAX_BYTES = 20 * 1024 * 1024
 MAX_STORAGE = 512 * 1024 * 1024
 MAX_DOCUMENTS = 2000
 PROFILE = 'plain-text-v1'
+EXPORT_PROFILE = 'opencode-export-v1-810c0eb'
 _THREAD_LOCK = threading.RLock()
 
 
 def validate_filename(filename):
     if (not isinstance(filename, str) or not filename or len(filename.encode('utf-8')) > 512
             or any(ord(char) < 32 or ord(char) == 127 or char in '/:' + chr(92) for char in filename)
-            or Path(filename).suffix.casefold() not in ('.txt', '.md')):
+            or Path(filename).suffix.casefold() not in ('.txt', '.md', '.json')):
         raise ValueError('Unsupported or invalid upload filename')
     return filename
 
@@ -57,8 +58,8 @@ def _hash(path):
     return hashlib.sha256(raw).hexdigest()
 
 
-def _id(content_hash):
-    return hashlib.sha256((PROFILE + ':' + content_hash).encode()).hexdigest()
+def _id(content_hash, profile=PROFILE):
+    return hashlib.sha256((profile + ':' + content_hash).encode()).hexdigest()
 
 
 def _entry(value):
@@ -66,8 +67,9 @@ def _entry(value):
         raise ValueError('Invalid upload registry')
     content_hash = value.get('content_sha256', '')
     identity = value.get('id', '')
+    profile = value.get('profile')
     if (not isinstance(content_hash, str) or not re.fullmatch('[a-f0-9]{64}', content_hash)
-            or identity != _id(content_hash) or value.get('profile') != PROFILE
+            or profile not in (PROFILE, EXPORT_PROFILE) or identity != _id(content_hash, profile)
             or value.get('path') != '.knowledge_uploads/originals/' + identity + '.txt'
             or value.get('provenance') != 'quoted_dialogue'
             or isinstance(value.get('size'), bool) or not isinstance(value.get('size'), int)
@@ -79,6 +81,9 @@ def _entry(value):
         raise ValueError('Invalid upload filename aliases')
     for name in aliases:
         validate_filename(name)
+    if any((Path(name).suffix.casefold() == '.json') != (profile == EXPORT_PROFILE)
+           for name in [value['original_filename'], *aliases]):
+        raise ValueError('Upload filename does not match explicit adapter profile')
     try:
         stamp = datetime.fromisoformat(value['uploaded_at'])
         if stamp.tzinfo is None:
@@ -186,13 +191,15 @@ def _stored_bytes(root):
     return total
 
 
-def register_document(vault, temporary, filename, content_hash, size):
+def register_document(vault, temporary, filename, content_hash, size, *, profile=PROFILE):
+    if profile not in (PROFILE, EXPORT_PROFILE):
+        raise ValueError('Unsupported upload adapter profile')
     root = upload_root(vault)
     temporary = Path(temporary)
     with _THREAD_LOCK, _locked(root):
         _recover(root)
         rows = _registry(root)
-        identity = _id(content_hash)
+        identity = _id(content_hash, profile)
         known = next((row for row in rows if row['id'] == identity), None)
         original = upload_path(root, 'originals/' + identity + '.txt')
         additional = 0 if known and original.is_file() and _hash(original) == content_hash else size
@@ -200,7 +207,7 @@ def register_document(vault, temporary, filename, content_hash, size):
             raise ValueError('Upload storage limit reached')
         if original.exists() and known is None:
             raise ValueError('Unregistered original collision')
-        document = dict(known) if known else dict(id=identity, profile=PROFILE,
+        document = dict(known) if known else dict(id=identity, profile=profile,
             content_sha256=content_hash, size=size, original_filename=filename,
             filenames=[filename], uploaded_at=datetime.now(timezone.utc).isoformat(),
             path='.knowledge_uploads/originals/' + identity + '.txt', provenance='quoted_dialogue')

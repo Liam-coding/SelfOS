@@ -4,7 +4,10 @@ import hashlib
 import os
 import time
 import uuid
+from pathlib import Path
 from selfos.storage.uploads import MAX_BYTES, discard_transfer, register_document, upload_path, upload_root, validate_filename
+from selfos.storage.uploads import PROFILE, _id
+from selfos.sources.opencode_export import parse_export, EXPORT_PROFILE
 
 
 def admit_document(vault, filename, stream, length, *, cancel=lambda: False):
@@ -37,7 +40,15 @@ def admit_document(vault, filename, stream, length, *, cancel=lambda: False):
             os.fsync(output.fileno())
         if cancel():
             raise ValueError('Upload interrupted')
-        return register_document(vault, temporary, filename, digest.hexdigest(), length)
+        profile = PROFILE
+        if Path(filename).suffix.casefold() == '.json':
+            profile = EXPORT_PROFILE
+            with temporary.open('rb') as stored:
+                raw = stored.read(MAX_BYTES + 1)
+            content_hash = digest.hexdigest()
+            parse_export(raw, dict(kind='document', path=str(temporary.resolve()),
+                document_id=_id(content_hash, profile), content_sha256=content_hash, original_filename=filename))
+        return register_document(vault, temporary, filename, digest.hexdigest(), length, profile=profile)
     except UnicodeDecodeError:
         raise ValueError('Only UTF-8 text uploads are supported') from None
     finally:
