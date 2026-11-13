@@ -1,9 +1,10 @@
 """providers / client responsibilities."""
 import io
 import json
+import time
 from urllib.request import Request, ProxyHandler, build_opener
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 from selfos.providers.settings import load_config
 from selfos.providers.settings import proxy_info
 
@@ -45,16 +46,8 @@ def request_opener(root, budget=None):
     config=load_config(root)
     def open_request(request, timeout=90):
         req=adapt_request(request,config)
-        info=proxy_info(config); proxies=dict(info['proxies'])
-        if proxies.get('all'):
-            proxies.setdefault('http',proxies['all']);proxies.setdefault('https',proxies['all'])
-        if urlsplit(req.full_url).hostname in ('localhost','127.0.0.1','::1'): proxies={}
         try:
-            # Redirects must not forward API credentials to another origin.
-            from urllib.request import HTTPRedirectHandler
-            class NoRedirect(HTTPRedirectHandler):
-                def redirect_request(self,*args,**kwargs): return None
-            opener=build_opener(ProxyHandler(proxies),NoRedirect())
+            opener=provider_opener(config,req.full_url)
             from selfos.app.privacy import check_request_scope
             check_request_scope()
             if budget is not None:
@@ -76,3 +69,62 @@ def test_connection(root):
     calls=[b for b in data['content'] if b.get('type')=='tool_use' and b.get('name')=='connection_check']
     if len(calls)!=1 or calls[0]['input']!={'ok':True}: raise ValueError('Connected, but model did not return the required structured output')
     return {'ok':True,'message':'Network, authentication and structured output passed'}
+
+
+def provider_opener(config, url):
+    """Shared proxy routing and redirect protection for provider requests."""
+    from urllib.request import HTTPRedirectHandler
+    class NoRedirect(HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs): return None
+    proxies=dict(proxy_info(config)['proxies'])
+    if proxies.get('all'):
+        proxies.setdefault('http',proxies['all']); proxies.setdefault('https',proxies['all'])
+    if urlsplit(url).hostname in ('localhost','127.0.0.1','::1'): proxies={}
+    return build_opener(ProxyHandler(proxies),NoRedirect())
+
+
+class ModelListUnsupported(RuntimeError):
+    pass
+
+
+def list_models(root, patch):
+    """Read model metadata using a validated draft; never save or generate."""
+    from selfos.providers.settings import resolve_config
+    c=resolve_config(root,patch)
+    base=c['base_url'].rstrip('/')
+    endpoint=base+('/models' if c['provider']=='openai' or base.endswith('/v1') else '/v1/models')
+    headers={'Accept':'application/json'}
+    if c['provider']=='anthropic':
+        headers.update({'x-api-key':c['api_key'],'anthropic-version':'2023-06-01'})
+    elif c['api_key']: headers['Authorization']='Bearer '+c['api_key']
+    try:
+        models=[];cursor=None;seen=set();size=0;deadline=time.monotonic()+20
+        opener=provider_opener(c,endpoint)
+        for page in range(20):
+            url=endpoint+('?' + urlencode({'after_id':cursor}) if cursor else '')
+            req=Request(url,headers=headers,method='GET')
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise RuntimeError('Model discovery timed out')
+            with opener.open(req,timeout=remaining) as response:raw=response.read(1048577)
+            size+=len(raw)
+            if size>1048576: raise RuntimeError('Model list is too large')
+            data=json.loads(raw)
+            if not isinstance(data,dict) or not isinstance(data.get('data'),list):
+                raise RuntimeError('Invalid model list')
+            for item in data['data']:
+                name=item.get('id') if isinstance(item,dict) else None
+                if not isinstance(name,str) or not name.strip() or len(name)>4096 or any(ord(x)<32 for x in name):
+                    raise RuntimeError('Invalid model identifier')
+                models.append(name.strip())
+            if c['provider']!='anthropic' or not data.get('has_more'):
+                return {'models':sorted(set(models))}
+            cursor=data.get('last_id')
+            if not isinstance(cursor,str) or not cursor or len(cursor)>4096 or cursor in seen:
+                raise RuntimeError('Invalid model pagination')
+            seen.add(cursor)
+        raise RuntimeError('Too many model pages')
+    except HTTPError as error:
+        if error.code in (404,405,501): raise ModelListUnsupported('Model discovery is unsupported') from None
+        raise RuntimeError('Model discovery failed') from None
+    except (URLError,OSError,ValueError):
+        raise RuntimeError('Model discovery failed') from None
