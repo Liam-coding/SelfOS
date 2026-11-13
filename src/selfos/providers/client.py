@@ -49,6 +49,7 @@ def request_opener(root, budget=None):
         if proxies.get('all'):
             proxies.setdefault('http',proxies['all']);proxies.setdefault('https',proxies['all'])
         if urlsplit(req.full_url).hostname in ('localhost','127.0.0.1','::1'): proxies={}
+        ticket=None
         try:
             # Redirects must not forward API credentials to another origin.
             from urllib.request import HTTPRedirectHandler
@@ -56,11 +57,19 @@ def request_opener(root, budget=None):
                 def redirect_request(self,*args,**kwargs): return None
             opener=build_opener(ProxyHandler(proxies),NoRedirect())
             if budget is not None:
-                budget.claim()
+                ticket=budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())
+            if hasattr(budget,'observe'):
+                budget.observe(ticket,data,config['provider'])
             return io.BytesIO(json.dumps(normalize_response(data,config['provider'])).encode())
-        except HTTPError as error: raise RuntimeError(f'Model API HTTP {error.code}; check authentication, endpoint and model') from None
-        except (URLError,OSError): raise RuntimeError('Cannot connect to model API; check endpoint and proxy') from None
+        except Exception as error:
+            if ticket is not None and hasattr(budget,'fail'):
+                budget.fail(ticket)
+            if isinstance(error,HTTPError):
+                raise RuntimeError(f'Model API HTTP {error.code}; check authentication, endpoint and model') from None
+            if isinstance(error,(URLError,OSError)):
+                raise RuntimeError('Cannot connect to model API; check endpoint and proxy') from None
+            raise
     return open_request
 
 
