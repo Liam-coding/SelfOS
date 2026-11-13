@@ -173,7 +173,8 @@ def consolidate_sessions(vault, sessions, summarize, max_workers=3, max_attempts
                     for category in ('personal_facts','preferences','history'):
                         merge_records(state,category,candidate.get(category,[]),settings)
                     for m in item["messages"]:
-                        state["sources"][m["id"]] = {k: m.get(k, "") for k in ("path", "timestamp", "role", "source", "project_id", "session_id", "provenance")}
+                        from selfos.sources.documents import source_metadata
+                        state["sources"][m["id"]] = source_metadata(m, state["sources"].get(m["id"]))
                     writes = {".knowledge_pipeline.json": json.dumps(state, ensure_ascii=False, indent=2).encode()}
                     if card is not None:
                         writes["02_Work/projects/" + digest(item["project_id"]) + ".md"] = render_project_document(vault,card,previous_card)

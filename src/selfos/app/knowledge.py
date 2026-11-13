@@ -147,6 +147,43 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                     original = safe_path(vault, name)
                     if original.exists():
                         _atomic_write(safe_path(scratch, name), original.read_bytes())
+        # Repair missing upload metadata in staging before cached refinement
+        # fingerprints are checked. Existing immutable identities cannot change.
+        from selfos.sources.documents import source_metadata, document_source
+        document_state = _state(scratch)
+        metadata_changed = False
+        verified_documents = set()
+        def original_path(source):
+            value = Path(source.get('path', '').replace(chr(92), '/'))
+            return (value if value.is_absolute() else vault / value).resolve()
+        for message in messages:
+            known = document_state.get('sources', {}).get(message['id'])
+            if message.get('source') != 'uploaded_file':
+                if known and known.get('source') == 'uploaded_file':
+                    raise ValueError('Uploaded source identity changed')
+                continue
+            incoming = source_metadata(message)
+            candidate = dict(known) if known else incoming
+            if known:
+                known_identity = source_metadata(known)
+                if (any(known_identity.get(key, '') != incoming.get(key, '') for key in ('source', 'role', 'provenance'))
+                        or original_path(known) != original_path(incoming)):
+                    raise ValueError('Uploaded source identity changed')
+                for key in ('content_sha256', 'original_filename'):
+                    if key in known and key in incoming and known[key] != incoming[key]:
+                        raise ValueError('Uploaded source identity changed')
+                    if key not in candidate and key in incoming:
+                        candidate[key] = incoming[key]
+            document_hash = candidate.get('content_sha256')
+            verification = (str(original_path(candidate)), document_hash) if isinstance(document_hash, str) else None
+            if verification is None or verification not in verified_documents:
+                document_source(vault, candidate, limit=1)
+                verified_documents.add(verification)
+            if known and candidate != known:
+                document_state['sources'][message['id']] = candidate
+                metadata_changed = True
+        if metadata_changed:
+            _atomic_write(scratch / '.knowledge_pipeline.json', json.dumps(document_state, ensure_ascii=False, indent=2).encode())
         progress(f'Scanned {len(messages)} messages; compacted into {len(sessions)} session parts')
         if cancel():
             result['status'] = 'stopped'
@@ -186,8 +223,8 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         state = _state(scratch) or {'cards': {}, 'lessons': [], 'sources': {}, 'summaries': {}}
         # Keep references to filtered input, without storing its raw content.
         for message in messages:
-            state.setdefault('sources', {}).setdefault(message['id'], {key: message.get(key, '')
-                for key in ('path','timestamp','role','source','project_id','session_id','provenance')})
+            from selfos.sources.documents import source_metadata
+            state.setdefault('sources', {}).setdefault(message['id'], source_metadata(message))
         state.update(schema_version=VERSION, policy_hash=policy_hash(settings), policy=settings,
                      quality_version=2, project_aliases=previous.get('project_aliases', {}))
         if scoped:
