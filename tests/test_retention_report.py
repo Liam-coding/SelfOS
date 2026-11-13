@@ -131,7 +131,7 @@ def test_failed_staging_has_job_link_and_never_changes_canonical_totals(tmp_path
     data=report.quality_report(tmp_path)
     assert data['counts']['personal_facts']==0
     assert data['categories']['personal_facts']['explanation']=='unresolved'
-    assert data['jobs'][0]['id']==identity and data['jobs'][0]['retryable']
+    assert data['jobs'][0]['id']==identity and not data['jobs'][0]['retryable']
     example=next(e for e in data['examples'] if e['stage']=='validation')
     assert example['job_id']==identity and example['source_ids']==['missing']
     assert example['source_available'] is False
@@ -181,3 +181,100 @@ def test_user_deletion_explains_zero_and_respects_corrected_counts(tmp_path):
     assert result['counts']['preferences']==0
     assert result['categories']['preferences']['explanation']=='user_suppressed'
     assert any(e['reason']=='user_suppressed' for e in result['examples'])
+
+
+def retry_fixture(vault, published=True, covered=True):
+    checkpoint = 'b' * 24
+    old = '20261113T120000-aaaaaaaaaaaa'
+    new = '20261113T130000-bbbbbbbbbbbb'
+    folder = vault / '.knowledge_jobs' / 'operations'
+    folder.mkdir(parents=True)
+    for identity, status in ((old, 'failed'), (new, 'completed' if published else 'failed')):
+        (folder / (identity + '.json')).write_text(json.dumps(dict(
+            id=identity, status=status, phase='extracting', checkpoint=checkpoint)))
+    errors = vault / '.knowledge_rebuild' / checkpoint / '.knowledge_errors' / 'old-run'
+    errors.mkdir(parents=True)
+    (errors / '000001-1.json').write_text(json.dumps(dict(known_source_ids=['s1'], error='Invalid evidence')))
+    save(vault, dict(cards={}, lessons=[], sources={'s1': {}},
+        last_operation={'id': new} if published else {}, quality_sessions={
+            'part': dict(run_id='new-run', source_ids=['s1'] if covered else ['other'],
+                categories={'personal_facts': 0, 'preferences': 0})}))
+    return old, new
+
+
+def test_shared_retry_checkpoint_counts_each_diagnostic_once(tmp_path):
+    retry_fixture(tmp_path, published=False)
+    data = report.quality_report(tmp_path)
+    assert data['stages']['validation']['total'] == 1
+    assert len([e for e in data['examples'] if e['stage'] == 'validation']) == 1
+
+
+def test_published_retry_resolves_prior_failed_operation_and_diagnostic(tmp_path):
+    old, new = retry_fixture(tmp_path)
+    data = report.quality_report(tmp_path)
+    assert data['categories']['personal_facts']['explanation'] == 'reviewed_zero'
+    assert not next(job for job in data['jobs'] if job['id'] == old)['retryable']
+    diagnostic = next(e for e in data['examples'] if e['stage'] == 'validation')
+    assert diagnostic['reason'] == 'recovered_attempt'
+    assert diagnostic['job_id'] == new
+
+
+def test_publication_does_not_recover_uncovered_sources(tmp_path):
+    retry_fixture(tmp_path, covered=False)
+    data = report.quality_report(tmp_path)
+    assert data['categories']['personal_facts']['explanation'] == 'unresolved'
+
+
+def test_successful_refinement_retry_records_recovery_separately_from_extraction(tmp_path):
+    from selfos.app.pipeline import consolidate_sessions, refine_projects
+    from tests.test_project_knowledge_contract import session, summary
+    consolidate_sessions(tmp_path, [session()], summary, max_workers=1)
+    calls = []
+    def refine(payload):
+        calls.append(payload)
+        if len(calls) == 1:
+            raise ValueError('Invalid JSON during synthesis')
+        return dict(project=payload['project'], lessons=[])
+    result = refine_projects(tmp_path, refine)
+    assert result['projects'] == 1
+    data = report.quality_report(tmp_path)
+    assert data['categories']['preferences']['explanation'] == 'reviewed_zero'
+    assert next(e for e in data['examples'] if e['stage'] == 'validation')['reason'] == 'recovered_attempt'
+
+
+def test_successful_review_retry_is_distinct_from_failed_refinement(tmp_path):
+    from selfos.app.pipeline import consolidate_sessions, refine_projects
+    from tests.test_project_knowledge_contract import session, summary
+    consolidate_sessions(tmp_path, [session()], summary, max_workers=1)
+    def refine(payload):
+        return dict(project=payload['project'], lessons=[], _lesson_review_errors=[
+            dict(batch_start=0, attempt=1, error='Invalid routing JSON', raw_response='synthetic')])
+    refine_projects(tmp_path, refine)
+    data = report.quality_report(tmp_path)
+    assert data['categories']['preferences']['explanation'] == 'reviewed_zero'
+    assert next(e for e in data['examples'] if e['stage'] == 'validation')['reason'] == 'recovered_attempt'
+
+
+def test_report_retry_eligibility_matches_import_center(tmp_path):
+    import hashlib
+    from selfos.app.import_status import publication_status
+    from selfos.knowledge.settings import DEFAULT_SETTINGS, policy_hash
+    old, _ = retry_fixture(tmp_path, published=False)
+    operations = tmp_path / '.knowledge_jobs' / 'operations'
+    checkpoint = 'b' * 24
+    staged = tmp_path / '.knowledge_rebuild' / checkpoint / '.knowledge_pipeline.json'
+    staged.write_text(json.dumps(dict(cards={}, lessons=[], policy=DEFAULT_SETTINGS)))
+    canonical = json.loads((tmp_path / '.knowledge_pipeline.json').read_text())
+    expected = hashlib.sha256((tmp_path / '.knowledge_pipeline.json').read_bytes()).hexdigest()
+    for path in operations.glob('*.json'):
+        value = json.loads(path.read_text())
+        value.update(expected_hash=expected, policy_hash=policy_hash(DEFAULT_SETTINGS))
+        path.write_text(json.dumps(value))
+    for compatible in (True, False):
+        if not compatible:
+            value = json.loads((operations / (old + '.json')).read_text())
+            value['expected_hash'] = 'obsolete'
+            (operations / (old + '.json')).write_text(json.dumps(value))
+        reported = next(j for j in report.quality_report(tmp_path)['jobs'] if j['id'] == old)
+        existing = next(j for j in publication_status(tmp_path, canonical, DEFAULT_SETTINGS)['operations'] if j['id'] == old)
+        assert reported['retryable'] == existing['resume_eligible'] == compatible

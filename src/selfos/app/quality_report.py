@@ -50,7 +50,7 @@ def quality_report(vault):
     correction = vault / '.knowledge_corrections.json'
     correction_data = read(correction, 8 * 1024 * 1024) if correction.exists() else {}
     state = _state(vault) if raw and not incomplete else {}
-    for field in ('sources', 'cards', 'quality_sessions'):
+    for field in ('sources', 'cards', 'quality_sessions', 'quality_refinements'):
         if not isinstance(state.get(field, {}), dict): raise ValueError('Invalid report metadata')
     if not isinstance(state.get('retention_audit', []), list): raise ValueError('Invalid report metadata')
     from selfos.sources.selection import load_sources, allowed_source
@@ -123,22 +123,40 @@ def quality_report(vault):
     jobs = []
     unresolved = (vault / '.knowledge_pending.json').exists()
     checkpoint_jobs = {}
+    operations = []
     for operation in files(vault / '.knowledge_jobs' / 'operations'):
         if operation.suffix != '.json' or not OPERATION.fullmatch(operation.stem): continue
         value = read(operation, 128 * 1024)
         status = value.get('status')
         if status not in OUTCOMES or value.get('phase') not in PHASES: continue
+        operations.append((operation, value))
+    from selfos.app.import_status import publication_status
+    from selfos.knowledge.settings import validate_settings, DEFAULT_SETTINGS
+    settings_path = vault / '.knowledge_settings.json'
+    settings = validate_settings(read(settings_path, 128 * 1024)) if settings_path.exists() else DEFAULT_SETTINGS
+    publication = publication_status(vault, state, settings,
+        operation_paths=[operation for operation, _ in operations], scan_orphans=False, metadata_reader=read
+        ) if not path.exists() or raw and not incomplete else {'operations': []}
+    retry_eligible = {item['id'] for item in publication['operations'] if item['resume_eligible']}
+    published_checkpoints = {value.get('checkpoint') for operation, value in operations
+        if operation.stem == state.get('last_operation', {}).get('id') or value.get('installed') is True}
+    for operation, value in sorted(operations, key=lambda pair: pair[0].stem):
+        status = value['status']
         published = operation.stem == state.get('last_operation', {}).get('id')
-        if isinstance(value.get('checkpoint'),str) and CHECKPOINT.fullmatch(value['checkpoint']):
-            checkpoint_jobs[value['checkpoint']] = operation.stem
+        checkpoint = value.get('checkpoint')
+        valid_checkpoint = isinstance(checkpoint, str) and CHECKPOINT.fullmatch(checkpoint)
+        if valid_checkpoint and (checkpoint not in checkpoint_jobs or published or
+                checkpoint not in published_checkpoints):
+            checkpoint_jobs[checkpoint] = operation.stem
+        resolved = bool(valid_checkpoint and checkpoint in published_checkpoints)
         if published: status = 'completed'
         elif status == 'running':
             from selfos.storage.files import _pid_alive
             pid = value.get('owner_pid')
             if not isinstance(pid, int) or not _pid_alive(pid): status = 'interrupted'
-        unresolved |= not published and status in ('failed','stopped','interrupted','running')
+        unresolved |= not published and not resolved and status in ('failed','stopped','interrupted','running')
         jobs.append(dict(id=operation.stem, status=status, phase=value['phase'], published=published,
-                         retryable=not published and status in ('failed','stopped','interrupted')))
+                         retryable=not published and not resolved and operation.stem in retry_eligible))
         filtering = value.get('filtering')
         if published and isinstance(filtering, dict):
             stages['filtering'].update(total=filtering.get('filtered_messages', 0),
@@ -151,12 +169,7 @@ def quality_report(vault):
     # Existing diagnostic payloads are read only within fixed bounds; public data
     # contains no error prose or response fields, even after credential redaction.
     folders = [vault]
-    for operation in files(vault / '.knowledge_jobs' / 'operations'):
-        if operation.suffix != '.json' or not OPERATION.fullmatch(operation.stem): continue
-        value = read(operation, 128 * 1024)
-        checkpoint = value.get('checkpoint')
-        if isinstance(checkpoint,str) and CHECKPOINT.fullmatch(checkpoint):
-            folders.append(vault / '.knowledge_rebuild' / checkpoint)
+    folders.extend(vault / '.knowledge_rebuild' / checkpoint for checkpoint in checkpoint_jobs)
     diagnostic_files = 0
     for base in folders:
         for run in files(base / '.knowledge_errors'):
@@ -171,9 +184,13 @@ def quality_report(vault):
                 if not value: continue
                 stages['validation']['total'] += 1
                 ids = value.get('known_source_ids', [])
-                recovered = bool(ids) and any(entry.get('run_id') == run.name and set(ids).issubset(entry.get('source_ids', []))
-                    for entry in extraction.values()) and (base == vault or
-                    checkpoint_jobs.get(base.name) == state.get('last_operation', {}).get('id'))
+                checkpoint_published = base != vault and base.name in published_checkpoints
+                recovered = bool(ids) and any((entry.get('run_id') == run.name or
+                    checkpoint_published and entry.get('run_id')) and set(ids).issubset(entry.get('source_ids', []))
+                    for entry in extraction.values()) and (base == vault or checkpoint_published)
+                recovered |= bool(ids) and any(run.name in (entry.get('run_id'), entry.get('review_run_id'))
+                    and set(ids).issubset(entry.get('source_ids', []))
+                    for entry in state.get('quality_refinements', {}).values()) and (base == vault or checkpoint_published)
                 # Legacy summaries do not prove a later attempt repaired this error.
                 unresolved |= not recovered
                 job = checkpoint_jobs.get(base.name) if base != vault else None

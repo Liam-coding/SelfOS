@@ -5,8 +5,10 @@ from selfos.web.rendering.resources import frontend_text, render_ui
 def refresh_controls(html):
     """Refresh settings in previously generated dashboards without a new import."""
     import re
-    return re.sub(r'<button class="harvest-btn" onclick="openKnowledgeSettings\(\)"[^>]*>.*?<script>\s*let knowledgeOperation.*?</script>',
-                  lambda _:CONTROLS.rstrip(),html,count=1,flags=re.S)
+    pattern = r'<button class="harvest-btn" onclick="openKnowledgeSettings\(\)"[^>]*>.*?<script>\s*let knowledgeOperation.*?</script>'
+    if re.search(pattern, html, flags=re.S):
+        html = re.sub(r'<!-- selfos-quality-start -->.*?<!-- selfos-quality-end -->\s*', '', html, flags=re.S)
+    return re.sub(pattern, lambda _:CONTROLS.rstrip(),html,count=1,flags=re.S)
 
 
 CONTROLS = frontend_text('templates/knowledge-quality.html') + frontend_text('templates/import-controls.html')

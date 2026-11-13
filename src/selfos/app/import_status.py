@@ -59,13 +59,14 @@ def _date(value):
         return None
 
 
-def publication_status(vault, canonical, settings):
+def publication_status(vault, canonical, settings, *, operation_paths=None, scan_orphans=True, metadata_reader=None):
     from selfos.app.library import knowledge_counts
     vault = Path(vault).resolve()
     canonical_path = vault / '.knowledge_pipeline.json'
     expected = hashlib.sha256(canonical_path.read_bytes()).hexdigest() if canonical_path.exists() else 'absent'
     published = canonical.get('last_operation', {}).get('id') if isinstance(canonical.get('last_operation'), dict) else None
     operations, referenced, diagnostics = [], set(), 0
+    read_metadata = metadata_reader or (lambda path: _read(vault, path))
 
     def staging(checkpoint):
         nonlocal diagnostics
@@ -75,7 +76,7 @@ def publication_status(vault, canonical, settings):
         if not path.exists():
             return None
         try:
-            state = _read(vault, path)
+            state = read_metadata(path)
             for field in ('cache', 'summaries', 'cards', 'sources'):
                 if not isinstance(state.get(field, {}), dict):
                     raise ValueError('invalid staging map')
@@ -100,9 +101,10 @@ def publication_status(vault, canonical, settings):
             diagnostics += 1
             return None
 
-    for path in sorted((vault / '.knowledge_jobs' / 'operations').glob('*.json')):
+    paths = operation_paths if operation_paths is not None else (vault / '.knowledge_jobs' / 'operations').glob('*.json')
+    for path in sorted(paths):
         try:
-            item = _read(vault, path)
+            item = read_metadata(path)
             if not OPERATION.fullmatch(path.stem) or item.get('id') != path.stem:
                 raise ValueError('invalid operation')
             phase, outcome = item.get('phase'), item.get('status')
@@ -144,7 +146,8 @@ def publication_status(vault, canonical, settings):
         except (OSError, ValueError, TypeError, AttributeError):
             diagnostics += 1
 
-    for path in sorted((vault / '.knowledge_rebuild').glob('*/.knowledge_pipeline.json')):
+    orphan_paths = (vault / '.knowledge_rebuild').glob('*/.knowledge_pipeline.json') if scan_orphans else []
+    for path in sorted(orphan_paths):
         checkpoint = path.parent.name
         if checkpoint in referenced or not CHECKPOINT.fullmatch(checkpoint):
             continue

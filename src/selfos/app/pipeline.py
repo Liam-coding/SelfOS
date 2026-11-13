@@ -329,6 +329,11 @@ def refine_projects(vault, refine, cancel=lambda: False, progress=lambda _: None
                 for record in observations]
             state["quality_version"] = 2
             state["refined"][project_id] = fingerprint
+            # Save recovery evidence atomically with the successful refinement.
+            # Extraction outcomes cannot establish synthesis/review success.
+            state.setdefault('quality_refinements', {})[project_id] = {
+                'run_id': run_id, 'review_run_id': run_id + f'-review-{completed+1}',
+                'source_ids': list(source_ids), 'fingerprint': fingerprint}
             text = "# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n" + "\n".join(
                 "- [" + l["kind"] + "] " + l["text"] + "\n  Source: " + ", ".join(l["source_ids"])
                 for l in state["lessons"]) + "\n<!-- /selfos-managed-lessons -->\n"
