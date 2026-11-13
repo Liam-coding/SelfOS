@@ -9,6 +9,7 @@ function closeHarvestModal() {
 let importRunning = false;
 let knowledgeRecoveryGeneration = 0;
 function recoverKnowledgeRun() {
+  document.dispatchEvent(new Event('selfos-import-started'));
   const generation = ++knowledgeRecoveryGeneration;
   importRunning = true;
   const bar = document.getElementById('progress-bar');
@@ -108,6 +109,7 @@ function confirmHarvest(full, knowledge = false, rebuild = false, previewUrl = n
   }
 
   const url = knowledge ? (previewUrl || '/__knowledge_stream__' + (rebuild ? '?action=rebuild' : '')) : '/__harvest_stream__?full=' + (full ? '1' : '0');
+  if (knowledge) document.dispatchEvent(new Event('selfos-import-started'));
   const es = new EventSource(url);
   es.onmessage = function(e) {
     let msg;

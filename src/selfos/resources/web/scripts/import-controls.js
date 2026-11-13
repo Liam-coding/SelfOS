@@ -11,6 +11,7 @@ async function knowledgeRequest(url, body) {
   return data;
 }
 function displayKnowledgeStatus(data) {
+  if(typeof renderWorkloadUsage==='function')renderWorkloadUsage(data.usage);
   if(typeof renderImportPublication==='function')renderImportPublication(data);
   knowledgeOperation = data.last_operation ? data.last_operation.id : null;
   document.getElementById('knowledge-undo').disabled = !knowledgeOperation;
@@ -35,6 +36,7 @@ async function openKnowledgeSettings() {
     }
     document.getElementById('knowledge-custom').value = data.settings.domains.filter(d => !(d in knowledgeDomains)).join(', ');
     document.getElementById('knowledge-detail').value = data.settings.detail;
+    if(typeof renderWorkloadUsage==='function')renderWorkloadUsage(data.usage,true);
     displayKnowledgeStatus(data);
   } catch (error) { knowledgeSettingsError(error); }
 }

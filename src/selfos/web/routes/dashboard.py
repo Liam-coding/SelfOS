@@ -11,6 +11,15 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path == '/__knowledge_usage__':
+            origin=self.headers.get('Origin');host=self.headers.get('Host','')
+            if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
+                return self._send_json(403, {'code':'usage_forbidden'})
+            try:
+                from selfos.app.workload import usage_status
+                return self._send_json(200, usage_status(self.runtime.VAULT, self.runtime.ROOT))
+            except (ValueError, TypeError, OSError, RuntimeError):
+                return self._send_json(503, {'code':'usage_unavailable'})
         if parsed_path.path == '/__privacy__':
             from selfos.app.privacy import privacy_status
             try: return self._send_json(200,privacy_status(self.runtime.VAULT,self.runtime.ROOT))

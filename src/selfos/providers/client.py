@@ -46,16 +46,32 @@ def request_opener(root, budget=None):
     config=load_config(root)
     def open_request(request, timeout=90):
         req=adapt_request(request,config)
+        ticket=None
+        from selfos.storage.usage import current_request_usage
+        effective_budget = current_request_usage() or budget
         try:
             opener=provider_opener(config,req.full_url)
             from selfos.app.privacy import check_request_scope
             check_request_scope()
-            if budget is not None:
-                budget.claim()
+            if effective_budget is not None:
+                from selfos.storage.usage import RequestUsage
+                if isinstance(effective_budget, RequestUsage):
+                    from selfos.app.budget import config_identity
+                    ticket=effective_budget.claim(model_identity=config_identity({**config, 'model': json.loads(req.data)['model']}))
+                else:
+                    ticket=effective_budget.claim()
             with opener.open(req,timeout=timeout) as response: data=json.loads(response.read())
+            if hasattr(effective_budget,'observe'):
+                effective_budget.observe(ticket,data,config['provider'])
             return io.BytesIO(json.dumps(normalize_response(data,config['provider'])).encode())
-        except HTTPError as error: raise RuntimeError(f'Model API HTTP {error.code}; check authentication, endpoint and model') from None
-        except (URLError,OSError): raise RuntimeError('Cannot connect to model API; check endpoint and proxy') from None
+        except Exception as error:
+            if ticket is not None and hasattr(effective_budget,'fail'):
+                effective_budget.fail(ticket)
+            if isinstance(error,HTTPError):
+                raise RuntimeError(f'Model API HTTP {error.code}; check authentication, endpoint and model') from None
+            if isinstance(error,(URLError,OSError)):
+                raise RuntimeError('Cannot connect to model API; check endpoint and proxy') from None
+            raise
     return open_request
 
 
