@@ -55,6 +55,13 @@ def test_manual_edit_is_linked_by_action_originals():
     assert changes[0]['reason']=='user_edited'
     assert changes[0]['after'][0]['record']['manual_correction']['action_id']==ledger['actions'][0]['id']
 
+def test_manual_edit_never_owns_competing_claim_from_the_same_source():
+    data=state(record(),record('brief','m1'))
+    ledger=action(data,{},records=[data['preferences'][0]],patch={'value':'balanced','text':'Balanced explanations'})
+    changes=compare(data,data,{},ledger,operation='correction')
+    edited=next(change for change in changes if change['reason']=='user_edited')
+    assert len(edited['before'])==1 and edited['before'][0]['record']['value']=='concise'
+
 
 def test_user_merge_counts_one_event_with_two_originals():
     data=state(record(),record('brief','m2'))
@@ -69,6 +76,13 @@ def test_user_undo_restores_originals_without_editing_history():
     ledger=action(data,{},'merge',records=data['preferences'],patch={'value':'balanced','text':'Balanced explanations'})
     undone=create_action(data,ledger,{'action':'undo','action_id':ledger['actions'][0]['id']})
     changes=compare(data,data,ledger,undone,operation='undo')
+    assert len(changes)==1 and changes[0]['action']=='restored'
+    assert len(changes[0]['before'])==1 and len(changes[0]['after'])==2
+
+def test_backup_restore_removes_merge_action_and_restores_its_originals():
+    data=state(record(),record('brief','m2'))
+    ledger=action(data,{},'merge',records=data['preferences'],patch={'value':'balanced','text':'Balanced explanations'})
+    changes=compare(data,data,ledger,{},operation='restore')
     assert len(changes)==1 and changes[0]['action']=='restored'
     assert len(changes[0]['before'])==1 and len(changes[0]['after'])==2
 

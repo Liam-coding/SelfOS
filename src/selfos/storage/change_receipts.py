@@ -56,10 +56,13 @@ def read_json(path,limit,expected=None):
 def read_head(vault):
     path=contained(vault,HEAD_NAME)
     if not path.exists():return None
-    head=read_json(path,HEAD_LIMIT)
+    return validate_head(read_json(path,HEAD_LIMIT))
+
+def validate_head(head):
     if head.get('version')!=1 or not isinstance(head.get('hashes'),dict):raise ValueError('Invalid change head')
     validate_ref(head.get('audit_tip'))
     if head.get('state_tip') is not None:validate_ref(head['state_tip'])
+    if head.get('omitted_parent') is not None:validate_ref(head['omitted_parent'])
     for name in ('state','ledger'):
         value=head['hashes'].get(name)
         if value is not None and (not isinstance(value,str) or not re.fullmatch('[a-f0-9]{64}',value)):
@@ -69,6 +72,10 @@ def read_head(vault):
 def read_root(vault,ref):
     validate_ref(ref)
     root=read_json(receipt_folder(vault,ref)/'change-receipt.json',ROOT_LIMIT,ref['hash'])
+    return validate_root(root,ref)
+
+def validate_root(root,ref):
+    validate_ref(ref)
     if root.get('version')!=1 or root.get('identity')!=identity(ref['run_id'],ref['index']):
         raise ValueError('Invalid change root identity')
     if root.get('kind') not in ('import','correction','undo','restore'):raise ValueError('Invalid change operation kind')
@@ -131,18 +138,21 @@ def prepare_receipt(vault,*,run_id,index,kind,changes,sources,before_hashes,afte
     flush()
     for number,content in enumerate(payloads,1):parts.append({'number':number,'hash':sha(content),'bytes':len(content)})
     counts={}
+    categories={}
     for change in changes:counts[change['action']]=counts.get(change['action'],0)+1
+    for change in changes:categories[change['category']]=categories.get(change['category'],0)+1
     root={'version':1,'identity':ident,'kind':kind,'recorded_at':as_of,'action_id':action_id,
           'audit_parent':head['audit_tip'] if head else None,'state_before_tip':head['state_tip'] if head else None,
           'state_after_tip':state_after_tip if kind=='restore' else ident,'before_hashes':before_hashes,
           'after_hashes':after_hashes,'parts':parts,'change_count':len(changes),'counts':counts,
-          'conflict_count':sum(bool(change['conflict']) for change in changes),'reverted_receipts':reverted_receipts or [],
+          'category_counts':categories,'conflict_count':sum(bool(change['conflict']) for change in changes),'reverted_receipts':reverted_receipts or [],
           'write_hashes':write_hashes or {}}
     content=encode(root)
     if len(content)>ROOT_LIMIT or len(content)+sum(map(len,payloads))>AUDIT_LIMIT:
         raise ValueError('Change operation byte limit exceeded')
     ref={**ident,'hash':sha(content)}
     next_head={'version':1,'audit_tip':ref,'state_tip':state_after_tip if kind=='restore' else ref,'hashes':after_hashes}
+    if head and head.get('omitted_parent') is not None:next_head['omitted_parent']=head['omitted_parent']
     head_content=encode(next_head)
     if len(head_content)>HEAD_LIMIT:raise ValueError('Change head byte limit exceeded')
     folder=receipt_folder(vault,ref)

@@ -116,7 +116,11 @@ def compare_changes(before, after, before_ledger, after_ledger, *, as_of, operat
             right.remove(following)
 
     before_actions = {action['id']:action for action in before_ledger.get('actions', [])}
-    for action in after_ledger.get('actions', []):
+    actions=list(after_ledger.get('actions', []))
+    if operation=='restore':
+        retained={action['id'] for action in actions}
+        actions.extend({**action,'active':False} for identity,action in before_actions.items() if identity not in retained)
+    for action in actions:
         identity = action['id']
         earlier = before_actions.get(identity)
         was_active, active = bool(earlier and earlier.get('active', True)), action.get('active', True)
@@ -124,11 +128,15 @@ def compare_changes(before, after, before_ledger, after_ledger, *, as_of, operat
             continue
         originals = set(action.get('versions', []))
         anchors = {source for record in action.get('originals', []) for source in record.get('source_ids', [])}
+        original_snapshots=[_snapshot(action['category'],record,aliases) for record in action.get('originals',[])]
         def owned(snapshot):
             return snapshot['record'].get('manual_correction', {}).get('action_id') == identity
         def original(snapshot):
             return snapshot['version_id'] in originals or (snapshot['relation_category'] == action['category']
-                    and bool(_anchors(snapshot) & anchors) and not owned(snapshot))
+                    and bool(_anchors(snapshot) & anchors) and not owned(snapshot)
+                    and any(snapshot['relation']==original['relation']
+                            and all(snapshot['record'].get(key)==original['record'].get(key) for key in ('value','text','intent'))
+                            for original in original_snapshots))
         previous = [index for index in sorted(left) if original(old[index]) if active] if active else [
             index for index in sorted(left) if owned(old[index])]
         following = [index for index in sorted(right) if owned(new[index])] if active else [
@@ -137,7 +145,7 @@ def compare_changes(before, after, before_ledger, after_ledger, *, as_of, operat
             kind = 'removed' if action['action'] == 'delete' else 'merged' if action['action'] == 'merge' else 'updated'
             emit(kind, previous, following, {'removed':'user_deleted','merged':'user_merged','updated':'user_edited'}[kind], owner=identity)
         else:
-            emit('restored', previous, following, 'user_undo', owner=identity)
+            emit('restored', previous, following, 'backup_restored' if operation=='restore' else 'user_undo', owner=identity)
 
     # Explicit validity/history links do not make absence a statement of falsity.
     for previous in sorted(list(left)):

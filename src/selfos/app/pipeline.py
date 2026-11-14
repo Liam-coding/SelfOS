@@ -504,5 +504,6 @@ def register_project_aliases(vault, aliases):
             state.setdefault("refined",{}).pop(origin,None)
             state["refined"].pop(target,None)
         writes[".knowledge_pipeline.json"] = json.dumps(state,ensure_ascii=False,indent=2).encode()
-        commit(vault,writes,run_id,1)
+        from selfos.app.change_publication import publish_changes
+        publish_changes(vault,writes,run_id,1,kind='import')
     return run_id

@@ -40,7 +40,8 @@ def test_cached_import_restores_missing_document_metadata_without_generation(tmp
     state_path=vault/'.knowledge_pipeline.json'
     state=json.loads(state_path.read_text(encoding='utf-8'))
     for key in ('content_sha256','original_filename'):state['sources'][message['id']].pop(key,None)
-    state_path.write_text(json.dumps(state),encoding='utf-8')
+    from tests.change_helpers import install_fixture
+    install_fixture(vault,state)
     def unexpected(_):raise AssertionError('Metadata repair must reuse cached generation')
     result=run_knowledge(vault,roots=[],selected_messages=[message],summarize=unexpected,refine=unexpected)
     assert result['status']=='completed' and result['model_calls']==0
