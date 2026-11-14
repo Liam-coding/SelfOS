@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from selfos.storage.files import _atomic_write, _locked
 
 MAX_BYTES = 64 * 1024 * 1024
-CANONICAL = {'.knowledge_pipeline.json', '.knowledge_corrections.json', '.knowledge_settings.json', '.knowledge_sources.json', '.knowledge_migration.json'}
+CANONICAL = {'.knowledge_pipeline.json', '.knowledge_corrections.json', '.knowledge_settings.json', '.knowledge_sources.json', '.knowledge_migration.json','.knowledge_change_head.json'}
 MODEL_FIELDS = ('provider','model','base_url','proxy_mode','proxy_url')
 
 
@@ -217,12 +217,16 @@ def _validate_upload_entries(decoded):
                 raise ValueError('Imported original is not a text document')
 
 
-def export_package(vault, root, *, include_originals=False, include_backups=False):
+def export_package(vault, root, *, include_originals=False, include_backups=False,audit='none',audit_recent=20):
     if not isinstance(include_originals,bool) or not isinstance(include_backups,bool):
         raise ValueError('Export options must be boolean')
     vault = Path(vault).resolve()
     with _locked(vault):
-        names = sorted(CANONICAL)
+        from selfos.storage.transactions import recover
+        from selfos.app.change_migration import audit_export
+        recover(vault)
+        audit_data=audit_export(vault,mode=audit,recent=audit_recent)
+        names = sorted(CANONICAL-{'.knowledge_change_head.json'})
         if (vault / '.knowledge_uploads').exists():
             from selfos.storage.uploads import recover_uploads, upload_root, upload_path
             recover_uploads(vault)
@@ -232,6 +236,7 @@ def export_package(vault, root, *, include_originals=False, include_backups=Fals
         for enabled, folder in ((include_originals,'.knowledge_uploads/originals'),(include_backups,'.knowledge_backups')):
             if enabled:
                 names += [p.relative_to(vault).as_posix() for p in (vault/folder).rglob('*') if p.is_file()]
+        names=[name for name in names if not re.search(r'/(change-receipt|changes-[0-9]{6})\.json$',name)]
         entries = {}
         total = 0
         for name in names:
@@ -241,13 +246,24 @@ def export_package(vault, root, *, include_originals=False, include_backups=Fals
             if path.stat().st_size > MAX_BYTES - total: raise ValueError('Export exceeds 64 MiB')
             with path.open('rb') as handle:
                 raw = handle.read(MAX_BYTES - total + 1)
+            if audit_data['manifest'] is None and name.endswith('/pipeline-manifest.json'):
+                from selfos.storage.change_receipts import HEAD_NAME,encode
+                manifest=json.loads(raw)
+                if HEAD_NAME in manifest:
+                    manifest.pop(HEAD_NAME)
+                    raw=encode(manifest)
             total += len(raw)
             if total > MAX_BYTES: raise ValueError('Export exceeds 64 MiB')
             entries[name] = base64.b64encode(raw).decode('ascii')
+        for name,raw in audit_data['files'].items():
+            total+=len(raw)
+            if total>MAX_BYTES:raise ValueError('Export exceeds 64 MiB; select a smaller audit range')
+            entries[name]=base64.b64encode(raw).decode('ascii')
         from selfos.providers.settings import public_config
         config = public_config(root)
         _validate_upload_entries({name: base64.b64decode(value) for name, value in entries.items()})
-        return {'format':'selfos-portable','version':1,'origin_vault':str(vault), 'origin_platform':os.name,
+        return {'format':'selfos-portable','version':2 if audit_data['manifest'] else 1,'audit':audit_data['manifest'],'audit_summary':audit_data['summary'],
+                'origin_vault':str(vault), 'origin_platform':os.name,
                 'includes':{'originals':include_originals,'backups':include_backups,'credentials':False},
                 'files':entries,'settings':{k:config[k] for k in MODEL_FIELDS if k in config}}
 
@@ -292,7 +308,7 @@ def _validate_foreign_selection(selection, path_type):
 
 
 def import_package(vault, root, package):
-    if not isinstance(package,dict) or package.get('format') != 'selfos-portable' or package.get('version') != 1:
+    if not isinstance(package,dict) or package.get('format') != 'selfos-portable' or package.get('version') not in (1,2):
         raise ValueError('Unsupported migration format')
     entries = package.get('files')
     config = package.get('settings',{})
@@ -311,6 +327,8 @@ def import_package(vault, root, package):
         if total > MAX_BYTES: raise ValueError('Import exceeds 64 MiB')
         if not (vault/name).resolve().is_relative_to(vault): raise ValueError('Import path escapes vault')
         decoded[name] = raw
+    from selfos.app.change_migration import validate_audit_import
+    boundary=validate_audit_import(decoded,package.get('audit') if package['version']==2 else None)
     _validate_upload_entries(decoded)
     state = json.loads(decoded.get('.knowledge_pipeline.json',b'{}'))
     _validate_state(state)
@@ -392,6 +410,15 @@ def import_package(vault, root, package):
         decoded['.knowledge_sources.json'] = json.dumps(selection,ensure_ascii=False,indent=2).encode()
     if '.knowledge_pipeline.json' in decoded:
         decoded['.knowledge_pipeline.json'] = json.dumps(state,ensure_ascii=False,indent=2).encode()
+    if package['version']==2:
+        from selfos.storage.change_receipts import HEAD_NAME,encode,sha
+        head=json.loads(decoded[HEAD_NAME])
+        head['imported_hashes']=head['hashes']
+        head['hashes']={'state':sha(decoded.get('.knowledge_pipeline.json')),'ledger':sha(decoded.get('.knowledge_corrections.json'))}
+        decoded[HEAD_NAME]=encode(head)
+        metadata=json.loads(decoded.get('.knowledge_migration.json',b'{}'))
+        metadata.update(audit_import_boundary=boundary,audit_origin_vault=origin,audit_origin_platform=platform)
+        decoded['.knowledge_migration.json']=encode(metadata)
     if vault.exists() and any((vault/name).exists() for name in CANONICAL):
         raise ValueError('Import requires an empty knowledge destination')
     model_path = root / '.selfos-model.json'

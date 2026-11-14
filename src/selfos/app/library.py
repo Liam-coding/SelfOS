@@ -222,6 +222,12 @@ def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
 def knowledge_source(vault,identity, *, offset=0,limit=24000):
     state=_state(vault);source=state.get('sources',{}).get(identity)
     if not isinstance(source,dict):raise KeyError('Unknown conversation source')
+    return knowledge_source_metadata(vault,identity,source,offset=offset,limit=limit)
+
+
+def knowledge_source_metadata(vault,identity,source,*,offset=0,limit=24000):
+    """Verify supplied historical metadata without writing it into current knowledge."""
+    state={'sources':{identity:source}}
     if source.get('source') == 'opencode':
         from selfos.sources.adapters import verify_source
         from selfos.sources.selection import load_sources

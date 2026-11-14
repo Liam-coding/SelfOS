@@ -11,6 +11,32 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__','/__knowledge_record_changes__'):
+            origin=self.headers.get('Origin');host=self.headers.get('Host','')
+            if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
+                return self._send_json(403,{'code':'history_forbidden'})
+            from selfos.app.changes import list_changes,change_detail,change_source,record_change
+            from selfos.storage.change_cursors import NavigationLimit
+            qs=parse_qs(parsed_path.query)
+            def value(key,default=''):return qs.get(key,[default])[0]
+            try:
+                session=self._token()
+                if parsed_path.path=='/__knowledge_changes__':
+                    result=list_changes(self.runtime.VAULT,session=session,cursor=value('cursor') or None,
+                        category=value('category','all'),action=value('action','all'),conflict=value('conflict')=='true')
+                elif parsed_path.path=='/__knowledge_record_changes__':
+                    result=record_change(self.runtime.VAULT,value('record'),session=session,cursor=value('cursor') or None)
+                elif parsed_path.path=='/__knowledge_change__':
+                    result=change_detail(self.runtime.VAULT,value('id'),session=session,cursor=value('cursor') or None)
+                else:
+                    result=change_source(self.runtime.VAULT,value('id'),value('source'),session=session,proof=value('cursor') or None,
+                        offset=int(value('offset','0')),limit=int(value('limit','24000')))
+                return self._send_json(200,result)
+            except NavigationLimit:return self._send_json(409,{'status':'history_navigation_limit'})
+            except FileNotFoundError:return self._send_json(404,{'status':'missing'})
+            except ValueError as error:return self._send_json(400,{'status':getattr(error,'code','invalid_metadata')})
+            except (TypeError,KeyError):return self._send_json(400,{'status':'invalid_metadata'})
+            except (OSError,RuntimeError):return self._send_json(503,{'status':'history_unavailable'})
         if parsed_path.path == '/__knowledge_uploads__':
             return self._upload_list()
         if parsed_path.path == '/__knowledge_upload_source__':

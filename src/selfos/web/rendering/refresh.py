@@ -28,6 +28,7 @@ def refresh_dashboard(page):
     page=re.sub(r'<section class="knowledge-overview"[^>]*>.*?</section>','<!--selfos-overview-anchor-->',page,count=1,flags=re.S)
     page=re.sub(r'<section id="knowledge-library"[^>]*>.*?</section>','<!--selfos-library-anchor-->',page,count=1,flags=re.S)
     remove(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->')
+    remove(r'<!-- selfos-changes-start -->.*?<!-- selfos-changes-end -->')
     remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
     remove(r'<!-- selfos-uploads-start -->.*?<!-- selfos-uploads-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')

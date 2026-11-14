@@ -439,7 +439,8 @@ def install_rebuilt(vault, scratch, expected_hash=None, run_id=None, expected_po
             writes.update(record_writes(vault,new,corrections=ledger))
         if expected_privacy_hash is not None and selection_hash(vault) != expected_privacy_hash:
             raise ValueError('Privacy rules changed; restart the import')
-        commit(vault, writes, run_id, 1)
+        from selfos.app.change_publication import publish_changes
+        publish_changes(vault,writes,run_id,1,kind='import')
     return run_id
 
 
@@ -503,5 +504,6 @@ def register_project_aliases(vault, aliases):
             state.setdefault("refined",{}).pop(origin,None)
             state["refined"].pop(target,None)
         writes[".knowledge_pipeline.json"] = json.dumps(state,ensure_ascii=False,indent=2).encode()
-        commit(vault,writes,run_id,1)
+        from selfos.app.change_publication import publish_changes
+        publish_changes(vault,writes,run_id,1,kind='import')
     return run_id

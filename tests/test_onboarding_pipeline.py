@@ -24,7 +24,8 @@ def test_old_schema_sample_preserves_unrelated_card_and_global_coverage(tmp_path
     else:
         previous["quality_version"] = 1
     previous["cards"]["C:/projects/alpha"]["decisions"] = [f"Legacy decision {i}" for i in range(20)]
-    state_path.write_text(json.dumps(previous), encoding="utf-8")
+    from tests.change_helpers import install_fixture
+    install_fixture(vault,previous)
     new_root = tmp_path / "new-source"
     new_root.mkdir()
     (new_root / "beta.jsonl").write_text(path.read_text().replace("alpha", "beta").replace("original", "new-session").replace("reliable import", "bounded onboarding"), encoding="utf-8")
@@ -132,7 +133,8 @@ def test_registered_exclusions_filter_real_pipeline_cache_and_keep_local_lessons
     private_lesson = {'text': 'PRIVATE CLIENT SECRET', 'source_ids': [private_id], 'domain': 'work', 'kind': 'inference'}
     state['lessons'].append(private_lesson)
     state['lesson_history'].append(private_lesson)
-    state_path.write_text(json.dumps(state), encoding='utf-8')
+    from tests.change_helpers import install_fixture
+    install_fixture(vault,state)
     (root / 'public.jsonl').write_text(path.read_text().replace('original', 'public-session').replace('reliable import', 'public-only UI'), encoding='utf-8')
     save_sources(vault, {'roots': [str(root)], 'exclusions': [str(path)]})
     captured = []

@@ -62,7 +62,8 @@ class ActionsRoutes:
                         result = privacy_status(self.runtime.VAULT,self.runtime.ROOT)
                     elif action == 'export':
                         result = export_package(self.runtime.VAULT,self.runtime.ROOT,
-                            include_originals=body.get('originals',False),include_backups=body.get('backups',False))
+                            include_originals=body.get('originals',False),include_backups=body.get('backups',False),
+                            audit=body.get('audit','none'),audit_recent=body.get('audit_recent',20))
                     elif action == 'import': result = import_package(self.runtime.VAULT,self.runtime.ROOT,body['package'])
                     else: raise ValueError('Invalid privacy action')
                     return self._send_json(200,result)

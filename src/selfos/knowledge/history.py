@@ -83,7 +83,10 @@ def rebuild_cached_state_history(state, domains):
     return changed
 
 
-def history_records(state):
+def history_records(state, *, as_of=None):
+    if as_of is not None:
+        from selfos.knowledge.preferences import preference_snapshot
+        state = preference_snapshot(state, as_of=as_of)
     history=list(state.get('history',[]))+list(state.get('records_history',[]))+list(state.get('project_observations',[]))
     history.extend({**copy.deepcopy(record),'original_category':'preferences','temporal':'historical'}
                    for record in state.get('preferences',[]) if record.get('scheduled'))

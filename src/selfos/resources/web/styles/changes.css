@@ -1,0 +1,21 @@
+#knowledge-changes{margin:auto;box-sizing:border-box;width:min(1040px,92vw);max-width:92vw;max-height:calc(100dvh - 40px);padding:var(--space-6);overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);font-family:var(--font-ui);font-size:14px;line-height:1.6}
+#knowledge-changes::backdrop{background:rgba(31,42,66,.3);backdrop-filter:blur(6px)}
+#knowledge-changes h2{margin:0;font-size:22px;font-weight:650;letter-spacing:-.5px}
+#knowledge-changes button,#knowledge-changes select{min-height:40px;padding:8px 12px;max-width:100%;border:1px solid var(--control-line);border-radius:var(--radius-control);background:var(--soft);color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+#knowledge-changes button:hover{border-color:var(--focus)}
+#knowledge-changes p{margin:8px 0;color:var(--muted)}
+#knowledge-changes-entry{padding:8px 12px;min-height:40px}
+.changes-heading{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4)}
+.changes-filters{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-3);margin:var(--space-4) 0}
+.changes-filters label{display:flex;gap:var(--space-2);align-items:center}
+.changes-layout{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2fr);gap:var(--space-6)}
+.changes-layout>*{min-width:0}.changes-layout p{color:var(--muted)}
+.changes-operation{width:100%;text-align:left;margin-bottom:var(--space-2);padding:var(--space-3);border:1px solid var(--line);border-radius:var(--radius-control);background:var(--soft);color:var(--text)}
+.changes-operation[aria-pressed=true]{outline:2px solid var(--focus)}
+.changes-change{padding:var(--space-4);margin-bottom:var(--space-4);border:1px solid var(--line);border-radius:var(--radius-card)}
+.changes-values{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.changes-values>div{min-width:0;background:var(--soft);padding:var(--space-3);border-radius:var(--radius-compact)}
+.changes-change h3,.changes-change h4{margin:0 0 var(--space-2)}
+.changes-values p,.changes-values button,#changes-source-text{overflow-wrap:anywhere;white-space:pre-wrap}
+#changes-source-text{padding:var(--space-4);background:var(--soft);max-height:340px;overflow:auto}
+@media(max-width:640px){#knowledge-changes{padding:var(--space-4)}.changes-layout,.changes-values{grid-template-columns:1fr}.changes-operations{max-height:260px;overflow:auto}.changes-filters label{flex-wrap:wrap}}

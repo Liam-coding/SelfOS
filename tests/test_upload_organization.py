@@ -188,7 +188,7 @@ def test_partial_document_continuation_preserves_previous_cache_keys(tmp_path):
 
 def test_canonical_publication_failure_does_not_publish_processing_receipt(tmp_path, monkeypatch):
     from selfos.app.uploads import upload_preview, organize_uploads, upload_status
-    from selfos.app import pipeline
+    from selfos.storage import change_publication as pipeline
     doc = uploaded(tmp_path)
     preview = upload_preview(tmp_path, [doc['id']])
     real = pipeline.commit
