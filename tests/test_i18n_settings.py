@@ -6,7 +6,7 @@ from selfos.web.rendering.resources import frontend_text
 
 def test_switching_language_preserves_unsaved_settings_and_pending_model_test(tmp_path):
     common = runtime().split('<script', 1)[1].split('>', 1)[1].split('</script>', 1)[0]
-    script = frontend_text('scripts/settings-model.js')
+    script = frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/settings-model.js')
     harness = r"""
 const elements=new Map(),listeners=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{dataset:{},value:'',checked:false,disabled:false,textContent:'',isConnected:true,hidden:false,children:[],append(e){this.children.push(e);},replaceChildren(){this.children=[];},showModal(){this.open=true;},style:{}});return elements.get(id);}

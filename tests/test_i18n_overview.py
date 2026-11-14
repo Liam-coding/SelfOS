@@ -6,7 +6,7 @@ from selfos.web.rendering.resources import frontend_text
 
 def test_overview_switch_updates_status_counts_without_fetching_again(tmp_path):
     common = runtime().split('<script', 1)[1].split('>', 1)[1].split('</script>', 1)[0]
-    script = frontend_text('scripts/overview.js')
+    script = frontend_text('scripts/ui-runtime.js') + frontend_text('scripts/overview.js')
     harness = r"""
 const elements=new Map(),listeners=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{textContent:'',isConnected:true,classList:{add(){},remove(){}}});return elements.get(id);}
@@ -31,7 +31,7 @@ selfosI18n.setLocale('en');if(element('knowledge-overview-status').textContent!=
 
 def test_dashboard_language_glue_uses_shared_runtime_without_requests(tmp_path):
     script = frontend_text('scripts/dashboard-theme-language.js')
-    assert "let lang = window.selfosI18n.documentTag" in script
+    assert "selfosUI.register('theme'" in script
     assert 'updateKnowledgeOverview();' not in script
     assert 'data-zh' not in script
     assert 'selfosI18n.setLocale' in script

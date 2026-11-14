@@ -7,7 +7,7 @@ def test_model_form_cannot_edit_or_submit_before_saved_configuration_loads(tmp_p
     from selfos.web.rendering.resources import frontend_text
     node=shutil.which('node')
     if not node:pytest.skip('Node is needed for browser script validation')
-    script=frontend_text('scripts/settings-model.js')
+    script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/settings-model.js')
     harness=r"""
 const controls=Array.from({length:3},()=>({disabled:false})),close={disabled:false};
 const elements=new Map();

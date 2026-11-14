@@ -3,7 +3,7 @@
   <p data-i18n="workload.hint">Actual usage reported by your model. Missing usage is unknown; no prices are calculated.</p>
   <p><label><span data-i18n="workload.limit">Maximum requests per import checkpoint</span> <input id="workload-limit" type="number" min="1" max="10000" step="1" required value="100" style="box-sizing:border-box;max-width:100%;width:100px"></label></p>
   <p data-i18n="workload.limit_hint">Retries and review requests share this allowance. Exhaustion stops safely; increasing it explicitly allows saved work to resume.</p>
-  <button id="workload-save" type="button" onclick="saveWorkloadBudget()" data-i18n="workload.save">Save request allowance</button>
+  <button id="workload-save" type="button" data-selfos-action="usage.save" data-i18n="workload.save">Save request allowance</button>
   <p id="workload-status" role="status" aria-live="polite"></p>
   <p id="workload-usage" style="overflow-wrap:anywhere"></p>
 </fieldset>

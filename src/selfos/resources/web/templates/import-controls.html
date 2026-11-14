@@ -1,4 +1,4 @@
-<button class="harvest-btn" onclick="openKnowledgeSettings()" data-i18n="ui.import_settings.import_settings">Import settings</button>
+<button id="knowledge-settings-entry" class="harvest-btn" data-selfos-action="import.open" data-i18n="ui.import_settings.import_settings">Import settings</button>
 @@SELFOS_RESOURCE:templates/uploads.html@@
 <dialog id="knowledge-settings" style="background:var(--bg,#fff);color:var(--text,#222);border-radius:16px;max-width:560px;padding:24px">
   <h3 data-i18n="ui.import_settings.knowledge_import_settings">Knowledge import settings</h3>
@@ -8,10 +8,10 @@
   <p><label><span data-i18n="ui.import_settings.detail_level">Detail level</span> <select id="knowledge-detail"><option value="concise" data-i18n="ui.import_settings.concise">Concise</option><option value="balanced" data-i18n="ui.import_settings.balanced">Balanced</option><option value="detailed" data-i18n="ui.import_settings.detailed">Detailed</option></select></label></p>
   <p id="knowledge-status" role="status"></p>
   @@SELFOS_RESOURCE:templates/workload.html@@
-  <button onclick="saveKnowledgeSettings(false)" data-i18n="ui.import_settings.save_settings">Save settings</button>
-  <button onclick="saveKnowledgeSettings(true)" data-i18n="ui.import_settings.save_and_rebuild">Save and rebuild</button>
-  <button id="knowledge-undo" onclick="undoKnowledge()" data-i18n="ui.import_settings.undo_last_import">Undo last import</button>
-  <button onclick="document.getElementById('knowledge-settings').close()" data-i18n="ui.import_settings.close">Close</button>
+  <button data-selfos-action="import.save" data-i18n="ui.import_settings.save_settings">Save settings</button>
+  <button data-selfos-action="import.rebuild" data-i18n="ui.import_settings.save_and_rebuild">Save and rebuild</button>
+  <button id="knowledge-undo" data-selfos-action="import.restore" data-i18n="ui.import_settings.undo_last_import">Undo last import</button>
+  <button data-selfos-action="import.close" data-i18n="ui.import_settings.close">Close</button>
 </dialog>
-<script>@@SELFOS_RESOURCE:scripts/import-controls.js@@
-@@SELFOS_RESOURCE:scripts/workload.js@@</script>
+<script data-selfos-module="import-settings" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/import-controls.js@@</script>
+<script data-selfos-module="usage" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/workload.js@@</script>

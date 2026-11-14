@@ -1,3 +1,11 @@
+(function(window){
+'use strict';
+window.selfosUI.register('settings',()=>{
+const cleanups=[];
+const requests=new Set();
+const draftFields=['model-provider','model-base','model-name','model-proxy-mode','model-proxy-url'];
+let remountDraft=null;
+function on(node,type,listener){node?.addEventListener?.(type,listener);cleanups.push(()=>node?.removeEventListener?.(type,listener));}
 
 function openAppSettings() {
   window.selfosI18n.populateLanguageSelect('settings-language');
@@ -20,8 +28,11 @@ function showCurrentModel(c) {
  modelStatus('proxy_status',()=>({source:c.proxy_source,proxy:JSON.stringify(c.effective_proxy),key:window.selfosI18n.t(c.has_api_key?'ui.model.configured':'ui.model.unconfigured')}));
 }
 async function modelRequest(url,body) {
-  const r=await fetch(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const controller=new AbortController();requests.add(controller);
+  try {
+  const r=await fetch(url,{signal:controller.signal,...(body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});
   const data=await r.json();if(!r.ok){const error=new Error('model_request_failed');error.code=data.code;throw error;}return data;
+  }finally{requests.delete(controller);}
 }
 let modelSettingsGeneration=0;
 let modelListGeneration=0;
@@ -81,24 +92,70 @@ async function openModelSettings() {
 }
 async function saveModelSettings(test) {
   const form=document.querySelector('#model-settings form');if(!form.reportValidity())return;
+  const generation=modelSettingsGeneration;
   invalidateModelList();
   const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
   try {
     const c=await modelRequest('/__model_settings__',{provider:document.getElementById('model-provider').value,base_url:document.getElementById('model-base').value,model:document.getElementById('model-name').value,api_key:document.getElementById('model-key').value,clear_api_key:document.getElementById('model-clear-key').checked,proxy_mode:document.getElementById('model-proxy-mode').value,proxy_url:document.getElementById('model-proxy-url').value});
+    if(generation!==modelSettingsGeneration)return;
     document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;showCurrentModel(c);
-    if(test){modelStatus('testing');const r=await modelRequest('/__model_test__',{});modelStatus(r.ok?'passed':'request_failed');}
-  }catch(e){modelStatus('request_failed');}
-  finally{buttons.forEach(b=>b.disabled=false);}
+    if(test){modelStatus('testing');const r=await modelRequest('/__model_test__',{});if(generation===modelSettingsGeneration)modelStatus(r.ok?'passed':'request_failed');}
+  }catch(e){if(generation===modelSettingsGeneration)modelStatus('request_failed');}
+  finally{if(generation===modelSettingsGeneration)buttons.forEach(b=>b.disabled=false);}
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('model-settings').addEventListener?.('close',invalidateModelList);
+function init(document){
+  if(remountDraft){
+    for(const [id,value]of Object.entries(remountDraft.values))document.getElementById(id).value=value;
+    const form=document.querySelector('#model-settings form');form.querySelectorAll('input,select,button').forEach(control=>control.disabled=false);
+    document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
+    for(const [id,open]of [['model-settings',remountDraft.modelOpen],['app-settings',remountDraft.appOpen]])if(open){const dialog=document.getElementById(id);if(dialog.open)dialog.close();dialog.showModal();}
+    updateModelProxy();remountDraft=null;
+  }
+  const actions={
+    'settings.open':['click',openAppSettings],
+    'settings.language':['change',(_,node)=>setSettingsLanguage(node.value)],
+    'settings.model':['click',()=>{document.getElementById('app-settings').close();openModelSettings();}],
+    'settings.privacy':['click',()=>openPrivacySettings()],
+    'settings.setup':['click',()=>{document.getElementById('app-settings').close();onboardingResumeSetup();}],
+    'settings.close':['click',()=>document.getElementById('app-settings').close()],
+    'settings.save':['submit',()=>saveModelSettings(false)],
+    'settings.provider':['change',changeModelProvider],
+    'settings.models':['click',loadAvailableModels],
+    'settings.choose':['change',chooseAvailableModel],
+    'settings.proxy':['change',updateModelProxy],
+    'settings.test':['click',()=>saveModelSettings(true)],
+    'settings.model-close':['click',()=>document.getElementById('model-settings').close()]
+  };
+  function action(event){
+    const node=event.target.closest?.('[data-selfos-action]');
+    if(!node||!document.contains(node)||!node.closest('#app-settings,#model-settings,#model-settings-entry'))return;
+    const entry=actions[node.dataset.selfosAction];
+    if(!entry||entry[0]!==event.type)return;
+    event.preventDefault();entry[1](event,node);
+  }
+  for(const type of ['click','change','submit'])on(document,type,action);
+  const form=document.querySelector('#model-settings form');
+  on(form,'input',modelDiscoveryDraftChanged);on(form,'change',modelDiscoveryDraftChanged);
+  on(document.getElementById('model-settings'),'close',invalidateModelList);
   const settings=document.getElementById('app-settings');
-  settings.addEventListener('close',()=>{
+  on(settings,'close',()=>{
     if(!document.querySelector('dialog[open]'))document.querySelector('#model-settings-entry button')?.focus();
   });
   const header=document.querySelector('.header-btns');
   if(header)header.append(document.getElementById('model-settings-entry'));
   const languageButton=document.getElementById('lang-toggle');
   if(languageButton){languageButton.hidden=true;languageButton.style.display='none';document.getElementById('app-settings').append(languageButton);}
-  modelRequest('/__model_settings__').then(showCurrentModel).catch(()=>{window.selfosI18n.bindText('current-model','ui.model.start_server');});
-});
+  const generation=modelSettingsGeneration;
+  modelRequest('/__model_settings__').then(c=>{if(generation===modelSettingsGeneration)showCurrentModel(c);}).catch(()=>{if(generation===modelSettingsGeneration)window.selfosI18n.bindText('current-model','ui.model.start_server');});
+}
+function teardown(){
+  remountDraft={values:Object.fromEntries(draftFields.map(id=>[id,document.getElementById(id).value])),modelOpen:document.getElementById('model-settings').open,appOpen:document.getElementById('app-settings').open};
+  document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
+  ++modelSettingsGeneration;++modelListGeneration;
+  for(const request of requests)request.abort();requests.clear();
+  cleanups.splice(0).reverse().forEach(cleanup=>cleanup());
+}
+return {busy:()=>requests.size>0,open:openAppSettings,openModel:openModelSettings,saveModel:saveModelSettings,openAppSettings,setSettingsLanguage,updateModelProxy,changeModelProvider,modelStatus,showCurrentModel,modelRequest,modelDraft,modelListStatus,invalidateModelList,modelDiscoveryDraftChanged,chooseAvailableModel,loadAvailableModels,openModelSettings,saveModelSettings,init,teardown};
+},{dependencies:['request','locale'],roots:['#app-settings','#model-settings','#model-settings-entry']});
+for(const [name,method]of Object.entries({openAppSettings:'openAppSettings',setSettingsLanguage:'setSettingsLanguage',updateModelProxy:'updateModelProxy',changeModelProvider:'changeModelProvider',modelStatus:'modelStatus',showCurrentModel:'showCurrentModel',modelRequest:'modelRequest',modelDraft:'modelDraft',modelListStatus:'modelListStatus',invalidateModelList:'invalidateModelList',modelDiscoveryDraftChanged:'modelDiscoveryDraftChanged',chooseAvailableModel:'chooseAvailableModel',loadAvailableModels:'loadAvailableModels',openModelSettings:'openModelSettings',saveModelSettings:'saveModelSettings'})){if(!window[name])window[name]=(...args)=>window.selfosUI.module('settings')[method](...args);}
+})(window);
