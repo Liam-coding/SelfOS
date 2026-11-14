@@ -54,13 +54,13 @@ def test_open_dimension_and_pending_chat_follow_language_without_resending(tmp_p
     from selfos.web.i18n import runtime
     from selfos.web.rendering.resources import frontend_text
     common=runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
-    script=frontend_text('scripts/dashboard-dimensions.js')
+    script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/dashboard-chat.js')+frontend_text('scripts/dashboard-dimensions.js')
     harness=r"""
 const elements=new Map(),listeners=new Map(),messages=[];
-function element(id){if(!elements.has(id))elements.set(id,{textContent:'',isConnected:true,style:{},classList:{add(){},remove(){}},addEventListener(){},remove(){this.isConnected=false;}});return elements.get(id);}
+function element(id){if(!elements.has(id))elements.set(id,{textContent:'',isConnected:true,style:{},dataset:{},setAttribute(){},appendChild(node){messages.push(node);},classList:{add(){},remove(){},toggle(){}},addEventListener(){},remove(){this.isConnected=false;}});return elements.get(id);}
 global.window=global;global.localStorage={getItem:()=>null,setItem(){}};
-global.document={documentElement:{lang:'en'},getElementById:element,querySelectorAll:()=>[],addEventListener:(k,f)=>{if(!listeners.has(k))listeners.set(k,[]);listeners.get(k).push(f);},dispatchEvent:e=>{for(const f of listeners.get(e.type)||[])f(e);}};
-const chatCollapsed=false,chatHistory=[];function appendMsg(text,role){const node=element('msg'+messages.length);node.textContent=text;messages.push(node);return node;}function toggleChat(){}
+global.document={documentElement:{lang:'en'},getElementById:element,createElement:()=>element('msg'+messages.length),querySelectorAll:()=>[],addEventListener:(k,f)=>{if(!listeners.has(k))listeners.set(k,[]);listeners.get(k).push(f);},dispatchEvent:e=>{for(const f of listeners.get(e.type)||[])f(e);}};
+
 let calls=0,finish;global.fetch=async()=>{calls++;return await new Promise(resolve=>finish=()=>resolve({ok:true,json:async()=>({reply:'Literal source reply'})}));};
 COMMON
 DIMENSIONS
@@ -68,7 +68,7 @@ DIMENSIONS
 openDim({dataset:{key:'career',score:'6',color:'#fff',labelKey:'ui.dimension.career',statusKey:'ui.status.ok',suggKey:'ui.suggestion.career.mid'}});
 if(element('dim-modal-title').textContent!=='Career')throw Error('Dimension not keyed');
 selfosI18n.setLocale('zh');if(element('dim-modal-title').textContent==='Career'||calls)throw Error('Open dimension retained old language or sent chat');
-chatAboutDim();if(calls!==1||chatHistory[0].content.includes('Tell me'))throw Error('Discussion generated in stale language');
+chatAboutDim();if(calls!==1||selfosUI.module('chat').snapshot().history[0].content.includes('Tell me'))throw Error('Discussion generated in stale language');
 selfosI18n.setLocale('en');if(messages[1].textContent!=='Thinking...'||calls!==1)throw Error('Pending chat did not translate or resent');
 finish();for(let n=0;n<20;n++)await Promise.resolve();
 if(messages[messages.length-1].textContent!=='Literal source reply')throw Error('Reply altered');
@@ -106,7 +106,7 @@ def test_decimal_scores_follow_locale_in_static_and_open_modal(tmp_path):
     from selfos.web.rendering.resources import frontend_text
     data=catalogs();data['locales']['fr-test']={'name':'Test French','tag':'fr-FR','document_tag':'fr','aliases':[],'messages':{}}
     common=runtime(data).split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
-    script=frontend_text('scripts/dashboard-dimensions.js')
+    script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/dashboard-dimensions.js')
     harness=r"""
 const elements=new Map();function get(id){if(!elements.has(id))elements.set(id,{textContent:'',dataset:{},isConnected:true,style:{},classList:{add(){},remove(){}},addEventListener(){}});return elements.get(id);}
 const score=get('overall');score.dataset={i18n:'ui.common.value',i18nParams:'{"value":6.5}'};

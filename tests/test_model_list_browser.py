@@ -33,7 +33,7 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
       return {ok:true,json:async()=>({provider:'anthropic',model:'saved-model',base_url:'http://fixture',proxy_mode:'direct',proxy_url:'',has_api_key:true,proxy_source:'direct',effective_proxy:{}})};
     };
     </script>"""
-    lifecycle='<script>'+frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/ui-request.js')+'</script>'
+    lifecycle='<script>'+frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/ui-request.js')+"selfosUI.register('knowledge',()=>({openDetail(){},browse(){}}));"+'</script>'
     bootstrap='<script>'+frontend_text('scripts/ui-bootstrap.js')+'</script>'
     from selfos.web.rendering.auth import account_controls
     account=account_controls(include_runtime=False,include_lifecycle=False)

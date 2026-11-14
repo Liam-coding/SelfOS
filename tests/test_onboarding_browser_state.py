@@ -22,7 +22,7 @@ __SCRIPT__
 const data=path=>({progress:{step:0,status:'active',preview_id:null},availability:[],sources:{roots:[path],exclusions:[]},
   model:{provider:'openai',model:'synthetic'},preview:null,budget:null,knowledge:{counts:{cards:0,lessons:0,personal_facts:0,preferences:0,history:0},saved_checkpoints:0}});
 (async()=>{
- selfosUI.register('jobs',()=>({subscribe(){return ()=>{};}}));selfosUI.register('settings',()=>({}));selfosUI.register('request',()=>({}));selfosUI.register('locale',()=>({}));selfosUI.init(document);
+ selfosUI.register('jobs',()=>({subscribe(){return ()=>{};}}));selfosUI.register('settings',()=>({onModelClosed(){return()=>{};}}));selfosUI.register('knowledge',()=>({}));selfosUI.register('request',()=>({}));selfosUI.register('locale',()=>({}));selfosUI.init(document);
  const opening=openOnboarding();
  const selected=data('current-selection');selected.progress.step=1;releases[1](selected);await opening;
  releases[0](data('stale-selection'));await new Promise(resolve=>setImmediate(resolve));

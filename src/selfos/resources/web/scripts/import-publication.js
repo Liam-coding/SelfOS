@@ -59,7 +59,7 @@ function teardown(){
   detailsOpen=!!document.querySelector('#import-publication details')?.open;++lifetime;++importStatusGeneration;
   for(const controller of requests)controller.abort();requests.clear();inflight=null;queued=false;cleanups.splice(0).reverse().forEach(cleanup=>cleanup());
 }
-return {render:renderImportPublication,refresh:refreshImportPublication,busy:()=>requests.size>0,init,teardown};
+return {openDetails(){detailsOpen=true;document.querySelector('#import-publication details').open=true;},render:renderImportPublication,refresh:refreshImportPublication,busy:()=>requests.size>0,init,teardown};
 },{dependencies:['jobs','request','locale'],roots:['#import-publication']});
 for(const [name,method]of Object.entries({renderImportPublication:'render',refreshImportPublication:'refresh'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('publication')[method](...args);
 })(window);

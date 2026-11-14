@@ -9,8 +9,9 @@ from selfos.web.rendering.resources import frontend_text
 def test_json_chat_errors_remain_visible_and_translate(tmp_path,script_name,http_ok):
     common=runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
     script=frontend_text('scripts/'+script_name)
-    helper="""let chatCollapsed=false;const chatHistory=[];function appendMsg(text,role){const element=document.createElement('div');element.textContent=text;document.getElementById('chat-messages').appendChild(element);return element;}function toggleChat(){}""" if script_name=='dashboard-dimensions.js' else ''
-    action="await _sendChatSilent('Fixture question');" if helper else "get('chat-input').value='Fixture question';await sendChat();"
+    script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/dashboard-chat.js')+(frontend_text('scripts/dashboard-dimensions.js') if script_name=='dashboard-dimensions.js' else '')
+    helper=''
+    action="await _sendChatSilent('Fixture question');" if script_name=='dashboard-dimensions.js' else "get('chat-input').value='Fixture question';await sendChat();"
     harness=r"""
 const elements=new Map();
 class Element{

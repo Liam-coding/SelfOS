@@ -9,12 +9,12 @@ def test_completion_owners_abort_reads_and_subscribe_once(tmp_path):
 const vm=require('vm');
 const elements=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{textContent:'',isConnected:true,classList:{add(){},remove(){}},replaceChildren(){},addEventListener(){},removeEventListener(){}});return elements.get(id);}
-global.window=global;global.document={getElementById:element,querySelector:element,addEventListener(){},createElement:()=>element(Math.random())};
+global.window=global;global.document={getElementById:element,querySelector:element,addEventListener(){},removeEventListener(){},createElement:()=>element(Math.random())};
 global.selfosI18n={bindText(){},t:key=>key,number:String};
 let listeners=new Set(),calls=[];
 global.fetch=(url,options)=>new Promise((resolve,reject)=>{calls.push({url,options,resolve,reject});options.signal.addEventListener('abort',()=>reject(new Error('aborted')));});
 RUNTIME
-selfosUI.register('locale',()=>({}));selfosUI.register('request',()=>({}));
+selfosUI.register('locale',()=>({}));selfosUI.register('request',()=>({}));for(const owner of ['knowledge','import-settings','publication'])selfosUI.register(owner,()=>({}));
 selfosUI.register('jobs',()=>({subscribe(fn){listeners.add(fn);return ()=>listeners.delete(fn);}}));
 OWNERS
 (async()=>{
@@ -37,3 +37,21 @@ OWNERS
     path.write_text(script, encoding='utf-8')
     result = subprocess.run([shutil.which('node'), str(path)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_sparklines_draw_once_per_mount_and_never_at_registration(tmp_path):
+    script=r"""
+const vm=require('vm'),assert=require('assert/strict');let draws=0;
+const canvas={dataset:{values:'[1,3,4]',color:'blue'},width:80,height:30,getContext:()=>({clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){draws++;}})};
+global.window=global;global.document={querySelectorAll:()=>[canvas],querySelector:()=>canvas};
+RUNTIME
+SOURCE
+assert.equal(draws,0,'Canvas drew while registering');selfosUI.init(document);selfosUI.init(document);assert.equal(draws,1);REPEAT
+selfosUI.init(document);assert.equal(draws,1);selfosUI.teardown();selfosUI.init(document);assert.equal(draws,2);
+"""
+    import json
+    source=frontend_text('scripts/dashboard-sparklines.js')
+    script=script.replace('RUNTIME',frontend_text('scripts/ui-runtime.js')).replace('SOURCE',source).replace('REPEAT','vm.runInThisContext('+json.dumps(source)+');')
+    path=tmp_path/'sparklines.js';path.write_text(script,encoding='utf-8')
+    result=subprocess.run([shutil.which('node'),str(path)],capture_output=True,text=True,encoding='utf-8')
+    assert result.returncode==0,result.stderr
