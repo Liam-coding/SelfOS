@@ -3,7 +3,8 @@
   const state={selection:null,available:[],checked:new Set(),extra:new Set(),preview:null,entry:null,busy:false,generation:0,status:'ready'};
   const el=id=>document.getElementById('native-'+id),t=(key,params={})=>window.selfosI18n.t('native.'+key,params);
   const node=(tag,value)=>{const item=document.createElement(tag);item.textContent=value;return item;};
-  const changed=()=>{onboardingSourcesDirty=true;};
+  // Notify the existing source-input boundary; the editor owns its dirty state.
+  const changed=()=>document.getElementById('onboarding-roots').dispatchEvent(new Event('input',{bubbles:true}));
   function renderSources(){
     if(!el('entries'))return;el('entries').replaceChildren();
     const paths=new Map(state.available.filter(item=>item.kind==='opencode_database'&&typeof item.path==='string').map(item=>[item.path,item.available]));
