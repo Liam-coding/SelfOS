@@ -96,6 +96,16 @@ Originals live under vault/.knowledge_uploads/originals/, with a content-based r
 
 On the next import, changed retention settings trigger a rebuild under the new policy. Completed staging work and backups remain available for recovery; see the [guide](docs/knowledge-import.md#stop-retry-and-restore).
 
+
+
+## Review saved knowledge changes
+
+Open **Knowledge changes** from the knowledge browser or a record’s details. Each committed import, correction, undo and backup restore has a traceable operation with before/after values, supporting sources, and independent conflict flags. Temporary extraction checkpoints do not appear here. History snapshots never become additional model context or search results.
+
+Restoring a backup adds a restore event and marks the reversed operation as reverted; it preserves the audit history. Historical sources are checked again against the original bytes and current privacy rules. Legacy vaults start history at their next publication. Direct edits to generated state or the correction ledger are rejected when their hashes no longer match the audit head.
+
+In **Settings → Privacy and migration**, prepare an export with no history, recent complete operations, or all available history. Review its operation count, audit bytes and omitted-history boundary before downloading. Full backups and uploaded originals remain separate options. Exports retain the 64 MiB decoded limit; larger selected ranges fail instead of silently dropping changes.
+
 ## Use the knowledge with your AI agent
 
 Your vault combines generated knowledge with Markdown you maintain yourself:

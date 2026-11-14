@@ -17,6 +17,7 @@ HTML = _HTML + '<script>' + _SCRIPT + '</script>'
 
 from selfos.web.rendering.timeline import HTML as TIMELINE_HTML
 HTML += TIMELINE_HTML
+HTML += frontend_text('templates/changes.html').replace('<!-- selfos-changes-end -->','<style>'+frontend_text('styles/changes.css')+'</style><script>'+frontend_text('scripts/changes.js')+'</script><!-- selfos-changes-end -->')
 
 def refresh_library(html):
     """Refresh an existing library without regenerating private dashboard data."""

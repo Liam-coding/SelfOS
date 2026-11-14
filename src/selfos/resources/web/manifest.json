@@ -1,6 +1,9 @@
 {
   "version": 1,
   "resources": [
+    "templates/changes.html",
+    "styles/changes.css",
+    "scripts/changes.js",
     "templates/uploads.html",
     "styles/uploads.css",
     "scripts/uploads.js",
