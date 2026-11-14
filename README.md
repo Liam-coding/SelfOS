@@ -50,6 +50,8 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
 
 4. Open **Import center** to inspect conversation sources, uploaded originals, current tasks and committed results. **Preview a small local sample** enters the bounded setup flow; **Upload or organize files** opens file selection and drag/drop. Opening the center does not scan conversations or call a model. See [import center](docs/knowledge-import.md#import-center).
 
+   Open the chat panel in **Ask knowledge** mode to ask about retained decisions, current work or preferences. Answers include record and original-source links, with separate labels for model interpretation, corrections and history. Project scope, privacy exclusions and bounded requests apply. See [knowledge questions](docs/knowledge-qa.md).
+
    On a fresh knowledge profile, **Get started** also opens source/exclusion setup and a local preview. **Start sample** processes at most 2 compact parts with a cumulative 12-request allowance. Stop/resume preserves progress and remaining requests. Existing users can reopen setup through **Settings > Resume setup**. See [first-run setup](docs/first-run-onboarding.md).
 
    **Preview more conversations** offers a separate larger preview without launching all history. The ordinary organizer remains available under **Choose what matters**. Use **Browse knowledge** for published records and original sources.

@@ -1,0 +1,11 @@
+.chat-qa-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.35rem .5rem;padding:.6rem .85rem;border-bottom:1px solid var(--line);font-size:.72rem;flex-shrink:0}
+.chat-qa-controls select{min-width:0;width:100%;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-compact);padding:.3rem}
+.chat-qa-controls button{grid-column:1/-1}
+.qa-answer{max-width:100%}
+.qa-answer p{margin:.35rem 0}
+.qa-label{display:block;font-size:.68rem;color:var(--muted)}
+.qa-reference{border-top:1px solid var(--line);margin-top:.6rem;padding-top:.5rem}
+.qa-reference h4{margin:0 0 .35rem;font-size:.8rem}
+.qa-reference blockquote{margin:.4rem 0;padding-left:.6rem;border-left:2px solid var(--line);white-space:pre-wrap}
+.qa-reference button,.chat-qa-controls button{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-compact);padding:.35rem .5rem;cursor:pointer;margin:.2rem .25rem .2rem 0;overflow-wrap:anywhere;max-width:100%}
+.qa-inference{border-top:1px solid var(--line);margin-top:.5rem;padding-top:.4rem}

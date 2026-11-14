@@ -10,7 +10,7 @@
  const contextTitle=context=>context.title_known===false?tr('unknown_project',{id:context.id.slice(0,8)}):context.title;
  const categories=['all','projects','lessons','personal_facts','preferences','history'];
  let category='all',offset=0,generation=0,timer,total=0,items=[],counts={},filters={projects:[],sources:[]},loading=false,listError='';
- let activeId='',detailGeneration=0,detailCache=null,detailSources=[],sourceOffset=0,sourcePages=new Map(),sourceListLoading=false,sourceListError='';
+ let activeId='',activeQaRevision='',detailGeneration=0,detailCache=null,detailSources=[],sourceOffset=0,sourcePages=new Map(),sourceListLoading=false,sourceListError='';
  const tabs=new Map();
  const errorText=error=>tr('error_'+(error.code||'unavailable'));
  const request=async path=>{
@@ -94,14 +94,14 @@
  async function readOriginal(id){
    const seq=detailGeneration;let page=sourcePages.get(id);if(!page){const source=detailSources.find(item=>item.id===id);page={text:'',next:source?.text_start??0,total:0,loaded:false};sourcePages.set(id,page);}if(page.loading)return;
    page.loading=true;page.error='';renderSources();
-   try{const data=await request('/__knowledge_source__?'+new URLSearchParams({id,offset:page.next||0,limit:24000}));if(seq!==detailGeneration)return;
+   try{const data=await request('/__knowledge_source__?'+new URLSearchParams({id,offset:page.next||0,limit:24000,...(activeQaRevision?{qa_record:activeId,qa_revision:activeQaRevision}:{})}));if(seq!==detailGeneration)return;
      page.text+=data.text;page.total=data.text_total??Array.from(page.text).length;page.next=data.next_offset??null;page.loaded=true;
    }catch(error){if(seq===detailGeneration)page.error=error.code||'unavailable';}
    finally{if(seq===detailGeneration){page.loading=false;renderSources();}}
  }
  async function moreSources(){
    if(sourceListLoading)return;const seq=detailGeneration;sourceListLoading=true;sourceListError='';renderSources();
-   try{const data=await request('/__knowledge_item__?'+new URLSearchParams({id:activeId,source_offset:sourceOffset}));if(seq!==detailGeneration)return;
+   try{const data=await request('/__knowledge_item__?'+new URLSearchParams({id:activeId,source_offset:sourceOffset,...(activeQaRevision?{qa_revision:activeQaRevision}:{})}));if(seq!==detailGeneration)return;
      detailSources.push(...data.sources);sourceOffset+=data.sources.length;
    }catch(error){if(seq===detailGeneration)sourceListError=error.code||'unavailable';}
    finally{if(seq===detailGeneration){sourceListLoading=false;renderSources();}}
@@ -135,11 +135,11 @@
    if(!detailCache.source_count&&!item.missing_source_count)content.append(node('p',()=>tr('empty_sources')));
    const holder=node('div');holder.id='kb-sources';const button=node('button',()=>tr('more_sources'),'kb-more');button.id='kb-more-sources';button.type='button';button.dataset.selfosAction='knowledge.sources-more';content.append(holder,button);renderSources();
  }
- async function openDetail(id){
-   activeId=id;detailCache=null;detailSources=[];sourceOffset=0;sourcePages=new Map();sourceListLoading=false;sourceListError='';const seq=++detailGeneration;
+ async function openDetail(id,qaRevision=''){
+   activeId=id;activeQaRevision=qaRevision;detailCache=null;detailSources=[];sourceOffset=0;sourcePages=new Map();sourceListLoading=false;sourceListError='';const seq=++detailGeneration;
    el('kb-detail-content').replaceChildren(node('p',()=>tr('detail_loading')));if(!el('kb-detail').open)el('kb-detail').showModal();
-   try{const data=await request('/__knowledge_item__?'+new URLSearchParams({id}));if(seq!==detailGeneration)return;detailCache=data;detailSources=data.sources;sourceOffset=data.sources.length;renderDetail();}
-   catch(error){if(seq===detailGeneration)el('kb-detail-content').replaceChildren(node('p',()=>errorText(error)));}
+   try{const data=await request('/__knowledge_item__?'+new URLSearchParams({id,...(qaRevision?{qa_revision:qaRevision}:{})}));if(seq!==detailGeneration)return;detailCache=data;detailSources=data.sources;sourceOffset=data.sources.length;renderDetail();}
+   catch(error){if(seq===detailGeneration)el('kb-detail-content').replaceChildren(node('p',()=>errorText(error)));if(qaRevision)throw error;}
  }
  function translate(){
    for(const [id,key]of [['kb-heading','heading'],['kb-intro','intro'],['kb-project-label','project_label'],['kb-source-label','source_label'],['kb-date-from-label','date_from_label'],['kb-date-to-label','date_to_label'],['kb-reset','clear'],['kb-close','close']])bound(el(id),()=>tr(key));
@@ -160,9 +160,9 @@
   const state=draft;draft=null;if(state)for(const id of fields)el(id).value=state.values[id];
   on(document,'click',action);on(document,'submit',action);on(document,'change',action);
   on(el('kb-search'),'input',()=>{++generation;clearTimeout(timer);timer=setTimeout(()=>{timer=null;load();},250);});
-  on(el('kb-detail'),'close',()=>{if(ignoreClose){--ignoreClose;return;}if(el('kb-detail').open)return;++detailGeneration;activeId='';detailCache=null;});
+  on(el('kb-detail'),'close',()=>{if(ignoreClose){--ignoreClose;return;}if(el('kb-detail').open)return;++detailGeneration;activeId='';activeQaRevision='';detailCache=null;});
   translate();if(!initialized||state?.listPending||state?.searchPending)load(state?.searchPending?false:!!state?.listMore);else{renderResults();const holder=el('kb-correction-history');if(holder)window.selfosUI.module('corrections').history(holder,()=>load());}initialized=true;
-  if(state?.detailOpen){const dialog=el('kb-detail');if(dialog.open){++ignoreClose;dialog.close();}dialog.showModal();if(detailCache)renderDetail();else if(activeId)openDetail(activeId);}
+  if(state?.detailOpen){const dialog=el('kb-detail');if(dialog.open){++ignoreClose;dialog.close();}dialog.showModal();if(detailCache)renderDetail();else if(activeId)openDetail(activeId,activeQaRevision);}
  }
  function teardown(){draft={values:Object.fromEntries(fields.map(id=>[id,el(id).value])),listPending:loading,searchPending:timer!=null,listMore,detailOpen:el('kb-detail').open};++generation;++detailGeneration;clearTimeout(timer);timer=null;for(const controller of requests)controller.abort();requests.clear();loading=false;sourceListLoading=false;for(const page of sourcePages.values())page.loading=false;cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
  return {browse,openDetail,closeDetail:()=>el('kb-detail').close(),refresh:load,readSource:readOriginal,moreSources,init,teardown,busy:()=>requests.size>0};

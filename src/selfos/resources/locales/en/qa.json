@@ -1,0 +1,16 @@
+{
+  "mode": "Mode", "knowledge": "Ask knowledge", "conversation": "Conversation",
+  "kind_fact": "Retained factual claim", "kind_inference": "Imported inference", "kind_correction": "Manually corrected record", "kind_record": "Retained record",
+  "status_active": "Active project", "status_in_progress": "In progress", "status_blocked": "Blocked", "status_planning": "Planning", "status_paused": "Paused", "status_ongoing": "Ongoing", "status_completed": "Completed", "status_unknown": "Project status unknown", "basis": "Basis records",
+  "project": "Project", "all_projects": "All projects", "cancel": "Stop waiting",
+  "interpretation": "Model interpretation · check the supporting records",
+  "insufficient": "Insufficient evidence",
+  "insufficient_reply": "There is insufficient evidence in the retained knowledge. Add sources or narrow the question.",
+  "correction": "Your correction", "history": "Historical", "conflict": "Conflicting evidence",
+  "unverified": "Not independently verified", "context_scope": "Context sources · not direct proof of every claim",
+  "original_quote": "Retained original evidence", "view_record": "View record",
+  "representative": "Representative sources; open the record for all sources.",
+  "inference": "Model inference · supported basis listed above",
+  "stale": "Knowledge or source access changed. Ask again before using this citation.",
+  "failed": "Could not answer. Check your model and network settings, then try again."
+}

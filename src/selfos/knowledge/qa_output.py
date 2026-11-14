@@ -35,7 +35,7 @@ def validate_answer(payload, selected):
         projection = allowed[identity]
         row, detail = projection['record'], projection['detail']
         references.append(dict(id=identity, title=row['title'], category=row['category'],
-            summary=row['summary'], evidence=detail.get('evidence', ''), date=row.get('date', ''),
+            summary=row['summary'], evidence=detail.get('evidence', ''), date=row.get('date', ''), status=row.get('status', ''),
             kind=row.get('kind', 'inference'), historical=projection['historical'],
             user_corrected=detail.get('user_corrected') is True, conflict=bool(detail.get('conflict')),
             verified=detail.get('verified') is True, source_scope=detail.get('source_scope', 'record'),

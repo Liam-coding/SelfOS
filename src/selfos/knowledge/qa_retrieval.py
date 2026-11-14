@@ -34,14 +34,18 @@ def question_terms(question):
 def _intent(question):
     folded = ' '.join(question.casefold().split())
     historical = bool(re.search(r'\b(previously|before|past|historical|history|used to|why|decision|decisions)\b|以前|之前|曾经|历史|为什么|决策|决定|选择', folded))
-    patterns = {
+    patterns = _overview_patterns()
+    category = next((key for key, pattern in patterns.items() if re.search(pattern, folded)), None)
+    return category, historical
+
+
+def _overview_patterns():
+    return {
         'projects': r'what am i working on|current projects|active projects|我现在在做什么|我正在做什么|我在做什么|当前项目',
         'preferences': r'my preferences|我的偏好|我的习惯',
         'personal_facts': r'what do you know about me|my personal facts|关于我有哪些信息|你知道我的哪些信息|个人事实',
         'lessons': r'my lessons|my reusable experience|what have i learned|我的经验|可复用经验',
     }
-    category = next((key for key, pattern in patterns.items() if re.search(pattern, folded)), None)
-    return category, historical
 
 
 def _fields(row, detail):
@@ -82,8 +86,11 @@ def retrieve_records(records, question, project=''):
         raise ValueError('Question must contain 1..2000 characters')
     if not isinstance(project, str) or len(project) > 100:
         raise ValueError('Invalid question project scope')
-    terms = question_terms(question)
     category, historical = _intent(question)
+    lexical_question = ' '.join(question.casefold().split())
+    if category:
+        lexical_question = re.sub(_overview_patterns()[category], ' ', lexical_question)
+    terms = question_terms(lexical_question)
     candidates = []
     for row, detail, sources, _ in records:
         if not sources or (row['category'] == 'history' and not historical):
@@ -92,7 +99,7 @@ def retrieve_records(records, question, project=''):
             continue
         if category and row['category'] != category and not (historical and row['category'] == 'history'):
             continue
-        if category == 'projects' and not terms and row.get('status') not in ACTIVE_PROJECTS:
+        if category == 'projects' and row['category'] == 'projects' and row.get('status') not in ACTIVE_PROJECTS:
             continue
         score = _score(_fields(row, detail), terms)
         if not score and (terms or not (category or project)):

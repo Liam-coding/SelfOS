@@ -1,0 +1,15 @@
+{
+  "mode": "模式", "knowledge": "询问知识库", "conversation": "自由对话",
+  "kind_fact": "保留的事实陈述", "kind_inference": "整理时的推断", "kind_correction": "人工修正的记录", "kind_record": "保留的知识记录",
+  "status_active": "活跃项目", "status_in_progress": "进行中", "status_blocked": "受阻", "status_planning": "规划中", "status_paused": "已暂停", "status_ongoing": "持续进行", "status_completed": "已完成", "status_unknown": "项目状态未知", "basis": "所依据的记录",
+  "project": "项目", "all_projects": "所有项目", "cancel": "停止等待",
+  "interpretation": "模型解释 · 请查看支持它的知识记录", "insufficient": "证据不足",
+  "insufficient_reply": "当前保留的知识中没有足够证据。请补充来源或缩小问题范围。",
+  "correction": "你的人工纠正", "history": "历史信息", "conflict": "存在冲突证据",
+  "unverified": "未经独立验证", "context_scope": "上下文来源 · 并非每条结论的直接证明",
+  "original_quote": "保留的原始证据", "view_record": "查看记录",
+  "representative": "显示代表性来源；查看记录可浏览全部来源。",
+  "inference": "模型推断 · 所依据的记录列在上方",
+  "stale": "知识或来源权限已变化。请重新提问后再使用这个引用。",
+  "failed": "暂时无法回答。请检查模型与网络设置，然后重试。"
+}

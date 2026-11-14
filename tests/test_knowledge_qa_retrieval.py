@@ -1,5 +1,6 @@
 """Deterministic question retrieval over synthetic retained record projections."""
 from selfos.knowledge.identity import digest
+import pytest
 
 
 def record(category, title, text, *, project='alpha', status='', date='2026-11-15T08:00:00Z', decisions=None):
@@ -91,3 +92,27 @@ def test_projection_caps_text_records_and_representative_sources():
     assert sum(len(row['sources']) for row in result) <= 24
     assert all(row['source_count'] == 29 for row in result)
     assert all(row['source_coverage'] == 'representative' for row in result)
+
+
+@pytest.mark.parametrize('question', ['current projects', 'active projects', 'What are my current projects?',
+    '当前项目', '我现在在做什么？'])
+def test_overview_scaffolding_cannot_select_completed_keyword_archive(question):
+    from selfos.knowledge.qa_retrieval import retrieve_records
+    rows = [record('projects', 'Importer', 'Recover imports', status='in_progress'),
+            record('projects', 'Current active projects archive 当前项目', 'Completed projects', status='completed')]
+    assert [row['record']['title'] for row in retrieve_records(rows, question)] == ['Importer']
+
+
+@pytest.mark.parametrize('question', ['What have I learned?', 'my reusable experience', 'my lessons',
+    '我的经验', '可复用经验'])
+def test_lesson_overview_does_not_require_scaffold_words_in_record(question):
+    from selfos.knowledge.qa_retrieval import retrieve_records
+    rows = [record('lessons', 'Atomic writes', 'Write to a temporary file then replace the destination')]
+    assert [row['record']['title'] for row in retrieve_records(rows, question)] == ['Atomic writes']
+
+
+def test_specific_qualifier_survives_overview_normalization():
+    from selfos.knowledge.qa_retrieval import retrieve_records
+    rows = [record('projects', 'Importer', 'Use SQLite', status='active'),
+            record('projects', 'Health project', 'Walk regularly', status='active')]
+    assert [row['record']['title'] for row in retrieve_records(rows, 'current projects about SQLite')] == ['Importer']

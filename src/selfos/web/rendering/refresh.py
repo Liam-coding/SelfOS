@@ -119,6 +119,7 @@ def refresh_dashboard(page):
     page=overall.integrate_overall(page)
     remove(r'<style id="selfos-shared-controls">.*?</style>')
     remove(r'<style id="selfos-design-tokens">.*?</style>')
+    remove(r'<style id="selfos-knowledge-qa">.*?</style>')
     page=re.sub(r'<style id="selfos-visual-system">.*?</style>',lambda _:overall.STYLE,page,count=1,flags=re.S)
     template=frontend_text('templates/dashboard-page.html')
     scripts={_OpeningTag(match[0]).attributes.get('data-selfos-module'):match[0] for match in re.finditer(r'<script\b[^>]*>.*?</script>',template,re.S) if 'data-selfos-module=' in match[0]}
@@ -129,5 +130,6 @@ def refresh_dashboard(page):
     else:controls=knowledge.CONTROLS+controls
     page=page.replace('</body>',controls+'</body>',1)
     tokens='<style id="selfos-design-tokens">'+frontend_text('styles/tokens.css')+'</style>'
+    tokens+='<style id="selfos-knowledge-qa">'+frontend_text('styles/knowledge-qa.css')+'</style>'
     page=page.replace('</head>',tokens+runtime()+lifecycle+'</head>',1)
     return page
