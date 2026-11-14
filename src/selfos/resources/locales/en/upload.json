@@ -1,9 +1,9 @@
 {
   "open": "Upload documents", "eyebrow": "YOUR SOURCES", "close": "Close", "import_time": "Imported at",
   "local_only": "Files are saved locally. Only Organize selected sends eligible excerpts to your configured model.",
-  "drop": "Drop your documents here", "formats": "UTF-8 .txt or .md · up to 20 MiB each · 10 files at a time", "choose": "Choose files",
+  "drop": "Drop your documents here", "formats": "UTF-8 .txt, .md or OpenCode export .json · up to 20 MiB each · 10 files at a time", "choose": "Choose files",
   "retained": "Retained documents", "empty": "Your uploaded documents will appear here.", "selected": "{count} selected", "selection_limit": "Select up to 10 documents. All uploads are retained; deselect a document to choose another.",
-  "queued": "Queued", "uploading": "Uploading locally", "uploaded": "Uploaded locally", "duplicate": "Already uploaded", "rejected": "Rejected · use a nonempty UTF-8 .txt or .md file up to 20 MiB",
+  "queued": "Queued", "uploading": "Uploading locally", "uploaded": "Uploaded locally", "duplicate": "Already uploaded", "rejected": "Rejected · use a nonempty UTF-8 text file or supported OpenCode export JSON up to 20 MiB",
   "interrupted": "Upload interrupted. Previously saved files are retained.", "login_required": "Sign in again to continue. Previously saved files are retained.", "unavailable": "Could not complete this action. Check the server and retry.", "too_many": "Choose up to 10 files at a time.", "import_active": "A knowledge job is running. Stop it or wait before preparing another selection.",
   "original_or_index_unavailable": "Original or index unavailable", "excluded": "Excluded by privacy settings", "indexing": "Local indexing in progress", "ready": "Ready to organize", "pending_organization": "Ready to organize", "committed": "Saved to knowledge", "no_eligible_knowledge": "No eligible knowledge", "stopped": "Stopped",
   "document_status": "{status} · {count} saved parts", "view": "View original", "more": "Load more", "original": "Original document", "close_original": "Close original", "redacted": "Source viewing hides detected sensitive values. Original bytes remain unchanged.", "more_text": "Read more",

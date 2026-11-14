@@ -30,18 +30,34 @@ def selection_hash(vault):
 
 
 def permitted_source(source, selection, vault):
+    if source.get('source') == 'opencode' and isinstance(source.get('source_locators'), list):
+        return any(isinstance(locator, dict) and permitted_source(
+            {**source, 'path': locator.get('path', ''), 'source_locator': locator, 'source_locators': None},
+            selection, vault) for locator in source['source_locators'])
     def resolved(value):
         path = Path(value)
         return (path if path.is_absolute() else Path(vault)/path).resolve()
     path = source.get('path')
     if not path: return False
     path = resolved(path)
-    for field in ('path', 'project_id', 'project', 'cwd'):
+    directory = ''
+    for field in ('path', 'cwd', 'project_id', 'project'):
         value = source.get(field)
+        if field != 'path' and (not isinstance(value, str) or not Path(value).is_absolute()):
+            continue
+        if field != 'path' and not directory:
+            directory = value
         if value and any(resolved(value).is_relative_to(Path(rule)) for rule in selection['exclusions'] + selection.get('privacy_exclusions', [])):
             return False
+    from selfos.sources.selection import allowed_source, allowed_database, project_allowed
+    locator = source.get('source_locator', {})
+    if source.get('source') == 'opencode' and (not isinstance(locator, dict) or locator.get('kind') != 'document'):
+        if not allowed_database(path, selection):
+            return False
+    if (directory or source.get('source') == 'opencode') and not project_allowed(directory, selection):
+        return False
     uploads = (Path(vault)/'.knowledge_uploads/originals').resolve()
-    return path.is_relative_to(uploads) or any(path.is_relative_to(Path(root)) for root in selection['roots'])
+    return path.is_relative_to(uploads) or allowed_source(path, selection)
 
 
 def model_state(state, selection, vault):
@@ -66,6 +82,8 @@ def guard_request(vault, expected_hash, sources):
     if selection_hash(vault) != expected_hash:
         raise ValueError('Privacy rules changed; restart the import')
     selection = load_sources(vault)
+    from selfos.sources.adapters import verified_inputs
+    sources = verified_inputs(vault, sources, selection)
     if any(not permitted_source(source, selection, vault) for source in sources):
         raise ValueError('Request contains an excluded or unavailable source')
 

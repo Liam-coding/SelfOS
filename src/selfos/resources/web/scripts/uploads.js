@@ -64,7 +64,7 @@
     ++state.listGeneration;invalidate();state.cancelled=false;state.busy=true;let selectionLimited=false;state.queue=chosen.map(file=>({file,name:file.name,size:file.size,loaded:0,status:'queued'}));render();
     for(const item of state.queue){
       if(state.cancelled){item.status='interrupted';item.file=null;continue;}
-      if(!/\.(txt|md)$/i.test(item.name)||item.size===0||item.size>20*1024*1024){item.status='rejected';item.file=null;render();continue;}
+      if(!/\.(txt|md|json)$/i.test(item.name)||item.size===0||item.size>20*1024*1024){item.status='rejected';item.file=null;render();continue;}
       item.status='uploading';render();
       try{const result=await transfer(item);item.status=result.duplicate?'duplicate':'uploaded';
         const previous=state.documents.get(result.document.id);state.documents.set(result.document.id,{status:'uploaded',processed_parts:0,...previous,...result.document});if(!select(result.document.id))selectionLimited=true;

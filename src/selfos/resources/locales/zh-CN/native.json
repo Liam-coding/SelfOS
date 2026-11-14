@@ -1,0 +1,14 @@
+{
+  "title": "OpenCode 对话", "help": "选择具体的数据库文件。扫描只在本地进行；只有明确开始整理后，所选片段才会发送给模型。已验证格式：OpenCode v1.19.5。",
+  "custom": "添加其他数据库路径", "add": "添加数据库", "project_exclusions": "排除对话中的项目目录",
+  "save_help": "启用新数据库后，请先保存来源选择，再进行预览。", "available": "本地可用", "missing": "本地未找到",
+  "preview": "OpenCode 本地预览", "close": "关闭", "limits": "每次预览最多选择 2 个片段、调用模型 12 次。继续同一预览会保留剩余额度。",
+  "restart": "重新扫描", "restart_help": "重新扫描会包含后来的对话，并保留之前的断点。",
+  "more": "扫描下一页", "start": "整理这个样本", "ready": "请选择已保存的 OpenCode 数据库。", "scanning": "正在扫描有限的本地内容，没有调用模型。",
+  "prepared": "已准备 {parts} 个片段，请查看后开始整理。", "partial": "还有本地内容未扫描，可扫描下一页继续。", "complete": "本次扫描已完成，没有待处理片段。",
+  "source_changed": "已读取的原始内容发生变化，请重新开始扫描。", "unsupported_source_format": "暂不支持这个数据库格式，可尝试上传 OpenCode 导出的 JSON。",
+  "source_locked": "数据库正在被使用，请稍后重试或上传导出的 JSON。", "source_missing": "数据库文件不存在。", "source_denied": "未选择此来源，或已将其排除。",
+  "staging_limit": "保留的扫描数据达到空间上限，已有断点仍然保留。", "bounded_read": "本地扫描达到本次上限，可扫描下一页继续。",
+  "stopped": "扫描已停止，已读取的内容仍然保留。", "unavailable": "暂时无法准备这个来源，请检查来源选择及服务后重试。",
+  "login_required": "请重新登录后继续。", "import_active": "另一个知识整理任务正在运行，请先停止或等待完成。"
+}

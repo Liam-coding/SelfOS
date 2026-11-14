@@ -11,6 +11,26 @@ class ActionsRoutes:
         if not self._auth_guard():return
         if self.path == '/__knowledge_upload_preview__':
             return self._upload_preview()
+        if self.path == '/__knowledge_native_preview__':
+            origin, host = self.headers.get('Origin'), self.headers.get('Host', '')
+            if (origin and origin != f'http://{host}') or self.headers.get('Sec-Fetch-Site') == 'cross-site':
+                return self._send_json(403, {'code':'native_forbidden'})
+            with self.runtime.KNOWLEDGE_RUN_LOCK:
+                if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:
+                    return self._send_json(409, {'code':'native_import_active'})
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 65536:
+                        raise ValueError('Invalid native preview request')
+                    body = json.loads(self._read_body())
+                    if not isinstance(body, dict) or set(body) - {'entry', 'restart'} or 'entry' not in body:
+                        raise ValueError('Invalid native preview fields')
+                    from selfos.app.harness_imports import prepare_native
+                    return self._send_json(200, prepare_native(self.runtime.VAULT, body['entry'], restart=body.get('restart', False)))
+                except (ValueError, TypeError, KeyError):
+                    return self._send_json(400, {'code':'native_invalid'})
+                except (OSError, RuntimeError):
+                    return self._send_json(503, {'code':'native_unavailable'})
         if self.path == '/__knowledge_budget__':
             with self.runtime.KNOWLEDGE_RUN_LOCK:
                 if self.runtime.KNOWLEDGE_RUN['stop_file'] is not None:

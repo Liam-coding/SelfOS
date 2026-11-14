@@ -126,6 +126,19 @@ class DashboardRoutes:
             cmd = command('knowledge' if knowledge else 'harvest', self.runtime.ROOT)
             if knowledge:
                 cmd.extend(['--vault', str(self.runtime.VAULT)])
+                if sum(key in qs for key in ('preview', 'upload_preview', 'native_preview')) > 1:
+                    return self._send_json(400, {'code':'preview_selection_invalid'})
+                if 'native_preview' in qs:
+                    try:
+                        if len(qs['native_preview']) != 1 or 'action' in qs:
+                            raise ValueError('Invalid native preview request')
+                        from selfos.app.harness_imports import resolve_native
+                        native = resolve_native(self.runtime.VAULT, qs['native_preview'][0])
+                        if not native['sessions']:
+                            raise ValueError('No pending native work')
+                        cmd.extend(['--native-preview', native['id']])
+                    except (ValueError, TypeError, KeyError, OSError):
+                        return self._send_json(400, {'code':'native_preview_invalid'})
                 if 'upload_preview' in qs:
                     try:
                         if len(qs['upload_preview']) != 1 or 'preview' in qs or 'action' in qs:

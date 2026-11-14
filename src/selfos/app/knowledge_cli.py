@@ -21,7 +21,10 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Scan and compact without API requests or vault writes')
     parser.add_argument('--onboarding-preview', help='Process only a validated bounded local preview; resume keeps its allowance')
     parser.add_argument('--upload-preview', help='Process only selected uploaded document parts; never scan local Harnesses')
+    parser.add_argument('--native-preview', help='Process only a verified bounded OpenCode native preview')
     args = parser.parse_args()
+    if args.native_preview and (args.upload_preview or args.onboarding_preview or args.rebuild or args.restore or args.restore_last):
+        parser.error('Native preview cannot be mixed with another selection or restore')
     if args.upload_preview and (args.onboarding_preview or args.rebuild or args.restore or args.restore_last):
         parser.error('Uploaded documents cannot be mixed with another import or restore')
     paths = AppPaths.from_root(args.root)
@@ -43,10 +46,14 @@ def main():
             print(f'Restored knowledge import {args.restore}', flush=True)
             return
         print('SelfOS Knowledge: organizing selected uploaded documents' if args.upload_preview else
+              'SelfOS Knowledge: organizing selected OpenCode preview' if args.native_preview else
               'SelfOS Knowledge: scanning local Claude Code and Codex conversations', flush=True)
         cancelled = lambda: bool(args.stop_file and args.stop_file.exists())
         preview = None
         budget = None
+        if args.native_preview:
+            from selfos.app.harness_imports import resolve_native
+            preview = resolve_native(args.vault, args.native_preview)
         if args.upload_preview is not None:
             from selfos.app.upload_preview import resolve_upload_preview
             preview = resolve_upload_preview(args.vault, args.upload_preview)
@@ -57,7 +64,12 @@ def main():
             budget = SampleBudget(args.vault, args.onboarding_preview)
         if not args.dry_run:
             from selfos.app.knowledge import run_knowledge
-            if args.upload_preview:
+            if args.native_preview:
+                from selfos.app.harness_imports import organize_native
+                result = organize_native(args.vault, args.native_preview,
+                    summarize=api_summarizer(config_root), refine=api_refiner(config_root, cancel=cancelled),
+                    max_workers=args.workers, cancel=cancelled, progress=lambda line: print(line, flush=True))
+            elif args.upload_preview:
                 from selfos.app.uploads import organize_uploads
                 result = organize_uploads(args.vault, args.upload_preview, config_root=config_root,
                     max_workers=args.workers, cancel=cancelled, progress=lambda line: print(line, flush=True))

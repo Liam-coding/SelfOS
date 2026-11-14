@@ -9,6 +9,8 @@ from selfos.storage.uploads import get_document, upload_path, upload_root, _hash
 from selfos.sources.upload_text import normalize_document, document_part, MAX_NORMALIZED_BYTES
 from selfos.sources.documents import NORMALIZATION_VERSION
 from selfos.knowledge.identity import digest
+from selfos.storage.uploads import EXPORT_PROFILE
+from selfos.storage.opencode_exports import index_export, export_sessions, export_status
 
 _INDEX_LOCK = threading.RLock()
 
@@ -83,6 +85,8 @@ def index_document(vault, document_id, *, cancel=lambda: False, max_parts=2, par
     if type(max_parts) is not int or not 1 <= max_parts <= 10:
         raise ValueError('Invalid document indexing allowance')
     document = get_document(vault, document_id)
+    if document['profile'] == EXPORT_PROFILE:
+        return index_export(vault, document_id, cancel=cancel, max_parts=max_parts, part_chars=part_chars)
     _verify_original(vault, document)
     folder, profile = _folder(vault, document_id, part_chars)
     with _INDEX_LOCK, _locked(folder):
@@ -127,6 +131,8 @@ def document_sessions(vault, document_id, part_ids, *, part_chars=24000):
             or any(not isinstance(item, str) or not re.fullmatch('[a-f0-9]{64}', item) for item in part_ids)):
         raise ValueError('Invalid selected document parts')
     document = get_document(vault, document_id)
+    if document['profile'] == EXPORT_PROFILE:
+        return export_sessions(vault, document_id, part_ids, part_chars=part_chars)
     _verify_original(vault, document)
     folder, profile = _folder(vault, document_id, part_chars)
     with _INDEX_LOCK, _locked(folder):
@@ -151,6 +157,8 @@ def document_messages(vault, document_id, part_ids, *, part_chars=24000):
 
 def index_status(vault, document_id, *, part_chars=24000):
     document = get_document(vault, document_id)
+    if document['profile'] == EXPORT_PROFILE:
+        return export_status(vault, document_id, part_chars=part_chars)
     _verify_original(vault, document)
     folder, profile = _folder(vault, document_id, part_chars)
     if not upload_path(folder, 'manifest.json').exists():

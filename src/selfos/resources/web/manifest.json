@@ -59,6 +59,7 @@
     "styles/knowledge-quality.css",
     "scripts/knowledge-quality.js",
     "styles/tokens.css",
-    "styles/controls.css"
+    "styles/controls.css",
+    "scripts/opencode.js"
   ]
 }

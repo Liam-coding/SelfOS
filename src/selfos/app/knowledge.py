@@ -27,18 +27,20 @@ from selfos.app.knowledge_status import _state, _saved_summaries, get_status
 
 def run_knowledge(vault, *, roots=None, summarize=None, refine=None, rebuild=False,
                   cancel=lambda: False, progress=lambda _: None, max_workers=3,
-                  selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None):
+                  selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None,
+                  request_id=None, request_cap=None, native_preview_id=None):
     # The job lock is separate from the canonical and staging commit locks.
     # It serializes imports while allowing the UI to signal cancellation.
     with _locked(Path(vault).resolve() / '.knowledge_jobs'):
         return _run_knowledge(vault, roots=roots, summarize=summarize, refine=refine,
             rebuild=rebuild, cancel=cancel, progress=progress, max_workers=max_workers,
             selected_messages=selected_messages, selected_sessions=selected_sessions, sample_id=sample_id,
-            upload_preview_id=upload_preview_id)
+            upload_preview_id=upload_preview_id, request_id=request_id, request_cap=request_cap, native_preview_id=native_preview_id)
 
 
 def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress, max_workers,
-                   selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None):
+                   selected_messages=None, selected_sessions=None, sample_id=None, upload_preview_id=None,
+                   request_id=None, request_cap=None, native_preview_id=None):
     from selfos.providers.knowledge import api_summarizer, api_refiner
     vault = Path(vault).resolve()
     with _locked(vault):
@@ -68,6 +70,10 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         from selfos.sources.selection import load_sources
         privacy_hash = selection_hash(vault)
         selection = load_sources(vault)
+        include_native = (roots is None and sample_id is None and upload_preview_id is None
+                          and selected_messages is None and selected_sessions is None
+                          and (vault / '.knowledge_sources.json').exists())
+        native_previews = []
         context_filter = None
         if scoped or (vault / '.knowledge_sources.json').exists():
             from selfos.sources.selection import load_sources, allowed_source
@@ -92,6 +98,15 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
             selection = load_sources(vault)
             roots = [path for directory in selection['roots'] for path in Path(directory).rglob('*.jsonl')
                      if path.is_file() and allowed_source(path, selection)]
+        if include_native:
+            from selfos.app.harness_previews import prepare_native
+            for entry in selection.get('entries', []):
+                if entry['kind'] == 'opencode_database':
+                    preview = prepare_native(vault, entry, cancel=cancel)
+                    native_previews.append(preview)
+                    progress('OpenCode: ' + str(len(preview['sessions'])) + ' selected parts; scan ' + preview['status'])
+                    if preview['status'] not in ('complete', 'partial', 'bounded_read', 'stopped'):
+                        raise ValueError('OpenCode scan cannot continue: ' + preview['status'])
         messages = (selected_messages if selected_messages is not None else
                     [m for s in selected_sessions for m in s['messages']] if selected_sessions is not None else
                     extract_conversations(local_roots() if roots is None else roots, cancel=cancel))
@@ -101,8 +116,25 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                 selected_sessions = [dict(s, messages=[m for m in s['messages'] if permitted_source(m, selection, vault)]) for s in selected_sessions]
                 selected_sessions = [s for s in selected_sessions if s['messages']]
         filtering = {}
+        if mode == 'rebuild' and include_native:
+            from selfos.app.harness_previews import replay_native, _session
+            native_messages = replay_native(vault, previous, selection,
+                [m for p in native_previews for s in p['sessions'] for m in s['messages']])
+            messages.extend(native_messages)
+            native_sessions = [_session(s) for s in prepare_sessions(native_messages,
+                max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}))]
+        else:
+            native_sessions = [copy.deepcopy(s) for preview in native_previews for s in preview['sessions']]
         sessions = copy.deepcopy(selected_sessions) if selected_sessions is not None else prepare_sessions(
-            messages, max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}), audit=filtering)
+            [m for m in messages if not (mode == 'rebuild' and include_native and m.get('source') == 'opencode')],
+            max_chars=limits(settings)['session_chars'], cancel=cancel, aliases=previous.get('project_aliases', {}), audit=filtering)
+        sessions.extend(native_sessions)
+        for preview in native_previews:
+            if mode != 'rebuild':
+                messages.extend(message for session in preview['sessions'] for message in session['messages'])
+        if not sessions and any(preview['pending'] for preview in native_previews):
+            result.update(status='stopped', native_scan_pending=True)
+            return result
         if filtering:
             journal.update(filtering=filtering)
         for session in sessions:
@@ -120,7 +152,11 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         from selfos.storage.usage import RequestUsage
         allowance = read_budget(vault, vault.parent)
         request_limit = min(allowance['max_requests'], upload_preview['budget_limit']) if upload_preview_id else allowance['max_requests']
-        usage = RequestUsage(vault, sample_id or upload_preview_id or checkpoint[:32], None if budget is not None else request_limit,
+        if request_cap is not None:
+            if type(request_cap) is not int or not 1 <= request_cap <= 10000:
+                raise ValueError('Invalid bounded import request allowance')
+            request_limit = min(request_limit, request_cap)
+        usage = RequestUsage(vault, request_id or sample_id or upload_preview_id or checkpoint[:32], None if budget is not None else request_limit,
                              delegate=budget, model_identity=model_identity(vault.parent))
         usage_used_at_start = usage.status()['used']
         usage.timer(True)
@@ -158,15 +194,27 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         # Repair missing upload metadata in staging before cached refinement
         # fingerprints are checked. Existing immutable identities cannot change.
         from selfos.sources.documents import source_metadata, document_source, document_text, DOCUMENT_FIELDS
-        document_state = _state(scratch)
+        document_state = _state(scratch) or {'cache': {}, 'cards': {}, 'lessons': [], 'sources': {}}
         metadata_changed = False
         verified_documents = set()
         immutable_documents = {}
+        from selfos.sources.adapters import verified_inputs
+        verified_harness = {}
         def original_path(source):
             value = Path(source.get('path', '').replace(chr(92), '/'))
             return (value if value.is_absolute() else vault / value).resolve()
         for message in messages:
             known = document_state.get('sources', {}).get(message['id'])
+            if message.get('source') == 'opencode':
+                combined = {**message, **source_metadata(message, known)}
+                verified = verified_inputs(vault, [combined], selection)[0]
+                candidate = source_metadata(verified, known)
+                candidate = source_metadata(verified_inputs(vault, [candidate], selection)[0])
+                verified_harness[message['id']] = candidate
+                if candidate != known:
+                    document_state.setdefault('sources', {})[message['id']] = candidate
+                    metadata_changed = True
+                continue
             if message.get('source') != 'uploaded_file':
                 if known and known.get('source') == 'uploaded_file':
                     raise ValueError('Uploaded source identity changed')
@@ -202,10 +250,29 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         raw_summarize = summarize or api_summarizer(vault.parent, budget=usage)
         raw_refine = refine or api_refiner(vault.parent,cancel=cancel,budget=usage)
         enforce = (vault / '.knowledge_sources.json').exists()
+        from selfos.storage.harness_scans import native_parts
+        checks = list(native_previews)
+        if native_preview_id is not None:
+            from selfos.app.harness_previews import resolve_native
+            checks.append(resolve_native(vault, native_preview_id))
+        def check_native_snapshots():
+            for preview in checks:
+                native_parts(vault, preview['entry'], preview['part_ids'], max_chars=preview['part_chars'])
         def safe_summarize(item):
+            check_native_snapshots()
+            inputs = [{**m, **verified_harness[m['id']]} if m.get('source') == 'opencode' else m for m in item['messages']]
+            item = {**item, 'messages': verified_inputs(vault, inputs, selection)}
             if not enforce: return raw_summarize(item)
             with request_scope(vault,privacy_hash,item['messages']): return raw_summarize(item)
         def safe_refine(payload):
+            check_native_snapshots()
+            inputs = [{**source, **source_metadata(source, verified_harness.get(source['id']))}
+                      if source.get('source') == 'opencode' else source for source in payload['sources'].values()]
+            verified = verified_inputs(vault, inputs, selection)
+            payload = {**payload, 'sources': {identity:source for identity, source in zip(payload['sources'], verified)}}
+            for source in verified:
+                if source.get('source') == 'opencode':
+                    verified_harness[source['id']] = source
             if not enforce: return raw_refine(payload)
             with request_scope(vault,privacy_hash,payload['sources'].values()): return raw_refine(payload)
         imported = consolidate_sessions(scratch, sessions, scoped_callback(safe_summarize),
@@ -254,6 +321,16 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
                 'projects': sorted(selected_projects), 'policy_hash': policy_hash(settings),
                 'fingerprints': [s['fingerprint'] for s in sessions], 'quality_version': 2}
         state['last_operation'] = {'id': operation, 'action': mode, 'backup_run_ids': [operation]}
+        check_native_snapshots()
+        if selection_hash(vault) != privacy_hash: raise ValueError('Privacy rules changed; restart the import')
+        # Canonical metadata must contain only the copies verified at publication,
+        # including sources touched by cached refinement rather than new input.
+        for source in immutable_documents.values():
+            document_text(vault, source)
+        for source in verified_inputs(vault, verified_harness.values(), selection):
+            state.setdefault('sources', {})[source['id']] = source_metadata(source)
+        from selfos.storage.upload_receipts import prune_unbound_receipts
+        prune_unbound_receipts(state)
         _atomic_write(scratch / '.knowledge_pipeline.json', json.dumps(state, ensure_ascii=False, indent=2).encode())
         from selfos.storage.records import record_writes
         for name, content in record_writes(scratch, state).items():
@@ -262,15 +339,26 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
         if not (scratch / '05_Life/lessons.md').exists():
             _atomic_write(scratch / '05_Life/lessons.md', b'# Reusable lessons\n\n<!-- selfos-managed-lessons -->\n<!-- /selfos-managed-lessons -->\n')
         if selection_hash(vault) != privacy_hash: raise ValueError('Privacy rules changed; restart the import')
-        # Originals may have changed while the model was running. Verify once per
-        # original again before any canonical knowledge/receipt publication.
-        for source in immutable_documents.values():
-            document_text(vault, source)
         journal.update(phase='publishing')
         install_rebuilt(vault, scratch, expected_hash=expected, run_id=operation,
                         expected_policy_hash=policy_hash(settings), selected_projects=selected_projects,
                         expected_privacy_hash=privacy_hash)
         result.update(installed=True, operation_id=operation)
+        if native_previews:
+            from selfos.storage.harness_scans import acknowledge_scan
+            from selfos.knowledge.identity import digest
+            for preview in native_previews:
+                receipts = {}
+                for part_id, session in zip(preview['part_ids'], preview['sessions']):
+                    project = previous.get('project_aliases', {}).get(session['project_id'], session['project_id'])
+                    receipts[part_id] = dict(cache_key=digest([project, session['session_id'], session['part']]),
+                        policy_hash=policy_hash(settings), fingerprint=hashlib.sha256((session['fingerprint'] + policy_hash(settings)).encode()).hexdigest())
+                if receipts:
+                    try:
+                        acknowledge_scan(vault, preview['entry'], list(receipts), max_chars=preview['part_chars'], canonical=receipts)
+                    except (ValueError, OSError) as error:
+                        result.update(native_acknowledgement_pending=True, native_acknowledgement_error=str(error))
+                        progress('Knowledge saved; native checkpoint acknowledgement remains pending')
         return result
     except Exception as error:
         from selfos.sources.text import redact
