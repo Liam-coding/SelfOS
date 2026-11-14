@@ -26,7 +26,7 @@
     function showProgress(recovering=false){
       closeHarvest();el('progress-modal').classList.add('open');el('progress-done-btn').style.display='none';
       el('knowledge-stop-btn').style.display=kind==='knowledge'?'block':'none';el('knowledge-stop-btn').disabled=stopSent;
-      if(!recovering){el('progress-bar').style.width='0%';el('progress-log').textContent='';el('progress-icon').textContent='?';}
+      if(!recovering){el('progress-bar').style.width='0%';el('progress-log').textContent='';el('progress-icon').textContent='\u23f3';}
     }
     function finish(result,recovered=false){
       if(!running)return;
@@ -34,7 +34,7 @@
       for(const controller of requests)controller.abort();requests.clear();stopSent=false;stopRequest=null;
       const successful=result.ok&&!result.cancelled;
       if(successful)el('progress-bar').style.width='100%';
-      el('knowledge-stop-btn').style.display='none';el('progress-icon').textContent=result.ok&&(!recovered||!result.cancelled)?'?':'??';
+      el('knowledge-stop-btn').style.display='none';el('progress-icon').textContent=result.ok&&(!recovered||!result.cancelled)?'\u2705':'\u26a0\ufe0f';
       status(result.cancelled?(recovered?'ui.import.stopped_progress_saved_resume_available':'ui.import.stopped_resume_available'):result.ok?(kind==='knowledge'?'ui.import.knowledge_complete':'ui.import.harvest_complete'):'ui.import.incomplete_retry_available');
       el('progress-done-btn').style.display='block';window.selfosI18n.bindText(el('progress-done-btn'),'ui.import.done_refresh');notify('finished');
     }
