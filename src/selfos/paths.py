@@ -5,6 +5,19 @@ import os
 import sys
 from pathlib import Path
 
+def canonical_path(path):
+    """Resolve filesystem links and normalize Windows extended-path spelling."""
+    resolved = Path(path).resolve()
+    if os.name == 'nt':
+        text = str(resolved)
+        prefix = chr(92) * 2 + '?' + chr(92)
+        if text.startswith(prefix + 'UNC' + chr(92)):
+            text = chr(92) * 2 + text[len(prefix) + 4:]
+        elif text.startswith(prefix):
+            text = text[len(prefix):]
+        resolved = Path(text)
+    return resolved
+
 def project_root():
     return Path(os.environ.get('SELFOS_ROOT', Path.cwd())).expanduser().resolve()
 

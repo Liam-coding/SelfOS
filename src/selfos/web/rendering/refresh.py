@@ -29,6 +29,7 @@ def refresh_dashboard(page):
     page=re.sub(r'<section id="knowledge-library"[^>]*>.*?</section>','<!--selfos-library-anchor-->',page,count=1,flags=re.S)
     remove(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->')
     remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
+    remove(r'<!-- selfos-uploads-start -->.*?<!-- selfos-uploads-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')
     remove(r'<!-- selfos-quality-start -->.*?<!-- selfos-quality-end -->')
     for identity in ('project-timeline','kb-detail','knowledge-settings','app-settings','model-settings','auth-change','privacy-settings'):

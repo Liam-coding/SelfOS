@@ -7,6 +7,8 @@ from selfos.sources.text import redact
 
 MAX_BYTES = 20 * 1024 * 1024
 TEXT_SUFFIXES = {'.txt', '.md', '.json', '.jsonl'}
+NORMALIZATION_VERSION = 'redacted-text-v1'
+DOCUMENT_FIELDS = ('document_id', 'normalization_version', 'text_sha256', 'text_start', 'text_end', 'timestamp_kind')
 
 
 def source_metadata(message, existing=None):
@@ -23,7 +25,7 @@ def source_metadata(message, existing=None):
         if existing and (any(result[key] != existing.get(key,'') for key in ('source','role'))
                          or result['provenance'] != content_identity(existing)):
             raise ValueError('Uploaded source identity changed')
-        for key in ('original_filename','content_sha256'):
+        for key in ('original_filename','content_sha256', *DOCUMENT_FIELDS):
             if key in existing:
                 if key in message and message[key] != existing[key]:
                     raise ValueError('Uploaded source identity changed')
@@ -51,7 +53,7 @@ def source_page(text, offset, limit):
             'next_offset': end if end < len(text) else None, 'redacted': True}
 
 
-def document_source(vault, source, offset=0, limit=24000):
+def document_text(vault, source):
     vault = Path(vault).resolve()
     value = source.get('path')
     if not isinstance(value, str) or not value:
@@ -81,4 +83,18 @@ def document_source(vault, source, offset=0, limit=24000):
         text = redact(raw.decode('utf-8-sig'))
     except UnicodeDecodeError:
         raise SourceUnavailable('source_encoding', 'Original source is not supported UTF-8 text') from None
-    return source_page(text, offset, limit)
+    return text
+
+
+def document_source(vault, source, offset=0, limit=24000):
+    text = document_text(vault, source)
+    locator = {}
+    if 'normalization_version' in source:
+        if source['normalization_version'] != NORMALIZATION_VERSION:
+            raise SourceUnavailable('source_normalization_unavailable', 'Source normalization version is unavailable')
+        start, end = source.get('text_start'), source.get('text_end')
+        if (type(start) is not int or type(end) is not int or not 0 <= start <= end <= len(text)
+                or source.get('text_sha256') != hashlib.sha256(text.encode('utf-8')).hexdigest()):
+            raise SourceUnavailable('source_locator_unavailable', 'Source fragment cannot be verified')
+        locator = {'fragment_start': start, 'fragment_end': end, 'normalization_version': NORMALIZATION_VERSION}
+    return {**source_page(text, offset, limit), **locator}

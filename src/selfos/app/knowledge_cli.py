@@ -20,7 +20,10 @@ def main():
     parser.add_argument('--stop-file', type=Path)
     parser.add_argument('--dry-run', action='store_true', help='Scan and compact without API requests or vault writes')
     parser.add_argument('--onboarding-preview', help='Process only a validated bounded local preview; resume keeps its allowance')
+    parser.add_argument('--upload-preview', help='Process only selected uploaded document parts; never scan local Harnesses')
     args = parser.parse_args()
+    if args.upload_preview and (args.onboarding_preview or args.rebuild or args.restore or args.restore_last):
+        parser.error('Uploaded documents cannot be mixed with another import or restore')
     paths = AppPaths.from_root(args.root)
     # A root explicitly selects configuration independently of vault location.
     # Legacy --vault-only commands continue using that vault's parent directory.
@@ -39,10 +42,14 @@ def main():
                 restore_backup(args.vault, args.restore)
             print(f'Restored knowledge import {args.restore}', flush=True)
             return
-        print('SelfOS Knowledge: scanning local Claude Code and Codex conversations', flush=True)
+        print('SelfOS Knowledge: organizing selected uploaded documents' if args.upload_preview else
+              'SelfOS Knowledge: scanning local Claude Code and Codex conversations', flush=True)
         cancelled = lambda: bool(args.stop_file and args.stop_file.exists())
         preview = None
         budget = None
+        if args.upload_preview is not None:
+            from selfos.app.upload_preview import resolve_upload_preview
+            preview = resolve_upload_preview(args.vault, args.upload_preview)
         if args.onboarding_preview is not None:
             from selfos.app.onboarding import resolve_preview
             from selfos.storage.onboarding import SampleBudget
@@ -50,12 +57,17 @@ def main():
             budget = SampleBudget(args.vault, args.onboarding_preview)
         if not args.dry_run:
             from selfos.app.knowledge import run_knowledge
-            summarizer = api_summarizer(config_root,budget=budget)
-            refiner = api_refiner(config_root,cancel=cancelled,budget=budget)
-            result = run_knowledge(args.vault, rebuild=args.rebuild, max_workers=args.workers,
-                summarize=summarizer, refine=refiner, sample_id=args.onboarding_preview,
-                cancel=cancelled,
-                progress=lambda line: print(line, flush=True))
+            if args.upload_preview:
+                from selfos.app.uploads import organize_uploads
+                result = organize_uploads(args.vault, args.upload_preview, config_root=config_root,
+                    max_workers=args.workers, cancel=cancelled, progress=lambda line: print(line, flush=True))
+            else:
+                summarizer = api_summarizer(config_root,budget=budget)
+                refiner = api_refiner(config_root,cancel=cancelled,budget=budget)
+                result = run_knowledge(args.vault, rebuild=args.rebuild, max_workers=args.workers,
+                    summarize=summarizer, refine=refiner, sample_id=args.onboarding_preview,
+                    cancel=cancelled,
+                    progress=lambda line: print(line, flush=True))
             if result['installed']:
                 from selfos.web.rendering.dashboard import generate_dashboard
                 generate_dashboard(args.vault)

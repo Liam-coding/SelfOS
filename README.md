@@ -84,6 +84,10 @@ python -m selfos knowledge --dry-run
 
 See the [import and recovery guide](docs/knowledge-import.md) for CLI options, source validation, retries and storage details.
 
+You can also **Upload documents** using the file picker or drop area. UTF-8 .txt and .md files are supported, up to 20 MiB each and 10 files per upload queue. Uploading preserves the original locally and makes no model calls. Choose documents, click **Prepare selected**, then **Organize selected** to process a bounded sample with your configured model; prepare again to continue larger documents. This flow never scans your local conversation history.
+
+Originals live under vault/.knowledge_uploads/originals/, with a content-based registry and rebuildable index. Repeated uploads reuse the same identity. Detected secrets are redacted before indexing and source viewing; privacy exclusions also apply. Uploaded AI descriptions remain quoted evidence rather than verified personal facts. The registry supports 2,000 documents and 512 MiB of originals plus quarantine. Cancelling retains completed uploads; knowledge publication uses existing backups and restore, and migration includes originals only when explicitly selected.
+
 ## Stop, resume and undo
 
 - **Stop:** click the stop button. Active requests may still finish saving; wait for the stopped status before closing the server.
