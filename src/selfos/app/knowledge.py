@@ -395,6 +395,13 @@ def restore_last(vault, operation_id=None):
         operation = _state(vault).get('last_operation')
         if not operation or (operation_id is not None and operation_id != operation['id']):
             raise ValueError('operation changed or no operation to restore')
+        from selfos.storage.change_receipts import read_head
+        if read_head(vault) is not None:
+            from selfos.storage.change_restore import restore_changes
+            if len(operation['backup_run_ids'])!=1:
+                raise ValueError('Audited restoration requires one canonical publication run')
+            result=restore_changes(vault,operation['backup_run_ids'][0])
+            return {**result,'restored':operation['id']}
         simulated = {}
         folders = []
         for run in reversed(operation['backup_run_ids']):
