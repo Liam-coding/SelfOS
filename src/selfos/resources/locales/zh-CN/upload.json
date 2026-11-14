@@ -1,4 +1,5 @@
 {
+  "source_loading": "正在加载原文…", "source_unavailable": "无法加载这份原文，请重试。", "retry_source": "重试",
   "open": "上传文档", "eyebrow": "你的信息来源", "close": "关闭", "import_time": "导入时间",
   "local_only": "文件保存在本地。只有点击“整理选中文件”，才会把符合条件的片段发送到配置的模型。",
   "drop": "将文档拖到这里", "formats": "UTF-8 的 .txt 或 .md · 每份最多 20 MiB · 每次最多 10 份", "choose": "选择文件",

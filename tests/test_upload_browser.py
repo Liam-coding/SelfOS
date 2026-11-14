@@ -42,6 +42,14 @@ def test_picker_drop_cancel_locale_and_selected_organization_in_chromium(tmp_pat
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+@pytest.mark.skipif(not os.environ.get('SELFOS_CHROMIUM'), reason='Optional isolated Chromium source lifecycle')
+def test_switching_original_clears_text_during_loading_failure_and_late_responses():
+    path = Path(__file__).parent / 'browser/upload_source_display.py'
+    result = subprocess.run([sys.executable, '-X', 'utf8', str(path),
+        '--chromium', os.environ['SELFOS_CHROMIUM']], capture_output=True, text=True, timeout=90)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_cached_dashboard_refresh_keeps_one_upload_module(tmp_path):
     from selfos.web.rendering.dashboard import generate_dashboard
     from selfos.web.rendering.refresh import refresh_dashboard

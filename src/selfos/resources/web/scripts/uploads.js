@@ -38,7 +38,15 @@
     if(state.preview)bind('preview-summary',state.preview.sessions.length?'preview_summary':'cached_summary',{
       parts:state.preview.sessions.length,cached:state.preview.cached_parts,limit:state.preview.budget_limit,
       coverage:t(state.preview.partial_coverage?'partial':'complete')});
-    if(state.source){el('source-text').textContent=state.source.text;el('source-more').hidden=state.source.next===null;}
+    const source=state.source;
+    el('source-text').textContent=source?.text||'';
+    el('source-name').textContent=source?state.documents.get(source.id)?.original_filename||'':'';
+    el('source-text').setAttribute('aria-busy',String(!!source?.loading));
+    el('source-more').hidden=!source||source.next===null||source.loading||!!source.error;
+    el('source-retry').hidden=!source?.error;
+    if(source?.loading)el('source-status').textContent=t('source_loading');
+    else if(source?.error)el('source-status').textContent=t(source.error==='login_required'?'login_required':'source_unavailable');
+    else el('source-status').textContent='';
   }
   async function loadDocuments(more=false){
     const generation=++state.listGeneration;
@@ -86,17 +94,19 @@
   }
   async function viewSource(id,more=false){
     const generation=++state.sourceGeneration;const current=more?state.source:null;
-    if(!more)state.source={id,text:'',next:0};el('source').hidden=false;
+    state.source={id,text:current?.text||'',next:current?.next??null,loading:true,error:null};
+    el('source').hidden=false;render();
     try{const data=await request('/__knowledge_upload_source__?'+new URLSearchParams({id,offset:current?.next||0,limit:24000}));
-      if(generation!==state.sourceGeneration)return;state.source={id,text:(current?.text||'')+data.text,next:data.next_offset??null};render();
-    }catch(error){if(generation===state.sourceGeneration)status(error.code||'unavailable');}
+      if(generation!==state.sourceGeneration)return;state.source={id,text:(current?.text||'')+data.text,next:data.next_offset??null,loading:false,error:null};render();
+    }catch(error){if(generation===state.sourceGeneration){state.source.loading=false;state.source.error=error.code||'unavailable';render();}}
   }
   function init(){
     el('open').addEventListener('click',open);el('close').addEventListener('click',()=>el('dialog').close());
-    el('dialog').addEventListener('close',()=>{++state.sourceGeneration;state.returnFocus?.focus();});
+    el('dialog').addEventListener('close',()=>{++state.sourceGeneration;state.source=null;el('source').hidden=true;render();state.returnFocus?.focus();});
     el('choose').addEventListener('click',()=>el('files').click());el('files').addEventListener('change',event=>enqueue(event.target.files));
     el('cancel').addEventListener('click',cancel);el('preview').addEventListener('click',prepare);el('organize').addEventListener('click',organize);
-    el('more').addEventListener('click',()=>loadDocuments(true));el('source-close').addEventListener('click',()=>{++state.sourceGeneration;el('source').hidden=true;state.source=null;});el('source-more').addEventListener('click',()=>viewSource(state.source.id,true));
+    el('more').addEventListener('click',()=>loadDocuments(true));el('source-close').addEventListener('click',()=>{++state.sourceGeneration;el('source').hidden=true;state.source=null;render();});el('source-more').addEventListener('click',()=>viewSource(state.source.id,true));
+    el('source-retry').addEventListener('click',()=>{if(state.source)viewSource(state.source.id,!!state.source.text);});
     const drop=el('drop');drop.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();if(!state.busy)el('files').click();}});
     for(const name of ['dragenter','dragover'])drop.addEventListener(name,event=>{event.preventDefault();drop.dataset.dragging='true';});
     drop.addEventListener('dragleave',()=>drop.dataset.dragging='false');drop.addEventListener('drop',event=>{event.preventDefault();drop.dataset.dragging='false';enqueue(event.dataTransfer.files);});
