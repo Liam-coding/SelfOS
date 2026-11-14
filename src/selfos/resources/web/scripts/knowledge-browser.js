@@ -77,7 +77,7 @@
  function renderSources(){
    const holder=el('kb-sources');if(!holder)return;holder.replaceChildren();
    for(const source of detailSources){const row=node('div',undefined,'kb-source-row'),page=sourcePages.get(source.id);
-     const sourceLabel=()=>[named('source_',source.source),named('role_',source.role),source.timestamp?window.selfosI18n.date(source.timestamp):'',source.file].filter(Boolean).join(' · ');
+     const sourceLabel=()=>[named('source_',source.source),named('role_',source.role),source.timestamp_kind==='import_time'?window.selfosI18n.t('upload.import_time'):'',source.timestamp?window.selfosI18n.date(source.timestamp):'',source.file].filter(Boolean).join(' · ');
      row.append(node('div',sourceLabel,'kb-meta'));
      if(detailCache?.item.supporting_source_ids?.includes(source.id))row.append(node('p',()=>tr(detailCache.item.user_corrected?'correction_original_support':'direct_support'),'kb-meta'));
      else if(detailCache?.item.context_source_ids?.includes(source.id))row.append(node('p',()=>tr('context_only'),'kb-meta'));
@@ -90,7 +90,7 @@
    if(sourceListError)holder.append(node('p',()=>errorText({code:sourceListError})));
  }
  async function readOriginal(id){
-   const seq=detailGeneration;let page=sourcePages.get(id);if(!page){page={text:'',next:0,total:0,loaded:false};sourcePages.set(id,page);}if(page.loading)return;
+   const seq=detailGeneration;let page=sourcePages.get(id);if(!page){const source=detailSources.find(item=>item.id===id);page={text:'',next:source?.text_start??0,total:0,loaded:false};sourcePages.set(id,page);}if(page.loading)return;
    page.loading=true;page.error='';renderSources();
    try{const data=await request('/__knowledge_source__?'+new URLSearchParams({id,offset:page.next||0,limit:24000}));if(seq!==detailGeneration)return;
      page.text+=data.text;page.total=data.text_total??Array.from(page.text).length;page.next=data.next_offset??null;page.loaded=true;

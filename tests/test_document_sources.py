@@ -24,6 +24,31 @@ def update_source(vault, source):
     (vault / '.knowledge_pipeline.json').write_text(json.dumps({'sources': {'upload1': source}}), encoding='utf-8')
 
 
+def test_uploaded_fragment_metadata_exposes_verified_position_and_import_time(registered):
+    from selfos.app.library import _sources
+    from selfos.sources.text import redact
+    vault, path, source = registered
+    normalized = redact(path.read_text(encoding='utf-8'))
+    source.update(normalization_version='redacted-text-v1', text_start=16, text_end=51,
+                  text_sha256=hashlib.sha256(normalized.encode()).hexdigest(), timestamp_kind='import_time')
+    update_source(vault, source)
+    metadata = _sources({'sources': {'upload1': source}}, ['upload1'])[0]
+    assert metadata['text_start'] == 16 and metadata['text_end'] == 51
+    assert metadata['timestamp_kind'] == 'import_time'
+    assert knowledge_source(vault, 'upload1', offset=metadata['text_start'])['text'].startswith('Atomic')
+
+
+def test_privacy_excluded_registered_upload_is_not_read(registered, monkeypatch):
+    from selfos.sources.selection import save_sources
+    from selfos.app import library
+    vault, path, _ = registered
+    save_sources(vault, {'roots': [], 'exclusions': [], 'privacy_exclusions': [str(path)]})
+    monkeypatch.setattr(library, 'document_source', lambda *args: pytest.fail('Excluded original must not be read'))
+    with pytest.raises(ValueError) as error:
+        knowledge_source(vault, 'upload1')
+    assert error.value.code == 'source_denied'
+
+
 def test_registered_text_source_is_verified_redacted_and_paginated(registered):
     vault, path, _ = registered
     original = path.read_bytes()

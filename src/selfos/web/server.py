@@ -12,6 +12,7 @@ from selfos.web.routes.auth import AuthRoutes
 from selfos.web.routes.protocol import ProtocolRoutes
 from selfos.web.routes.dashboard import DashboardRoutes
 from selfos.web.routes.actions import ActionsRoutes
+from selfos.web.routes.uploads import UploadRoutes
 
 ROOT = project_root()
 
@@ -64,7 +65,7 @@ def _call_claude(messages, api_key, base_url):
 
 
 
-class Handler(AuthRoutes, ProtocolRoutes, DashboardRoutes, ActionsRoutes, BaseHTTPRequestHandler):
+class Handler(AuthRoutes, ProtocolRoutes, DashboardRoutes, ActionsRoutes, UploadRoutes, BaseHTTPRequestHandler):
     # Composition context; routes receive the server runtime explicitly.
     runtime = sys.modules[__name__]
 

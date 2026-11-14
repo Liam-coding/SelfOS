@@ -68,7 +68,8 @@ def _sources(state,ids):
         if not isinstance(source,dict):continue
         filename=source.get('original_filename') if source.get('source')=='uploaded_file' else source.get('path','')
         result.append({'id':identity,'file':redact(str(filename or '').replace('\\','/').split('/')[-1]),
-            **{key:redact(str(source.get(key,''))) for key in ('source','timestamp','role','provenance','session_id')}})
+            **{key:redact(str(source.get(key,''))) for key in ('source','timestamp','role','provenance','session_id','timestamp_kind')},
+            **{key:source[key] for key in ('text_start','text_end') if type(source.get(key)) is int}})
     return result
 
 
@@ -222,6 +223,10 @@ def knowledge_source(vault,identity, *, offset=0,limit=24000):
     state=_state(vault);source=state.get('sources',{}).get(identity)
     if not isinstance(source,dict):raise KeyError('Unknown conversation source')
     if source.get('source')=='uploaded_file':
+        from selfos.app.privacy import permitted_source
+        from selfos.sources.selection import load_sources
+        if not permitted_source(source, load_sources(vault), vault):
+            raise SourceUnavailable('source_denied','Original source is excluded by privacy settings')
         return {**_sources(state,[identity])[0],**document_source(vault,source,offset,limit)}
     path=Path(source.get('path','')).resolve()
     if path.suffix.lower()!='.jsonl':

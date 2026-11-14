@@ -26,18 +26,8 @@ def request_usage_scope(usage):
 
 
 def _canonical(path):
-    resolved = Path(path).resolve()
-    # Windows may retain the extended prefix when an atomic replacement races
-    # resolution. Normalize its spelling, retaining the containment check.
-    if os.name == 'nt':
-        text = str(resolved)
-        prefix = chr(92) * 2 + '?' + chr(92)
-        if text.startswith(prefix + 'UNC' + chr(92)):
-            text = chr(92) * 2 + text[len(prefix) + 4:]
-        elif text.startswith(prefix):
-            text = text[len(prefix):]
-        resolved = Path(text)
-    return resolved
+    from selfos.paths import canonical_path
+    return canonical_path(path)
 
 
 def _path(vault, name):
