@@ -56,7 +56,7 @@
 - [x] Render citations from server metadata and validate revision before using the existing source viewer. Preserve drafts and structured messages after cloned remount; repair cached page controls without duplicates.
 - [x] Run focused browser/API regressions, independent installed-wheel/resource/three-refresh checks, then full pytest with Chrome.
 - [x] Dispatch one fresh whole-branch reviewer; fix Critical/Important findings with RED/GREEN and relevant green regressions.
-- [ ] Publish English dependent PR (base feat/import-center while #84 is open), closing #18 only when criteria delivered. Continue #83; keep the broad issue-resolution goal active.
+- [x] Publish English dependent PR (base feat/import-center while #84 is open), closing #18 only when criteria delivered. Continue #83; keep the broad issue-resolution goal active.
 
 ### Review fixes and verification in progress
 
@@ -68,3 +68,4 @@
 - Final full regression and independent reviewed-wheel verification passed. Publication remains unchecked until the PR is created.
 - Reviewed wheel SHA-256: 8778e4ca5db393f2c601cfb58b4ed2627f0a929f51ae04179d8acb3f3c3155e8. Separately installed smoke verification passed with 71 resources, three cached refreshes, both locale catalogs, actual project-context scoping, an unsupported no-model question, unchanged canonical bytes and privacy-invalidated citations. The initial smoke assertion assumed a raw project ID; it was corrected to use the library's returned stable project-context ID.
 - Final complete Chromium-enabled suite on a5ed652: **1493 passed, 7 skipped in 558.83 seconds**, exit 0. No assertions were weakened, no blanket retries added and no private data or paid provider calls used. Windows transcript: work/knowledge-qa-final-full.log in the external task artifact workspace.
+- Delivered as [PR #85](https://github.com/Liam-coding/SelfOS/pull/85), based on feat/import-center. Merge #84 first, then reconcile/retarget #85 to main. Product-simplification discovery for #83 has started; the broad issue-resolution goal remains active.
