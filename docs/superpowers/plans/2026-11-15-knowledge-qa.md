@@ -54,7 +54,7 @@
 - [x] Write failing actual-browser tests for en/zh, project choice, source/correction/history labels, hostile model text, one pending send, cancel/remount, stale citations and existing programmatic conversation behavior.
 - [x] Implement knowledge-mode default for ordinary question input, explicit conversation mode, localized controls and request cancellation; do not send old knowledge answers back as conversation context.
 - [x] Render citations from server metadata and validate revision before using the existing source viewer. Preserve drafts and structured messages after cloned remount; repair cached page controls without duplicates.
-- [ ] Run focused browser/API regressions, independent installed-wheel/resource/three-refresh checks, then full pytest with Chrome.
+- [x] Run focused browser/API regressions, independent installed-wheel/resource/three-refresh checks, then full pytest with Chrome.
 - [x] Dispatch one fresh whole-branch reviewer; fix Critical/Important findings with RED/GREEN and relevant green regressions.
 - [ ] Publish English dependent PR (base feat/import-center while #84 is open), closing #18 only when criteria delivered. Continue #83; keep the broad issue-resolution goal active.
 
@@ -65,5 +65,6 @@
 - The detail owner retains the QA record revision for source and source-list continuations. The server validates record revision and source membership before and after building source responses. Native browser tests cover mutation after opening, before text pagination, before source-list pagination and between detail/source requests.
 - Minor envelope-shape and provenance-label findings were also fixed. Anthropic/OpenAI loopback fixtures cover invalid IDs, malformed tool JSON, and list/null/scalar envelopes; incomplete provider usage remains explicitly incomplete.
 - Corrected/native-browser/API/resource regression set: 66 passed. Additional legacy interface/catalog/privacy/correction set: 95 passed with two old chat tests corrected to explicitly select Conversation; their failure/translation assertions are retained. The resulting chat/QA/transport set passed 17 tests.
-- Final full regression and independent reviewed-wheel verification are running. Publication remains unchecked until those results are recorded.
+- Final full regression and independent reviewed-wheel verification passed. Publication remains unchecked until the PR is created.
 - Reviewed wheel SHA-256: 8778e4ca5db393f2c601cfb58b4ed2627f0a929f51ae04179d8acb3f3c3155e8. Separately installed smoke verification passed with 71 resources, three cached refreshes, both locale catalogs, actual project-context scoping, an unsupported no-model question, unchanged canonical bytes and privacy-invalidated citations. The initial smoke assertion assumed a raw project ID; it was corrected to use the library's returned stable project-context ID.
+- Final complete Chromium-enabled suite on a5ed652: **1493 passed, 7 skipped in 558.83 seconds**, exit 0. No assertions were weakened, no blanket retries added and no private data or paid provider calls used. Windows transcript: work/knowledge-qa-final-full.log in the external task artifact workspace.
