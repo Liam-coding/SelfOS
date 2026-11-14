@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from selfos.storage.files import _atomic_write, _locked
 
 MAX_BYTES = 64 * 1024 * 1024
-CANONICAL = {'.knowledge_pipeline.json', '.knowledge_corrections.json', '.knowledge_settings.json', '.knowledge_sources.json', '.knowledge_migration.json'}
+CANONICAL = {'.knowledge_pipeline.json', '.knowledge_corrections.json', '.knowledge_settings.json', '.knowledge_sources.json', '.knowledge_migration.json','.knowledge_change_head.json'}
 MODEL_FIELDS = ('provider','model','base_url','proxy_mode','proxy_url')
 
 
@@ -108,9 +108,14 @@ def _validate_uploaded_sources(state, decoded, origin, path_type):
     from selfos.sources.upload_text import MAX_NORMALIZED_BYTES
     from selfos.sources.text import redact
     normalized = {}
-    for source in state.get('sources', {}).values():
+    for source_id, source in state.get('sources', {}).items():
         if not isinstance(source, dict):
             raise ValueError('Invalid uploaded source')
+        if source.get('source') == 'opencode':
+            if source_id != source.get('id'):
+                raise ValueError('OpenCode source map identity mismatch')
+            _validate_opencode_source(source, decoded, origin, path_type)
+            continue
         if not any(key in source for key in ('document_id', 'normalization_version', 'text_start', 'text_end', 'text_sha256')):
             continue  # Legacy registered documents have no fragment coordinates.
         identity = source.get('document_id')
@@ -142,10 +147,51 @@ def _validate_uploaded_sources(state, decoded, origin, path_type):
             if end > length or source['text_sha256'] != digest:
                 raise ValueError('Uploaded source fragment does not match its original')
     for identity, receipt in state.get('upload_processing', {}).items():
+        from selfos.storage.upload_receipts import document_bound
         for part in receipt['parts'].values():
-            if any(state.get('sources', {}).get(source_id, {}).get('document_id') != identity
+            if any(not document_bound(state.get('sources', {}).get(source_id, {}), identity, part['content_sha256'])
                    for source_id in part['source_ids']):
                 raise ValueError('Uploaded processing receipt has unbound sources')
+
+
+def _validate_opencode_source(source, decoded, origin, path_type):
+    from selfos.sources.opencode_records import opencode_metadata
+    from selfos.sources.opencode_export import parse_export, EXPORT_PROFILE
+    def portable_path(value):
+        if (not isinstance(value, str) or not value or len(value) > 4096
+                or any(ord(c) < 32 for c in value) or not path_type(value).is_absolute()
+                or '..' in path_type(value).parts):
+            raise ValueError('Invalid portable OpenCode origin path')
+        return value
+    opencode_metadata(source, path_validator=portable_path)
+    for locator in source['source_locators']:
+        if locator['kind'] != 'document':
+            continue
+        identity = locator['document_id']
+        registry = '.knowledge_uploads/registry/' + identity + '.json'
+        if registry not in decoded:
+            raise ValueError('OpenCode export source has no admitted original registry')
+        row = json.loads(decoded[registry])
+        path = path_type(locator['path'])
+        relative = path.relative_to(path_type(origin)).as_posix() if origin and path.is_relative_to(path_type(origin)) else None
+        if (row['profile'] != EXPORT_PROFILE or relative != row['path']
+                or locator['content_sha256'] != row['content_sha256']
+                or locator['original_filename'] != row['original_filename']
+                or source.get('provenance') != 'quoted_dialogue'):
+            raise ValueError('OpenCode export locator is not bound to its admitted original')
+        if relative in decoded:
+            # Parsing checks immutable bytes; a synthetic local path avoids resolving
+            # a foreign storage origin as a host path. It is never opened.
+            owned = {key:locator[key] for key in ('kind', 'document_id', 'content_sha256', 'original_filename')}
+            owned['path'] = str(Path.cwd() / '.selfos-migration-original')
+            parsed = parse_export(decoded[relative], owned)
+            semantic = ('id', 'timestamp', 'role', 'source', 'project_id', 'session_id', 'provenance',
+                        'cwd', 'native_project_id', 'native_session_id', 'native_message_id')
+            if not any({k:v for k,v in message['source_locator'].items() if k != 'path'} ==
+                       {k:v for k,v in locator.items() if k != 'path'} and
+                       all(message.get(key) == source.get(key) for key in semantic)
+                       for message in parsed['messages']):
+                raise ValueError('OpenCode export locator does not match its original bytes')
 
 
 def _validate_upload_entries(decoded):
@@ -171,12 +217,16 @@ def _validate_upload_entries(decoded):
                 raise ValueError('Imported original is not a text document')
 
 
-def export_package(vault, root, *, include_originals=False, include_backups=False):
+def export_package(vault, root, *, include_originals=False, include_backups=False,audit='none',audit_recent=20):
     if not isinstance(include_originals,bool) or not isinstance(include_backups,bool):
         raise ValueError('Export options must be boolean')
     vault = Path(vault).resolve()
     with _locked(vault):
-        names = sorted(CANONICAL)
+        from selfos.storage.transactions import recover
+        from selfos.app.change_migration import audit_export
+        recover(vault)
+        audit_data=audit_export(vault,mode=audit,recent=audit_recent)
+        names = sorted(CANONICAL-{'.knowledge_change_head.json'})
         if (vault / '.knowledge_uploads').exists():
             from selfos.storage.uploads import recover_uploads, upload_root, upload_path
             recover_uploads(vault)
@@ -186,6 +236,7 @@ def export_package(vault, root, *, include_originals=False, include_backups=Fals
         for enabled, folder in ((include_originals,'.knowledge_uploads/originals'),(include_backups,'.knowledge_backups')):
             if enabled:
                 names += [p.relative_to(vault).as_posix() for p in (vault/folder).rglob('*') if p.is_file()]
+        names=[name for name in names if not re.search(r'/(change-receipt|changes-[0-9]{6})\.json$',name)]
         entries = {}
         total = 0
         for name in names:
@@ -195,19 +246,69 @@ def export_package(vault, root, *, include_originals=False, include_backups=Fals
             if path.stat().st_size > MAX_BYTES - total: raise ValueError('Export exceeds 64 MiB')
             with path.open('rb') as handle:
                 raw = handle.read(MAX_BYTES - total + 1)
+            if audit_data['manifest'] is None and name.endswith('/pipeline-manifest.json'):
+                from selfos.storage.change_receipts import HEAD_NAME,encode
+                manifest=json.loads(raw)
+                if HEAD_NAME in manifest:
+                    manifest.pop(HEAD_NAME)
+                    raw=encode(manifest)
             total += len(raw)
             if total > MAX_BYTES: raise ValueError('Export exceeds 64 MiB')
             entries[name] = base64.b64encode(raw).decode('ascii')
+        for name,raw in audit_data['files'].items():
+            total+=len(raw)
+            if total>MAX_BYTES:raise ValueError('Export exceeds 64 MiB; select a smaller audit range')
+            entries[name]=base64.b64encode(raw).decode('ascii')
         from selfos.providers.settings import public_config
         config = public_config(root)
         _validate_upload_entries({name: base64.b64decode(value) for name, value in entries.items()})
-        return {'format':'selfos-portable','version':1,'origin_vault':str(vault), 'origin_platform':os.name,
+        return {'format':'selfos-portable','version':2 if audit_data['manifest'] else 1,'audit':audit_data['manifest'],'audit_summary':audit_data['summary'],
+                'origin_vault':str(vault), 'origin_platform':os.name,
                 'includes':{'originals':include_originals,'backups':include_backups,'credentials':False},
                 'files':entries,'settings':{k:config[k] for k in MODEL_FIELDS if k in config}}
 
 
+def _validate_foreign_selection(selection, path_type):
+    """Validate portable permissions syntactically, without touching foreign paths."""
+    if not isinstance(selection, dict) or selection.get('version', 1) not in (1, 2):
+        raise ValueError('Invalid foreign source settings')
+    typed = selection.get('version', 1) == 2
+    if typed and set(selection) - {'version', 'roots', 'entries', 'exclusions', 'privacy_exclusions', 'project_exclusions'}:
+        raise ValueError('Unsupported typed source fields')
+    def paths(value, limit):
+        if not isinstance(value, list) or len(value) > limit or any(
+                not isinstance(p, str) or not p or len(p) > 4096 or any(ord(c) < 32 for c in p)
+                or not path_type(p).is_absolute() or '..' in path_type(p).parts for p in value):
+            raise ValueError('Invalid foreign source path list')
+        return list(dict.fromkeys(path_type(p) for p in value))
+    roots = paths(selection.get('roots', []), 20)
+    databases = []
+    if typed:
+        entries = selection.get('entries')
+        if not isinstance(entries, list) or len(entries) > 20:
+            raise ValueError('Invalid foreign source entries')
+        directories, seen = [], {}
+        for entry in entries:
+            if not isinstance(entry, dict) or set(entry) != {'kind', 'path'} or entry['kind'] not in ('directory', 'opencode_database'):
+                raise ValueError('Unsupported source adapter')
+            path = paths([entry['path']], 1)[0]
+            if path in seen and seen[path] != entry['kind']:
+                raise ValueError('Source path has conflicting adapter kinds')
+            if path not in seen:
+                (directories if entry['kind'] == 'directory' else databases).append(path)
+                seen[path] = entry['kind']
+        if 'roots' in selection and roots != directories:
+            raise ValueError('Compatibility roots must match directory entries')
+        roots = directories
+        paths(selection.get('project_exclusions', []), 100)
+    exclusions = paths(selection.get('exclusions', []), 100)
+    paths(selection.get('privacy_exclusions', []), 100)
+    if any(not any(p.is_relative_to(root) for root in roots) and p not in databases for p in exclusions):
+        raise ValueError('Invalid foreign exclusions')
+
+
 def import_package(vault, root, package):
-    if not isinstance(package,dict) or package.get('format') != 'selfos-portable' or package.get('version') != 1:
+    if not isinstance(package,dict) or package.get('format') != 'selfos-portable' or package.get('version') not in (1,2):
         raise ValueError('Unsupported migration format')
     entries = package.get('files')
     config = package.get('settings',{})
@@ -226,6 +327,8 @@ def import_package(vault, root, package):
         if total > MAX_BYTES: raise ValueError('Import exceeds 64 MiB')
         if not (vault/name).resolve().is_relative_to(vault): raise ValueError('Import path escapes vault')
         decoded[name] = raw
+    from selfos.app.change_migration import validate_audit_import
+    boundary=validate_audit_import(decoded,package.get('audit') if package['version']==2 else None)
     _validate_upload_entries(decoded)
     state = json.loads(decoded.get('.knowledge_pipeline.json',b'{}'))
     _validate_state(state)
@@ -245,16 +348,7 @@ def import_package(vault, root, package):
         from selfos.sources.selection import validate_selection
         selection = json.loads(decoded['.knowledge_sources.json'])
         if foreign:
-            if not isinstance(selection, dict) or selection.get('version', 1) != 1:
-                raise ValueError('Invalid foreign source settings')
-            for field, limit in (('roots',20), ('exclusions',100), ('privacy_exclusions',100)):
-                paths = selection.get(field, [])
-                if not isinstance(paths, list) or len(paths) > limit or any(
-                        not isinstance(p, str) or not p or not origin_path(p).is_absolute() for p in paths):
-                    raise ValueError('Invalid foreign source path list')
-            if any(not any(origin_path(p).is_relative_to(origin_path(root)) for root in selection.get('roots', []))
-                    for p in selection.get('exclusions', [])):
-                raise ValueError('Invalid foreign exclusions')
+            _validate_foreign_selection(selection, origin_path)
             metadata = dict(version=1, origin_platform=platform, unresolved_selection=selection)
             decoded['.knowledge_migration.json'] = json.dumps(metadata, ensure_ascii=False, indent=2).encode()
         else:
@@ -285,6 +379,20 @@ def import_package(vault, root, package):
         else:
             target = Path(value) if path.is_absolute() else vault / path.as_posix()
             status = 'resolved' if not foreign and target.is_file() else 'unresolved'
+        if source.get('source') == 'opencode':
+            for locator in source.get('source_locators', []):
+                original_locator = origin_path(locator['path'])
+                local_relative = (original_locator.relative_to(origin_path(origin)).as_posix()
+                                  if origin and original_locator.is_relative_to(origin_path(origin)) else None)
+                if locator['kind'] == 'document' and local_relative in decoded:
+                    locator['path'] = str(vault / local_relative).replace(chr(92), '/')
+            primary = source.get('source_locator', {})
+            matching = next((locator for locator in source['source_locators'] if
+                locator.get('kind') == primary.get('kind') and locator.get('document_id') == primary.get('document_id')
+                and locator.get('message_id') == primary.get('message_id')), None)
+            if matching:
+                source['source_locator'] = dict(matching)
+                source['path'] = matching['path']
         report.append({'id':identity,'path':source.get('path',''),'status':status})
     if '.knowledge_sources.json' in decoded and origin:
         selection = json.loads(decoded['.knowledge_sources.json'])
@@ -302,6 +410,15 @@ def import_package(vault, root, package):
         decoded['.knowledge_sources.json'] = json.dumps(selection,ensure_ascii=False,indent=2).encode()
     if '.knowledge_pipeline.json' in decoded:
         decoded['.knowledge_pipeline.json'] = json.dumps(state,ensure_ascii=False,indent=2).encode()
+    if package['version']==2:
+        from selfos.storage.change_receipts import HEAD_NAME,encode,sha
+        head=json.loads(decoded[HEAD_NAME])
+        head['imported_hashes']=head['hashes']
+        head['hashes']={'state':sha(decoded.get('.knowledge_pipeline.json')),'ledger':sha(decoded.get('.knowledge_corrections.json'))}
+        decoded[HEAD_NAME]=encode(head)
+        metadata=json.loads(decoded.get('.knowledge_migration.json',b'{}'))
+        metadata.update(audit_import_boundary=boundary,audit_origin_vault=origin,audit_origin_platform=platform)
+        decoded['.knowledge_migration.json']=encode(metadata)
     if vault.exists() and any((vault/name).exists() for name in CANONICAL):
         raise ValueError('Import requires an empty knowledge destination')
     model_path = root / '.selfos-model.json'

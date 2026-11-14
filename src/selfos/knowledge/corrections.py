@@ -11,12 +11,12 @@ from selfos.sources.text import redact
 from selfos.knowledge.identity import record_version
 
 
-def _entries(state):
+def _entries(state, *, as_of=None):
     for record in state.get('cards',{}).values():yield 'projects',record
     for category in ('personal_facts','preferences','lessons'):
         for record in state.get(category,[]):yield category,record
     from selfos.knowledge.history import history_records
-    for record in history_records(state):yield 'history',record
+    for record in history_records(state, as_of=as_of):yield 'history',record
 
 
 def _relation(category, record):
@@ -99,9 +99,9 @@ def _project_action(state,action):
     _insert(state,'projects',manual)
 
 
-def apply_corrections(state, ledger):
+def apply_corrections(state, ledger, *, as_of=None):
     from selfos.knowledge.preferences import preference_snapshot
-    result=copy.deepcopy(preference_snapshot(state))
+    result=copy.deepcopy(preference_snapshot(state, as_of=as_of))
     result.setdefault('correction_review',[])
     for action in ledger.get('actions',[]):
         if not action.get('active',True):continue
@@ -116,7 +116,7 @@ def apply_corrections(state, ledger):
             _project_action(result,action)
             continue
         category=action['category'];anchors=set(action['anchors']);candidates=[]
-        for kind,record in list(_entries(result)):
+        for kind,record in list(_entries(result, as_of=as_of)):
             effective_kind=record.get('original_category',kind) if kind=='history' and category!='history' else kind
             if effective_kind!=category:continue
             matching=_signatures(record)&anchors

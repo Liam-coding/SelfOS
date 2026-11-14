@@ -333,7 +333,7 @@ def test_migration_does_not_overwrite_model_config_created_during_import(tmp_pat
 
 
 def test_api_rule_write_cannot_race_actual_publication_commit(tmp_path, monkeypatch):
-    import selfos.app.pipeline as pipeline
+    import selfos.storage.change_publication as pipeline
     from selfos.app.knowledge import run_knowledge
     from selfos.sources.selection import save_sources, load_sources
     from tests.test_knowledge_service import source, summarize, refine

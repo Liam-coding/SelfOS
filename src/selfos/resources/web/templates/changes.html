@@ -1,0 +1,14 @@
+<!-- selfos-changes-start -->
+<dialog id="knowledge-changes" class="selfos-dialog" aria-labelledby="changes-heading">
+  <header class="changes-heading"><h2 id="changes-heading" data-i18n="changes.title">Knowledge changes</h2><button id="changes-close" type="button" data-i18n="changes.close" autofocus>Close</button></header>
+  <p data-i18n="changes.intro">See what each saved operation changed and the sources behind it.</p>
+  <div class="changes-filters">
+    <label><span data-i18n="changes.category">Category</span><select id="changes-category"><option value="all" data-i18n="changes.all">All changes</option><option value="projects" data-i18n="search.projects">Projects</option><option value="personal_facts" data-i18n="search.personal_facts">Personal facts</option><option value="preferences" data-i18n="search.preferences">Preferences</option><option value="lessons" data-i18n="search.lessons">Lessons</option><option value="history" data-i18n="search.history">History</option></select></label>
+    <label><span data-i18n="changes.action">Change type</span><select id="changes-action"><option value="all" data-i18n="changes.all">All changes</option><option value="added" data-i18n="changes.added">Added</option><option value="updated" data-i18n="changes.updated">Updated</option><option value="removed" data-i18n="changes.removed">Removed</option><option value="merged" data-i18n="changes.merged">Merged</option><option value="restored" data-i18n="changes.restored">Restored</option><option value="invalidated" data-i18n="changes.invalidated">Invalidated</option><option value="superseded" data-i18n="changes.superseded">Superseded</option></select></label>
+    <label><input id="changes-conflicts" type="checkbox"><span data-i18n="changes.conflicts">Unresolved conflicts only</span></label>
+    <button id="changes-restart" type="button" data-i18n="changes.restart">Restart history</button>
+  </div>
+  <p id="changes-status" role="status" aria-live="polite"></p>
+  <div class="changes-layout"><nav class="changes-operations" data-i18n-aria-label="changes.title" aria-label="Knowledge changes"><div id="changes-operations"></div><button id="changes-more" data-i18n="changes.more" type="button" hidden>Load more</button></nav><section><p data-i18n="changes.historical">These are historical snapshots. Current knowledge and your corrections remain authoritative.</p><div id="changes-before-after"></div><button id="changes-detail-more" data-i18n="changes.more" type="button" hidden>Load more</button><p id="changes-source-status" role="status"></p><pre id="changes-source-text" hidden></pre><button id="changes-source-more" data-i18n="changes.source_more" type="button" hidden>Read more source text</button></section></div>
+</dialog>
+<!-- selfos-changes-end -->

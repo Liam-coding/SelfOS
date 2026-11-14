@@ -116,8 +116,13 @@ def onboarding_status(vault, config_root):
     if progress['preview_id']:
         preview = read_metadata(vault, f".knowledge_onboarding/previews/{progress['preview_id']}.json", max_bytes=PREVIEW_BYTES)
         budget = SampleBudget(vault, progress['preview_id']).status()
+    from selfos.sources.opencode_discovery import discover_opencode
+    native = discover_opencode()
+    discovered = {entry['path'] for entry in native}
+    native += [dict(entry, source='opencode', available=Path(entry['path']).is_file()) for entry in selection.get('entries', [])
+               if entry['kind'] == 'opencode_database' and entry['path'] not in discovered]
     return {'progress': progress, 'sources': selection,
-            'availability': discover_sources(defaults=selection['roots']), 'model': public_config(config_root),
+            'availability': discover_sources(defaults=selection['roots']) + native, 'model': public_config(config_root),
             'knowledge': get_status(vault), 'preview': preview, 'budget': budget}
 
 

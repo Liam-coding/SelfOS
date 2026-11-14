@@ -1,0 +1,14 @@
+{
+  "title": "OpenCode conversations", "help": "Select an exact database file. Scanning stays local; only an explicit start sends selected excerpts to your model. Verified profile: OpenCode v1.19.5.",
+  "custom": "Add another database path", "add": "Add database", "project_exclusions": "Exclude project folders inside conversations",
+  "save_help": "Save source selection before previewing a newly enabled database.", "available": "Available locally", "missing": "Not found locally",
+  "preview": "OpenCode local preview", "close": "Close", "limits": "At most 2 selected parts and 12 model requests per preview. Resuming keeps the same allowance.",
+  "restart": "New scan", "restart_help": "A new scan includes later conversations and preserves the previous checkpoint.",
+  "more": "Scan next page", "start": "Organize this sample", "ready": "Choose a saved OpenCode database.", "scanning": "Scanning a bounded local page. No model calls.",
+  "prepared": "{parts} selected parts are ready. Review them before organizing.", "partial": "More local input remains. Scan the next page to continue.", "complete": "This scan is complete; no pending parts remain.",
+  "source_changed": "Consumed source content changed. Start a fresh scan before continuing.", "unsupported_source_format": "This database format is not supported. Try an OpenCode export JSON instead.",
+  "source_locked": "The database is busy. Retry later or upload an export JSON.", "source_missing": "The database is missing.", "source_denied": "This source is not selected or is excluded.",
+  "staging_limit": "The retained scan reached its storage allowance. Previous checkpoints are preserved.", "bounded_read": "The local scan reached its limit. Scan the next page to continue.",
+  "stopped": "Scan stopped; retained input is preserved.", "unavailable": "Could not prepare this source. Check the selection and server, then retry.",
+  "login_required": "Sign in again to continue.", "import_active": "Another knowledge job is running. Stop it or wait before preparing another preview."
+}

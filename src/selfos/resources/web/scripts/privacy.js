@@ -1,38 +1,41 @@
-let privacySelection=null;
-function privacyMessage(key){return window.selfosI18n?window.selfosI18n.t('privacy.'+key):key;}
-async function privacyRequest(body){
-  const response=await fetch('/__privacy__',body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
-  const data=await response.json();
-  if(!response.ok)throw new Error(privacyMessage('error'));
-  return data;
+(function(window){'use strict';window.selfosUI.register('privacy',()=>{
+let privacySelection=null,generation=0,dirty=false,loading=false,draft=null,prepared=null,exportGeneration=0,ignoreClose=0;
+const requests=new Set(),cleanups=[],downloads=new Map();
+const el=id=>document.getElementById(id);
+const message=key=>window.selfosI18n.t('privacy.'+key);
+function status(key,extra=''){window.selfosI18n.bindText(el('privacy-status'),'ui.common.value',()=>({value:message(key)+extra}));}
+function on(node,type,callback){node.addEventListener(type,callback);cleanups.push(()=>node.removeEventListener(type,callback));}
+async function request(body){const controller=new AbortController();requests.add(controller);try{const response=await fetch('/__privacy__',{signal:controller.signal,...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'})});const data=await response.json();if(!response.ok)throw Error('privacy_failed');return data;}finally{requests.delete(controller);}}
+async function load(){const owner=generation;loading=true;try{const data=await request();if(owner!==generation||!el('privacy-settings').open)return;privacySelection=data.selection;if(!dirty)el('privacy-rules').value=[...privacySelection.exclusions,...(privacySelection.privacy_exclusions||[])].join(String.fromCharCode(10));el('privacy-destination').textContent=Object.values(data.destination).join(String.fromCharCode(10));status('withheld',' '+data.withheld_sources);if(prepared)renderExport();}catch(error){if(owner===generation)status('error');}finally{if(owner===generation)loading=false;}}
+async function open(){if(el('privacy-settings').open)return;el('app-settings').close();el('privacy-settings').showModal();++generation;dirty=false;await load();}
+function close(){el('privacy-settings').close();}
+async function save(){if(window.selfosReadOnlyDemo)return;const owner=generation;try{if(!privacySelection)throw Error('privacy_missing');const rules=el('privacy-rules').value.split(String.fromCharCode(10)).map(value=>value.trim()).filter(Boolean);await request({action:'save',selection:{...privacySelection,exclusions:[],privacy_exclusions:rules}});if(owner===generation){dirty=false;status('saved');}}catch(error){if(owner===generation)status('error');}}
+function invalidateExport(){++exportGeneration;prepared=null;el('privacy-download').hidden=true;}
+function renderExport(){
+ el('privacy-download').hidden=!prepared;if(!prepared)return;const summary=prepared.summary;
+ window.selfosI18n.bindText(el('privacy-status'),'ui.common.value',()=>({value:window.selfosI18n.t('changes.export_summary',{operations:summary.operations,bytes:summary.bytes})+' '+(summary.oldest?window.selfosI18n.t('changes.export_range',{oldest:summary.oldest.run_id+':'+summary.oldest.index,newest:summary.newest.run_id+':'+summary.newest.index})+' ':'')+window.selfosI18n.t('changes.'+(summary.earlier_history_omitted?'omitted':'complete'))}));
 }
-async function openPrivacySettings(){
-  document.getElementById('app-settings').close();
-  document.getElementById('privacy-settings').showModal();
-  try{const data=await privacyRequest();privacySelection=data.selection;
-    document.getElementById('privacy-rules').value=[...privacySelection.exclusions,...(privacySelection.privacy_exclusions||[])].join(String.fromCharCode(10));
-    document.getElementById('privacy-destination').textContent=Object.values(data.destination).join(String.fromCharCode(10));
-    document.getElementById('privacy-status').textContent=privacyMessage('withheld')+' '+data.withheld_sources;
-  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
+async function exportData(){
+ if(window.selfosReadOnlyDemo)return;invalidateExport();const owner=generation,sequence=exportGeneration;
+ try{const data=await request({action:'export',originals:el('privacy-originals').checked,backups:el('privacy-backups').checked,audit:el('privacy-audit').value,audit_recent:Number(el('privacy-audit-recent').value)});
+  if(owner!==generation||sequence!==exportGeneration)return;prepared={text:JSON.stringify(data,null,2),summary:data.audit_summary};renderExport();
+ }catch(error){if(owner===generation&&sequence===exportGeneration)status('error');}
 }
-async function savePrivacyRules(){
-  try{if(!privacySelection)throw new Error(privacyMessage('error'));
-    const rules=document.getElementById('privacy-rules').value.split(String.fromCharCode(10)).map(s=>s.trim()).filter(Boolean);
-    await privacyRequest({action:'save',selection:{...privacySelection,exclusions:[],privacy_exclusions:rules}});
-    document.getElementById('privacy-status').textContent=privacyMessage('saved');
-  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
+function downloadData(){
+ if(window.selfosReadOnlyDemo||!prepared)return;const url=URL.createObjectURL(new Blob([prepared.text],{type:'application/json'})),link=document.createElement('a');
+ link.href=url;link.download='selfos-portable.json';link.click();const timer=setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);downloads.set(url,timer);status('exported');
 }
-async function exportPrivacyData(){
-  try{const data=await privacyRequest({action:'export',originals:document.getElementById('privacy-originals').checked,backups:document.getElementById('privacy-backups').checked});
-    const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-    const link=document.createElement('a');link.href=url;link.download='selfos-portable.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    document.getElementById('privacy-status').textContent=privacyMessage('exported');
-  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
+async function importData(file){if(!file||window.selfosReadOnlyDemo)return;const owner=generation;try{if(file.size>90*1024*1024)throw Error('privacy_size');const packageData=JSON.parse(await file.text());if(owner!==generation)return;const data=await request({action:'import',package:packageData});if(owner===generation)status('imported',String.fromCharCode(10)+JSON.stringify(data.sources,null,2));}catch(error){if(owner===generation)status('error');}}
+function action(event){const node=event.target.closest?.('[data-selfos-action]');if(!node||!document.contains(node)||!node.closest('#privacy-settings,#app-settings'))return;const actions={'privacy.open':['click',open],'privacy.close':['click',close],'privacy.save':['click',save],'privacy.export':['click',exportData],'privacy.download':['click',downloadData],'privacy.import':['change',()=>importData(node.files[0])]};if(!Object.hasOwn(actions,node.dataset.selfosAction)||actions[node.dataset.selfosAction][0]!==event.type)return;event.preventDefault();actions[node.dataset.selfosAction][1]();}
+function init(){
+ ++generation;on(document,'click',action);on(document,'change',action);on(el('privacy-rules'),'input',()=>{dirty=true;});on(el('privacy-settings'),'close',()=>{if(ignoreClose){--ignoreClose;return;}if(el('privacy-settings').open)return;++generation;loading=false;});
+ for(const id of ['privacy-originals','privacy-backups','privacy-audit','privacy-audit-recent'])on(el(id),'change',invalidateExport);
+ if(draft){el('privacy-rules').value=draft.rules;el('privacy-originals').checked=draft.originals;el('privacy-backups').checked=draft.backups;el('privacy-audit').value=draft.audit;el('privacy-audit-recent').value=draft.auditRecent;dirty=draft.dirty;prepared=draft.prepared;
+  if(draft.open){const dialog=el('privacy-settings');if(dialog.open){++ignoreClose;dialog.close();}dialog.showModal();}const resume=draft.loading&&draft.open;draft=null;if(resume)load();
+ }renderExport();
 }
-async function importPrivacyData(file){
-  if(!file)return;
-  try{if(file.size>90*1024*1024)throw new Error(privacyMessage('error'));
-    const data=await privacyRequest({action:'import',package:JSON.parse(await file.text())});
-    document.getElementById('privacy-status').textContent=privacyMessage('imported')+String.fromCharCode(10)+JSON.stringify(data.sources,null,2);
-  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
-}
+function teardown(){draft={rules:el('privacy-rules').value,originals:el('privacy-originals').checked,backups:el('privacy-backups').checked,audit:el('privacy-audit').value,auditRecent:el('privacy-audit-recent').value,prepared,dirty,open:el('privacy-settings').open,loading};++generation;++exportGeneration;loading=false;for(const controller of requests)controller.abort();requests.clear();for(const [url,timer]of downloads){clearTimeout(timer);URL.revokeObjectURL(url);}downloads.clear();el('privacy-import').value='';cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
+return {open,close,save,export:exportData,download:downloadData,import:importData,request,message,init,teardown,busy:()=>requests.size>0};
+},{dependencies:['request','locale'],roots:['#privacy-settings']});
+for(const [name,method]of Object.entries({openPrivacySettings:'open',savePrivacyRules:'save',exportPrivacyData:'export',downloadPrivacyData:'download',importPrivacyData:'import',privacyRequest:'request',privacyMessage:'message'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('privacy')[method](...args);
+})(window);

@@ -1,12 +1,15 @@
 {
   "version": 1,
   "resources": [
-    "scripts/ui-runtime.js",
-    "scripts/ui-request.js",
-    "scripts/ui-bootstrap.js",
+    "templates/changes.html",
+    "styles/changes.css",
+    "scripts/changes.js",
     "templates/uploads.html",
     "styles/uploads.css",
     "scripts/uploads.js",
+    "scripts/ui-runtime.js",
+    "scripts/ui-request.js",
+    "scripts/ui-bootstrap.js",
     "scripts/account.js",
     "scripts/auth-common.js",
     "scripts/dashboard-chat.js",
@@ -62,6 +65,7 @@
     "styles/knowledge-quality.css",
     "scripts/knowledge-quality.js",
     "styles/tokens.css",
-    "styles/controls.css"
+    "styles/controls.css",
+    "scripts/opencode.js"
   ]
 }

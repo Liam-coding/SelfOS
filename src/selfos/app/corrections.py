@@ -33,7 +33,8 @@ def correct_knowledge(vault, request):
         if request_id:ledger.setdefault('receipts',{})[request_id]={'fingerprint':fingerprint,'action_id':identity,'backup_id':backup}
         writes=record_writes(vault,state,corrections=ledger)
         writes['.knowledge_corrections.json']=json.dumps(ledger,ensure_ascii=False,indent=2).encode()
-        commit(vault,writes,backup,1)
+        from selfos.app.change_publication import publish_changes
+        publish_changes(vault,writes,backup,1,kind='undo' if request['action']=='undo' else 'correction',action_id=identity)
         return {'action_id':identity,'backup_id':backup,'ok':True}
 
 

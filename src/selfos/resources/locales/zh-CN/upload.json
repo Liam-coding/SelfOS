@@ -1,9 +1,10 @@
 {
+  "source_loading": "正在加载原文…", "source_unavailable": "无法加载这份原文，请重试。", "retry_source": "重试",
   "open": "上传文档", "eyebrow": "你的信息来源", "close": "关闭", "import_time": "导入时间",
   "local_only": "文件保存在本地。只有点击“整理选中文件”，才会把符合条件的片段发送到配置的模型。",
-  "drop": "将文档拖到这里", "formats": "UTF-8 的 .txt 或 .md · 每份最多 20 MiB · 每次最多 10 份", "choose": "选择文件",
+  "drop": "将文档拖到这里", "formats": "UTF-8 的 .txt、.md 或 OpenCode 导出的 .json · 每份最多 20 MiB · 每次最多 10 份", "choose": "选择文件",
   "retained": "保留的文档", "empty": "上传的文档会显示在这里。", "selected": "已选择 {count} 份", "selection_limit": "最多选中 10 份文档。上传的文件均已保留；取消选中一份后，可选择其他文档。",
-  "queued": "等待上传", "uploading": "正在保存到本地", "uploaded": "已保存到本地", "duplicate": "已上传过", "rejected": "文件被拒绝：请使用非空的 UTF-8 .txt 或 .md 文件，且不超过 20 MiB",
+  "queued": "等待上传", "uploading": "正在保存到本地", "uploaded": "已保存到本地", "duplicate": "已上传过", "rejected": "文件被拒绝：请使用非空的 UTF-8 文本文件或支持的 OpenCode 导出 JSON，且不超过 20 MiB",
   "interrupted": "上传已中断，之前保存的文件仍然保留。", "login_required": "请重新登录后继续，之前保存的文件仍然保留。", "unavailable": "未能完成操作，请检查服务并重试。", "too_many": "每次最多选择 10 份文件。", "import_active": "知识整理任务正在运行，请先停止或等待完成，再准备新的选中内容。",
   "original_or_index_unavailable": "原文件或索引不可用", "excluded": "已被隐私设置排除", "indexing": "正在本地建立索引", "ready": "可以整理", "pending_organization": "可以整理", "committed": "已写入知识库", "no_eligible_knowledge": "没有符合条件的知识", "stopped": "已停止",
   "document_status": "{status} · 已保存 {count} 个片段", "view": "查看原文", "more": "加载更多", "original": "原始文档", "close_original": "关闭原文", "redacted": "查看来源时会隐藏检测到的敏感值，原始文件字节保持不变。", "more_text": "继续阅读",

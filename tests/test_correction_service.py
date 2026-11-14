@@ -45,7 +45,9 @@ def test_later_generated_write_applies_the_same_durable_overlay(tmp_path):
 def test_undo_does_not_remove_new_generated_evidence(tmp_path):
     data=prepare(tmp_path);result=edit(tmp_path)
     data['preferences'].append(record('detailed','m2'))
-    (tmp_path/'.knowledge_pipeline.json').write_text(json.dumps(data))
+    from selfos.app.change_publication import publish_changes
+    publish_changes(tmp_path,{'.knowledge_pipeline.json':json.dumps(data).encode()},
+                    '20261114T120000-123456abcdef',1,kind='import')
     correct_knowledge(tmp_path,dict(action='undo',action_id=result['action_id']))
     assert {r['title'] for r in list_knowledge(tmp_path,category='preferences')['items']}=={'concise','detailed'}
 

@@ -5,6 +5,29 @@ import re
 from selfos.knowledge.identity import digest
 
 
+def document_bound(source, document_id, content_hash=None):
+    """A logical OpenCode message can have several admitted immutable copies."""
+    if source.get('provenance') != 'quoted_dialogue':
+        return False
+    if source.get('source') == 'opencode':
+        return any(isinstance(locator, dict) and locator.get('kind') == 'document'
+                   and locator.get('document_id') == document_id
+                   and (content_hash is None or locator.get('content_sha256') == content_hash)
+                   for locator in source.get('source_locators', []))
+    return (source.get('document_id') == document_id and
+            (content_hash is None or source.get('content_sha256') == content_hash))
+
+
+def prune_unbound_receipts(state):
+    """Removed copy locators cannot keep claiming completion for that document."""
+    for identity, receipt in list(state.get('upload_processing', {}).items()):
+        receipt['parts'] = {key:part for key,part in receipt['parts'].items() if
+            all(document_bound(state.get('sources', {}).get(source_id, {}), identity, part['content_sha256'])
+                for source_id in part['source_ids'])}
+        if not receipt['parts']:
+            del state['upload_processing'][identity]
+
+
 def valid_part(state, document_id, part_id, *, expected_policy_hash=None):
     receipt = state.get('upload_processing', {}).get(document_id, {})
     if not isinstance(receipt, dict) or receipt.get('version') != 1:
@@ -20,9 +43,8 @@ def valid_part(state, document_id, part_id, *, expected_policy_hash=None):
     ids = part.get('source_ids')
     if not isinstance(ids, list) or not ids:
         return False
-    return all(state.get('sources', {}).get(identity, {}).get('document_id') == document_id
-               and state['sources'][identity].get('content_sha256') == part.get('content_sha256')
-               and state['sources'][identity].get('provenance') == 'quoted_dialogue' for identity in ids)
+    return all(document_bound(state.get('sources', {}).get(identity, {}), document_id, part.get('content_sha256'))
+               for identity in ids)
 
 
 def add_receipts(state, sessions, policy_hash, operation_id):

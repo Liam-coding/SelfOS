@@ -23,7 +23,7 @@ def test_upload_picker_has_native_input_and_distinct_cancel_and_organize_control
     parsed.feed(frontend_text('templates/uploads.html'))
     tag, picker = parsed.elements['uploads-files']
     assert tag == 'input' and picker['type'] == 'file' and 'multiple' in picker
-    assert picker['accept'] == '.txt,.md'
+    assert picker['accept'] == '.txt,.md,.json'
     assert parsed.elements['uploads-choose'][0] == 'button'
     assert parsed.elements['uploads-organize'][0] == 'button'
     assert parsed.elements['uploads-cancel'][0] == 'button'
@@ -39,6 +39,14 @@ def test_picker_drop_cancel_locale_and_selected_organization_in_chromium(tmp_pat
     path = Path(__file__).parent / 'browser/uploads.py'
     result = subprocess.run([sys.executable, '-X', 'utf8', str(path), '--output', str(tmp_path),
         '--chromium', os.environ['SELFOS_CHROMIUM']], capture_output=True, text=True, timeout=180)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.skipif(not os.environ.get('SELFOS_CHROMIUM'), reason='Optional isolated Chromium source lifecycle')
+def test_switching_original_clears_text_during_loading_failure_and_late_responses():
+    path = Path(__file__).parent / 'browser/upload_source_display.py'
+    result = subprocess.run([sys.executable, '-X', 'utf8', str(path),
+        '--chromium', os.environ['SELFOS_CHROMIUM']], capture_output=True, text=True, timeout=90)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
