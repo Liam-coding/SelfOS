@@ -1,7 +1,12 @@
 {
   "generation": 1,
-  "scope": "stage-one-runtime-account-settings-theme",
+  "scope": "stage-two-jobs-import-and-completion-owners",
   "retired_globals": [
+    "knowledgeSettingsError",
+    "onboardingPerform",
+    "onboardingRequest",
+    "progressStatus",
+    "renderOnboarding",
     "updateThemeBtn"
   ],
   "globals": [
@@ -88,17 +93,17 @@
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 17,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 31,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 33,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -108,13 +113,28 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 22,
-          "role": "definition"
+          "line": 24,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 76,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 38,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 41,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 43,
+          "role": "compatibility-export"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 25,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -170,8 +190,8 @@
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 39,
-          "role": "legacy-migration-marker"
+          "line": 54,
+          "role": "renderer-migration"
         }
       ],
       "test_callers": [
@@ -191,8 +211,8 @@
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            83,
-            86
+            97,
+            101
           ]
         }
       ]
@@ -256,11 +276,11 @@
         {
           "path": "src/selfos/resources/web/scripts/knowledge-browser.js",
           "line": 146,
-          "role": "external-consumer"
+          "role": "definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 14,
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
           "role": "external-consumer"
         },
         {
@@ -270,8 +290,8 @@
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 38,
-          "role": "legacy-migration-marker"
+          "line": 53,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -279,6 +299,28 @@
           "path": "tests/test_auth_design_system.py",
           "lines": [
             78
+          ]
+        },
+        {
+          "path": "tests/browser/frontend_integration.py",
+          "lines": [
+            118,
+            135
+          ]
+        },
+        {
+          "path": "tests/browser/knowledge_corrections.py",
+          "lines": [
+            56,
+            69
+          ]
+        },
+        {
+          "path": "tests/browser/preference_revision.py",
+          "lines": [
+            59,
+            64,
+            69
           ]
         }
       ]
@@ -289,22 +331,22 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 18,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 122,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -315,7 +357,7 @@
         {
           "path": "src/selfos/resources/web/scripts/account.js",
           "line": 41,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -347,29 +389,34 @@
       "name": "checkStaging",
       "references": [
         {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 46,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 127,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 5,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 3,
-          "role": "definition"
+          "line": 10,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 29,
-          "role": "external-consumer"
+          "line": 32,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 34,
-          "role": "external-consumer"
+          "line": 39,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 41,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 43,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -384,6 +431,13 @@
           "lines": [
             16
           ]
+        },
+        {
+          "path": "tests/test_i18n_staging.py",
+          "lines": [
+            18,
+            22
+          ]
         }
       ]
     },
@@ -393,22 +447,22 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 52,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 124,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -418,23 +472,13 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 6,
-          "role": "definition"
+          "line": 118,
+          "role": "compatibility-export"
         },
         {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 81,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 164,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 54,
-          "role": "external-consumer"
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 29,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": []
@@ -444,28 +488,43 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 21,
-          "role": "definition"
+          "line": 23,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 25,
-          "role": "external-consumer"
+          "line": 28,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 29,
-          "role": "external-consumer"
+          "line": 32,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 33,
-          "role": "external-consumer"
+          "line": 37,
+          "role": "private-reference"
         },
         {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 74,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 38,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 41,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 43,
+          "role": "compatibility-export"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 32,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": []
@@ -475,61 +534,42 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 74,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 49,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 27,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 28,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 56,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 26,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 56,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 58,
-          "role": "external-consumer"
+          "line": 118,
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/resources/web/templates/overview.html",
           "line": 9,
           "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 20,
+          "role": "renderer-reference"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 30,
+          "role": "renderer-reference"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 31,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
         {
-          "path": "tests/test_i18n_import_progress.py",
+          "path": "tests/test_design_refresh.py",
           "lines": [
-            20
+            38,
+            42
           ]
         },
         {
-          "path": "tests/test_import_publication_ui.py",
+          "path": "tests/test_i18n_import_progress.py",
           "lines": [
-            38
+            20
           ]
         }
       ]
@@ -539,23 +579,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 13,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 40,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 48,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 56,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -603,17 +628,7 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 27,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 58,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 65,
+          "line": 16,
           "role": "external-consumer"
         },
         {
@@ -622,18 +637,13 @@
           "role": "external-consumer"
         },
         {
-          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 28,
-          "role": "external-consumer"
-        },
-        {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 8,
+          "line": 9,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 36,
+          "line": 43,
           "role": "external-consumer"
         },
         {
@@ -658,7 +668,7 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/knowledge-quality.js",
-          "line": 45,
+          "line": 47,
           "role": "external-consumer"
         },
         {
@@ -668,12 +678,12 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 5,
+          "line": 7,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/overview.js",
-          "line": 4,
+          "line": 7,
           "role": "external-consumer"
         },
         {
@@ -709,20 +719,51 @@
         {
           "path": "src/selfos/resources/web/scripts/ui-request.js",
           "line": 14,
-          "role": "external-consumer"
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/resources/web/scripts/ui-request.js",
           "line": 16,
-          "role": "external-consumer"
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 8,
+          "line": 12,
           "role": "external-consumer"
         }
       ],
       "test_callers": [
+        {
+          "path": "tests/chromium_fixture.py",
+          "lines": [
+            11
+          ]
+        },
+        {
+          "path": "tests/test_browser_completion_lifecycle.py",
+          "lines": [
+            15
+          ]
+        },
+        {
+          "path": "tests/test_browser_import_settings_lifecycle.py",
+          "lines": [
+            22,
+            35
+          ]
+        },
+        {
+          "path": "tests/test_browser_jobs_chromium.py",
+          "lines": [
+            73
+          ]
+        },
+        {
+          "path": "tests/test_browser_jobs_lifecycle.py",
+          "lines": [
+            17
+          ]
+        },
         {
           "path": "tests/test_browser_lifecycle.py",
           "lines": [
@@ -800,14 +841,15 @@
           "path": "tests/test_import_publication_ui.py",
           "lines": [
             39,
-            60
+            41,
+            59
           ]
         },
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
             25,
-            98
+            115
           ]
         },
         {
@@ -854,47 +896,47 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 19,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 43,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 50,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 60,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 77,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 96,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 139,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -904,49 +946,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 7,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 26,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 47,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 55,
-          "role": "external-consumer"
-        }
-      ],
-      "test_callers": []
-    },
-    {
-      "name": "knowledgeSettingsError",
-      "references": [
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 6,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 41,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 50,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 58,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -957,33 +958,33 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 56,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 123,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            62,
-            73,
             76,
-            79,
-            85
+            87,
+            90,
+            93,
+            100
           ]
         }
       ]
@@ -994,7 +995,7 @@
         {
           "path": "src/selfos/resources/web/scripts/account.js",
           "line": 41,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1005,22 +1006,22 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 49,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 138,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1031,27 +1032,27 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 39,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 61,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 62,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1062,42 +1063,42 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 42,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 47,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 63,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 68,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 72,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 73,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1108,42 +1109,42 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 30,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 65,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 84,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 99,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 102,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 149,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1154,37 +1155,37 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 25,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 28,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 90,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 102,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 103,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -1203,75 +1204,56 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 59,
-          "role": "definition"
+          "line": 61,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 12,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
-      "test_callers": []
+      "test_callers": [
+        {
+          "path": "tests/browser/onboarding.py",
+          "lines": [
+            66
+          ]
+        }
+      ]
     },
     {
       "name": "onboardingNewAllowance",
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 55,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 13,
-          "role": "external-consumer"
-        }
-      ],
-      "test_callers": []
-    },
-    {
-      "name": "onboardingPerform",
-      "references": [
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 46,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 52,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 53,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 54,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 55,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 56,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
           "line": 57,
-          "role": "external-consumer"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 58,
-          "role": "external-consumer"
+          "line": 69,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1281,49 +1263,23 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 54,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 13,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 14,
-          "role": "external-consumer"
-        }
-      ],
-      "test_callers": []
-    },
-    {
-      "name": "onboardingRequest",
-      "references": [
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 4,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 41,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 48,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 66,
-          "role": "external-consumer"
+          "line": 56,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
           "line": 69,
-          "role": "external-consumer"
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1333,8 +1289,18 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 58,
-          "role": "definition"
+          "line": 60,
+          "role": "private-definition"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
@@ -1349,18 +1315,28 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 52,
-          "role": "external-consumer"
+          "line": 54,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 53,
-          "role": "definition"
+          "line": 55,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 11,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1370,13 +1346,23 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 57,
-          "role": "definition"
+          "line": 59,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 16,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1386,18 +1372,23 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 56,
-          "role": "definition"
+          "line": 58,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 13,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "private-reference"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 14,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1407,18 +1398,28 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 11,
-          "role": "external-consumer"
+          "line": 13,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 52,
-          "role": "definition"
+          "line": 54,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 16,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -1436,27 +1437,27 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 10,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 115,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 38,
-          "role": "legacy-migration-marker"
+          "line": 53,
+          "role": "renderer-migration"
         }
       ],
       "test_callers": [
@@ -1489,7 +1490,7 @@
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            57
+            71
           ]
         }
       ]
@@ -1523,13 +1524,13 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 3,
-          "role": "definition"
+          "line": 118,
+          "role": "compatibility-export"
         },
         {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 29,
-          "role": "external-consumer"
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 21,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": []
@@ -1540,7 +1541,7 @@
         {
           "path": "src/selfos/resources/web/scripts/knowledge-browser.js",
           "line": 147,
-          "role": "external-consumer"
+          "role": "definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/knowledge-quality.js",
@@ -1555,13 +1556,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 21,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/import-controls.html",
-          "line": 1,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/resources/web/templates/overview.html",
@@ -1571,12 +1567,12 @@
         {
           "path": "src/selfos/web/rendering/knowledge.py",
           "line": 8,
-          "role": "external-consumer"
+          "role": "renderer-migration"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 60,
-          "role": "legacy-migration-marker"
+          "line": 76,
+          "role": "renderer-migration"
         }
       ],
       "test_callers": [
@@ -1604,29 +1600,24 @@
       "name": "openModelSettings",
       "references": [
         {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 59,
-          "role": "external-consumer"
-        },
-        {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 76,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 117,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -1639,8 +1630,8 @@
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            54,
-            80
+            68,
+            94
           ]
         },
         {
@@ -1648,6 +1639,13 @@
           "lines": [
             20,
             23
+          ]
+        },
+        {
+          "path": "tests/browser/frontend_integration.py",
+          "lines": [
+            90,
+            93
           ]
         }
       ]
@@ -1657,28 +1655,33 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 38,
-          "role": "definition"
+          "line": 40,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 45,
-          "role": "external-consumer"
+          "line": 60,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 58,
-          "role": "external-consumer"
+          "line": 69,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 64,
-          "role": "external-consumer"
+          "line": 77,
+          "role": "private-reference"
         },
         {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 5,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 83,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -1730,12 +1733,12 @@
         {
           "path": "src/selfos/resources/web/scripts/project-timeline.js",
           "line": 32,
-          "role": "external-consumer"
+          "role": "definition"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 39,
-          "role": "legacy-migration-marker"
+          "line": 54,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -1752,16 +1755,42 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 10,
-          "role": "definition"
+          "line": 12,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 38,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 39,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 41,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 43,
+          "role": "compatibility-export"
+        },
+        {
+          "path": "src/selfos/web/rendering/refresh.py",
           "line": 24,
-          "role": "external-consumer"
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
+        {
+          "path": "tests/test_design_refresh.py",
+          "lines": [
+            38
+          ]
+        },
         {
           "path": "tests/test_harvest.py",
           "lines": [
@@ -1854,73 +1883,12 @@
       "test_callers": []
     },
     {
-      "name": "progressStatus",
-      "references": [
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 1,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 24,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 34,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 43,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 50,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 67,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 70,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 92,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 125,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 126,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 159,
-          "role": "external-consumer"
-        }
-      ],
-      "test_callers": []
-    },
-    {
       "name": "projectTimelineLabel",
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/project-timeline.js",
           "line": 31,
-          "role": "external-consumer"
+          "role": "definition"
         }
       ],
       "test_callers": []
@@ -1930,23 +1898,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 11,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 59,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 154,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/onboarding.html",
-          "line": 14,
-          "role": "external-consumer"
+          "line": 118,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -1956,31 +1909,55 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 33,
-          "role": "definition"
+          "line": 39,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 44,
-          "role": "external-consumer"
+          "line": 45,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 46,
-          "role": "external-consumer"
+          "line": 51,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 49,
-          "role": "external-consumer"
+          "line": 53,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 56,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 62,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 64,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
         {
           "path": "tests/test_import_publication_ui.py",
           "lines": [
-            61,
+            41,
+            60,
             77
+          ]
+        },
+        {
+          "path": "tests/browser/frontend_integration.py",
+          "lines": [
+            151,
+            163,
+            177
           ]
         }
       ]
@@ -1989,24 +1966,34 @@
       "name": "renderImportPublication",
       "references": [
         {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 15,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 14,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 9,
-          "role": "definition"
+          "line": 43,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 38,
-          "role": "external-consumer"
+          "line": 52,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 45,
-          "role": "external-consumer"
+          "line": 54,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 62,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 64,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -2019,78 +2006,27 @@
       ]
     },
     {
-      "name": "renderOnboarding",
-      "references": [
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 8,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 40,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 43,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 47,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 48,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 50,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 66,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 68,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 69,
-          "role": "external-consumer"
-        }
-      ],
-      "test_callers": []
-    },
-    {
       "name": "renderWorkloadUsage",
       "references": [
         {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 14,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 39,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 18,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 14,
-          "role": "external-consumer"
+          "line": 33,
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 29,
-          "role": "external-consumer"
+          "line": 64,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 66,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -2100,18 +2036,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 43,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/import-controls.html",
-          "line": 10,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/import-controls.html",
-          "line": 11,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -2122,27 +2048,27 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 93,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 121,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 126,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -2150,6 +2076,19 @@
           "path": "tests/test_i18n_settings.py",
           "lines": [
             27
+          ]
+        },
+        {
+          "path": "tests/browser/frontend_integration.py",
+          "lines": [
+            111
+          ]
+        },
+        {
+          "path": "tests/browser/onboarding.py",
+          "lines": [
+            70,
+            74
           ]
         }
       ]
@@ -2175,13 +2114,23 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 37,
-          "role": "external-consumer"
+          "line": 41,
+          "role": "private-definition"
         },
         {
-          "path": "src/selfos/resources/web/templates/workload.html",
-          "line": 6,
-          "role": "external-consumer"
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 54,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 64,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 66,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -2202,7 +2151,7 @@
         {
           "path": "src/selfos/resources/web/scripts/knowledge-corrections.js",
           "line": 79,
-          "role": "external-consumer"
+          "role": "definition"
         }
       ],
       "test_callers": []
@@ -2282,42 +2231,37 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 1,
+          "line": 8,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 45,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 130,
+          "line": 39,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 7,
+          "line": 9,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 16,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 27,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
-          "line": 29,
+          "line": 18,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
           "line": 30,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 32,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 33,
           "role": "external-consumer"
         },
         {
@@ -2353,51 +2297,46 @@
         {
           "path": "src/selfos/resources/web/scripts/i18n.js",
           "line": 42,
-          "role": "external-consumer"
+          "role": "definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 5,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 10,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 34,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 6,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-publication.js",
           "line": 7,
           "role": "external-consumer"
         },
         {
-          "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 8,
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 17,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 14,
+          "line": 11,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 15,
+          "line": 12,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/import-publication.js",
-          "line": 16,
+          "line": 13,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 19,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 20,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 21,
           "role": "external-consumer"
         },
         {
@@ -2492,12 +2431,7 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 3,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 17,
+          "line": 5,
           "role": "external-consumer"
         },
         {
@@ -2507,12 +2441,17 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/onboarding.js",
-          "line": 23,
+          "line": 21,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 25,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/overview.js",
-          "line": 2,
+          "line": 5,
           "role": "external-consumer"
         },
         {
@@ -2602,12 +2541,12 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 3,
+          "line": 7,
           "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/workload.js",
-          "line": 4,
+          "line": 8,
           "role": "external-consumer"
         }
       ],
@@ -2618,6 +2557,25 @@
             113,
             114,
             115
+          ]
+        },
+        {
+          "path": "tests/test_browser_completion_lifecycle.py",
+          "lines": [
+            13
+          ]
+        },
+        {
+          "path": "tests/test_browser_import_settings_lifecycle.py",
+          "lines": [
+            21
+          ]
+        },
+        {
+          "path": "tests/test_browser_jobs_lifecycle.py",
+          "lines": [
+            14,
+            25
           ]
         },
         {
@@ -2709,7 +2667,7 @@
           "path": "tests/test_import_publication_ui.py",
           "lines": [
             54,
-            59
+            58
           ]
         },
         {
@@ -2726,9 +2684,11 @@
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            47,
-            68,
-            73
+            61,
+            82,
+            87,
+            105,
+            109
           ]
         },
         {
@@ -2758,6 +2718,37 @@
             62,
             66
           ]
+        },
+        {
+          "path": "tests/browser/frontend_integration.py",
+          "lines": [
+            70,
+            106,
+            110,
+            155,
+            162,
+            184
+          ]
+        },
+        {
+          "path": "tests/browser/knowledge_corrections.py",
+          "lines": [
+            62,
+            65
+          ]
+        },
+        {
+          "path": "tests/browser/onboarding.py",
+          "lines": [
+            60,
+            62
+          ]
+        },
+        {
+          "path": "tests/browser/retention_report.py",
+          "lines": [
+            64
+          ]
         }
       ]
     },
@@ -2772,7 +2763,32 @@
         {
           "path": "src/selfos/resources/web/scripts/account.js",
           "line": 41,
-          "role": "compatibility-proxy"
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
+          "line": 3,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
+          "line": 118,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 1,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 39,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/dashboard-staging.js",
+          "line": 43,
+          "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
@@ -2782,7 +2798,122 @@
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 33,
-          "role": "compatibility-proxy"
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 3,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 11,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 12,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 21,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 36,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 57,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-controls.js",
+          "line": 67,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 3,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 32,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 33,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 53,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/import-publication.js",
+          "line": 64,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/knowledge-quality.js",
+          "line": 1,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/knowledge-quality.js",
+          "line": 51,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 1,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 58,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 61,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 69,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 79,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/onboarding.js",
+          "line": 85,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 1,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 14,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 18,
+          "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
@@ -2792,7 +2923,7 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "external-consumer"
         },
         {
           "path": "src/selfos/resources/web/scripts/ui-bootstrap.js",
@@ -2832,10 +2963,71 @@
         {
           "path": "src/selfos/resources/web/scripts/ui-runtime.js",
           "line": 57,
+          "role": "definition"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 3,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 55,
+          "role": "external-consumer"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/workload.js",
+          "line": 66,
           "role": "external-consumer"
         }
       ],
       "test_callers": [
+        {
+          "path": "tests/test_browser_completion_lifecycle.py",
+          "lines": [
+            17,
+            18,
+            21,
+            25,
+            28,
+            32
+          ]
+        },
+        {
+          "path": "tests/test_browser_import_settings_lifecycle.py",
+          "lines": [
+            24,
+            27,
+            29,
+            31,
+            37
+          ]
+        },
+        {
+          "path": "tests/test_browser_jobs_chromium.py",
+          "lines": [
+            27,
+            71,
+            74,
+            79,
+            84,
+            92,
+            93,
+            95
+          ]
+        },
+        {
+          "path": "tests/test_browser_jobs_lifecycle.py",
+          "lines": [
+            25,
+            29,
+            30,
+            34,
+            45,
+            47,
+            49
+          ]
+        },
         {
           "path": "tests/test_browser_lifecycle.py",
           "lines": [
@@ -2867,22 +3059,44 @@
           ]
         },
         {
+          "path": "tests/test_i18n_import_progress.py",
+          "lines": [
+            38
+          ]
+        },
+        {
           "path": "tests/test_i18n_overview.py",
           "lines": [
             34
           ]
         },
         {
+          "path": "tests/test_import_publication_ui.py",
+          "lines": [
+            67
+          ]
+        },
+        {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            45,
+            46,
+            48,
+            54,
             59,
-            61,
-            64,
-            65,
-            83,
-            85,
-            90
+            73,
+            75,
+            78,
+            79,
+            97,
+            98,
+            100,
+            106
+          ]
+        },
+        {
+          "path": "tests/test_onboarding_browser_state.py",
+          "lines": [
+            25
           ]
         }
       ]
@@ -2903,7 +3117,7 @@
         {
           "path": "src/selfos/resources/web/scripts/ui-bootstrap.js",
           "line": 7,
-          "role": "external-consumer"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -2941,33 +3155,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 5,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 6,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 18,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 19,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 24,
-          "role": "external-consumer"
-        },
-        {
-          "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 57,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -2978,22 +3167,22 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 14,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 116,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -3013,32 +3202,32 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 26,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 89,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 101,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 149,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
@@ -3061,13 +3250,13 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/dashboard-imports.js",
-          "line": 61,
-          "role": "definition"
+          "line": 118,
+          "role": "compatibility-export"
         },
         {
-          "path": "src/selfos/resources/web/templates/dashboard-page.html",
-          "line": 91,
-          "role": "external-consumer"
+          "path": "src/selfos/web/rendering/refresh.py",
+          "line": 22,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -3131,27 +3320,27 @@
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 25,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 30,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 31,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 33,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 18,
-          "role": "legacy-migration-marker"
+          "line": 19,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -3169,27 +3358,27 @@
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 8,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 30,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 31,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/dashboard-theme-language.js",
           "line": 33,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 18,
-          "role": "legacy-migration-marker"
+          "line": 19,
+          "role": "renderer-reference"
         }
       ],
       "test_callers": [
@@ -3240,13 +3429,8 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/import-controls.js",
-          "line": 52,
-          "role": "definition"
-        },
-        {
-          "path": "src/selfos/resources/web/templates/import-controls.html",
-          "line": 12,
-          "role": "external-consumer"
+          "line": 67,
+          "role": "compatibility-export"
         }
       ],
       "test_callers": []
@@ -3282,18 +3466,33 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/overview.js",
-          "line": 1,
-          "role": "definition"
+          "line": 3,
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/overview.js",
-          "line": 11,
-          "role": "external-consumer"
+          "line": 12,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 14,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 16,
+          "role": "private-reference"
+        },
+        {
+          "path": "src/selfos/resources/web/scripts/overview.js",
+          "line": 18,
+          "role": "compatibility-export"
         },
         {
           "path": "src/selfos/web/rendering/refresh.py",
-          "line": 39,
-          "role": "legacy-migration-marker"
+          "line": 54,
+          "role": "renderer-migration"
         }
       ],
       "test_callers": [
@@ -3312,39 +3511,39 @@
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 15,
-          "role": "definition"
+          "role": "private-definition"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 89,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 112,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 125,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 158,
-          "role": "owner-local"
+          "role": "private-reference"
         },
         {
           "path": "src/selfos/resources/web/scripts/settings-model.js",
           "line": 160,
-          "role": "compatibility-proxy"
+          "role": "compatibility-export"
         }
       ],
       "test_callers": [
         {
           "path": "tests/test_model_list_browser.py",
           "lines": [
-            56
+            70
           ]
         }
       ]

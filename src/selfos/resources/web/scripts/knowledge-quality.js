@@ -1,9 +1,9 @@
-(() => {
+(function(window){'use strict';window.selfosUI.register('quality',()=>{
  const el=id=>document.getElementById(id);
  const tr=(key,values={})=>window.selfosI18n.t('quality.'+key,values);
  const node=(tag,content)=>{const n=document.createElement(tag);window.selfosI18n.bindText(n,'ui.common.value',()=>({value:content()}));return n;};
  const category=key=>window.selfosI18n.t('search.'+key);
- let generation=0;
+ let generation=0, fetching=false, queued=false;const requests=new Set();let unsubscribe=null;
  function render(data){
    el('quality-content').replaceChildren();
    const content=el('quality-content');
@@ -41,10 +41,14 @@
    }content.append(jobs);
  }
  async function refresh(){
-   const current=++generation;el('quality-status').replaceChildren(node('span',()=>tr('loading')));
-   try{const response=await fetch('/__knowledge_quality__',{cache:'no-store'});if(!response.ok)throw Error('quality');const data=await response.json();if(current!==generation)return;render(data);el('quality-status').replaceChildren();}
+   if(fetching){queued=true;return;}fetching=true;
+   const current=generation,controller=new AbortController();requests.add(controller);
+   el('quality-status').replaceChildren(node('span',()=>tr('loading')));
+   try{const response=await fetch('/__knowledge_quality__',{cache:'no-store',signal:controller.signal});if(!response.ok)throw Error('quality');const data=await response.json();if(current!==generation)return;render(data);el('quality-status').replaceChildren();}
    catch(error){if(current===generation){el('quality-content').replaceChildren();el('quality-status').replaceChildren(node('span',()=>tr('error')));}}
+   finally{requests.delete(controller);if(current===generation){fetching=false;if(queued){queued=false;refresh();}}}
  }
- document.addEventListener('DOMContentLoaded',()=>{el('quality-refresh').onclick=refresh;refresh();});
- document.addEventListener('selfos-import-finished',refresh);
-})();
+ function init(){++generation;el('quality-refresh').addEventListener('click',refresh);unsubscribe=window.selfosUI.module('jobs').subscribe(state=>{if(state.kind==='knowledge'&&state.event==='finished')refresh();});refresh();}
+ function teardown(){++generation;for(const controller of requests)controller.abort();requests.clear();fetching=false;queued=false;unsubscribe?.();unsubscribe=null;el('quality-refresh').removeEventListener('click',refresh);}
+ return {refresh,render,init,teardown,busy:()=>requests.size>0};
+},{dependencies:['jobs','request','locale'],roots:['#knowledge-quality']});})(window);

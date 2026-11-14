@@ -1,9 +1,11 @@
+(function(window){'use strict';window.selfosUI.register('onboarding',()=>{
+const requests=new Set(),cleanups=[];let draft=null,refreshing=null,refreshQueued=false;function on(node,type,callback){node?.addEventListener(type,callback);cleanups.push(()=>node?.removeEventListener(type,callback));}
 let onboardingData=null,onboardingGeneration=0,onboardingBusy=false,onboardingSourcesDirty=false,onboardingReturnFromModel=false;
 const onboardingElement=id=>document.getElementById('onboarding-'+id);
 const onboardingText=(id,key,params={})=>window.selfosI18n.bindText(onboardingElement(id),'onboarding.'+key,params);
 async function onboardingRequest(body){
-  const response=await fetch('/__onboarding__',body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await response.json();if(!response.ok){const error=new Error(data.code||'onboarding_unavailable');error.code=data.code;throw error;}return data;
+  const controller=new AbortController();requests.add(controller);try{const response=await fetch('/__onboarding__',{signal:controller.signal,...(body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});
+  const data=await response.json();if(!response.ok){const error=new Error(data.code||'onboarding_unavailable');error.code=data.code;throw error;}return data;}finally{requests.delete(controller);}
 }
 function renderOnboarding(){
   if(!onboardingData)return;
@@ -38,15 +40,15 @@ function renderOnboarding(){
 }
 async function openOnboarding(){
   const dialog=onboardingElement('dialog'),generation=++onboardingGeneration;
-  if(!dialog.open)dialog.showModal();onboardingBusy=true;renderOnboarding();onboardingText('status','loading');
+  refreshing=null;refreshQueued=false;if(!dialog.open)dialog.showModal();onboardingBusy=true;renderOnboarding();onboardingText('status','loading');
   try{const data=await onboardingRequest();if(generation!==onboardingGeneration||!dialog.open)return;onboardingData=data;onboardingText('status','ready');}
   catch(error){if(generation===onboardingGeneration)onboardingText('status','unavailable');}
   finally{if(generation===onboardingGeneration){onboardingBusy=false;renderOnboarding();}}
 }
-window.openOnboarding=openOnboarding;
+
 async function onboardingPerform(body){
-  if(onboardingBusy)return null;const generation=++onboardingGeneration;onboardingBusy=true;renderOnboarding();onboardingText('status','loading');
-  try{const data=await onboardingRequest(body);if(generation===onboardingGeneration){onboardingData=data;if(body.action==='save_sources')onboardingSourcesDirty=false;renderOnboarding();onboardingText('status','ready');}return data;}
+  if(onboardingBusy||window.selfosReadOnlyDemo)return null;const generation=++onboardingGeneration;refreshing=null;refreshQueued=false;onboardingBusy=true;renderOnboarding();onboardingText('status','loading');
+  try{const data=await onboardingRequest(body);if(generation===onboardingGeneration){onboardingData=data;if(body.action==='save_sources')onboardingSourcesDirty=false;renderOnboarding();onboardingText('status','ready');return data;}return null;}
   catch(error){if(generation===onboardingGeneration)onboardingText('status',error.code==='onboarding_import_active'?'import_active':'invalid');return null;}
   finally{if(generation===onboardingGeneration){onboardingBusy=false;renderOnboarding();}}
 }
@@ -60,17 +62,32 @@ async function onboardingSaveSources(){
 }
 async function onboardingPreview(tier){await onboardingPerform({action:'preview',tier});}
 async function onboardingNewAllowance(){if(onboardingData?.preview)await onboardingPerform({action:'new_allowance',preview_id:onboardingData.preview.id});}
-async function onboardingStart(){if(!onboardingData?.preview)return;const data=await onboardingPerform({action:'start',preview_id:onboardingData.preview.id});if(data?.stream_url){onboardingElement('dialog').close();confirmHarvest(false,true,false,data.stream_url);}}
+async function onboardingStart(){if(!onboardingData?.preview)return;const data=await onboardingPerform({action:'start',preview_id:onboardingData.preview.id});if(data?.stream_url){onboardingElement('dialog').close();window.selfosUI.module('jobs').start(false,true,false,data.stream_url);}}
 async function onboardingSkip(){if(await onboardingPerform({action:'skip'}))onboardingElement('dialog').close();}
 async function onboardingResumeSetup(){await openOnboarding();await onboardingPerform({action:'resume'});}
-function onboardingConfigureModel(){onboardingReturnFromModel=true;onboardingElement('dialog').close();openModelSettings();}
-document.addEventListener('DOMContentLoaded',()=>{
-  const overview=document.querySelector('.knowledge-overview');if(overview)overview.after(onboardingElement('welcome'));
-  onboardingElement('dialog').addEventListener('close',()=>{++onboardingGeneration;onboardingBusy=false;});
-  for(const id of ['roots','exclusions'])onboardingElement(id).addEventListener('input',()=>{onboardingSourcesDirty=true;});
-  document.getElementById('model-settings').addEventListener('close',()=>{if(onboardingReturnFromModel){onboardingReturnFromModel=false;openOnboarding();}});
-  const generation=onboardingGeneration;
-  onboardingRequest().then(data=>{if(generation!==onboardingGeneration)return;onboardingData=data;renderOnboarding();}).catch(()=>{});
-});
-document.addEventListener('selfos-language',()=>renderOnboarding());
-document.addEventListener('selfos-import-finished',()=>{const generation=onboardingGeneration;onboardingRequest().then(data=>{if(generation!==onboardingGeneration)return;onboardingData=data;renderOnboarding();}).catch(()=>{});});
+function onboardingConfigureModel(){onboardingReturnFromModel=true;onboardingElement('dialog').close();window.selfosUI.module('settings').openModel();}
+
+function refresh(){
+ if(refreshing){refreshQueued=true;return refreshing;}const generation=onboardingGeneration;
+ refreshing=onboardingRequest().then(data=>{if(generation!==onboardingGeneration)return;onboardingData=data;renderOnboarding();}).catch(()=>{}).finally(()=>{if(generation===onboardingGeneration){refreshing=null;if(refreshQueued){refreshQueued=false;refresh();}}});return refreshing;
+}
+function close(){onboardingElement('dialog').close();}
+function action(event){const node=event.target.closest?.('[data-selfos-action]');if(!node||!document.contains(node)||!node.closest('#onboarding-dialog,#onboarding-welcome'))return;
+ const actions={'onboarding.open':openOnboarding,'onboarding.close':close,'onboarding.sources':onboardingSaveSources,'onboarding.model':onboardingConfigureModel,'onboarding.preview':()=>onboardingPreview('sample'),'onboarding.start':onboardingStart,'onboarding.allowance':onboardingNewAllowance,'onboarding.progress':()=>{close();window.selfosUI.module('jobs').recover();},'onboarding.browse':()=>{close();window.browseKnowledge('all');},'onboarding.more':()=>onboardingPreview('more'),'onboarding.back':()=>onboardingStep(-1),'onboarding.skip':onboardingSkip,'onboarding.next':()=>onboardingStep(1)};
+ if(!Object.hasOwn(actions,node.dataset.selfosAction))return;event.preventDefault();actions[node.dataset.selfosAction]();
+}
+function init(){
+ ++onboardingGeneration;
+ const overview=document.querySelector('.knowledge-overview');if(overview)overview.after(onboardingElement('welcome'));
+ on(document,'click',action);on(onboardingElement('dialog'),'close',()=>{++onboardingGeneration;onboardingBusy=false;refreshing=null;refreshQueued=false;});
+ for(const id of ['roots','exclusions'])on(onboardingElement(id),'input',()=>{onboardingSourcesDirty=true;});
+ on(document.getElementById('model-settings'),'close',()=>{if(onboardingReturnFromModel){onboardingReturnFromModel=false;openOnboarding();}});
+ on(document,'selfos-language',renderOnboarding);
+ cleanups.push(window.selfosUI.module('jobs').subscribe(state=>{if(state.kind==='knowledge'&&state.event==='finished')refresh();}));
+ if(draft){onboardingElement('roots').value=draft.roots;onboardingElement('exclusions').value=draft.exclusions;if(draft.open){const dialog=onboardingElement('dialog');if(dialog.open)dialog.close();dialog.showModal();}draft=null;}renderOnboarding();refresh();
+}
+function teardown(){draft={roots:onboardingElement('roots').value,exclusions:onboardingElement('exclusions').value,open:onboardingElement('dialog').open};++onboardingGeneration;onboardingBusy=false;refreshing=null;refreshQueued=false;for(const controller of requests)controller.abort();requests.clear();cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
+return {open:openOnboarding,close,resume:onboardingResumeSetup,refresh,step:onboardingStep,saveSources:onboardingSaveSources,preview:onboardingPreview,newAllowance:onboardingNewAllowance,start:onboardingStart,skip:onboardingSkip,configureModel:onboardingConfigureModel,init,teardown,busy:()=>requests.size>0};
+},{dependencies:['jobs','settings','request','locale'],roots:['#onboarding-dialog','#onboarding-welcome']});
+for(const [name,method]of Object.entries({openOnboarding:'open',onboardingResumeSetup:'resume',onboardingStep:'step',onboardingSaveSources:'saveSources',onboardingPreview:'preview',onboardingNewAllowance:'newAllowance',onboardingStart:'start',onboardingSkip:'skip',onboardingConfigureModel:'configureModel'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('onboarding')[method](...args);
+})(window);
