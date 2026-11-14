@@ -1,4 +1,5 @@
 let privacySelection=null;
+let privacyPreparedExport=null;
 function privacyMessage(key){return window.selfosI18n?window.selfosI18n.t('privacy.'+key):key;}
 async function privacyRequest(body){
   const response=await fetch('/__privacy__',body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
@@ -23,11 +24,18 @@ async function savePrivacyRules(){
   }catch(error){document.getElementById('privacy-status').textContent=error.message;}
 }
 async function exportPrivacyData(){
-  try{const data=await privacyRequest({action:'export',originals:document.getElementById('privacy-originals').checked,backups:document.getElementById('privacy-backups').checked});
-    const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  document.getElementById('privacy-download').hidden=true;privacyPreparedExport=null;
+  try{const data=await privacyRequest({action:'export',originals:document.getElementById('privacy-originals').checked,backups:document.getElementById('privacy-backups').checked,audit:document.getElementById('privacy-audit').value,audit_recent:Number(document.getElementById('privacy-audit-recent').value)});
+    privacyPreparedExport=JSON.stringify(data,null,2);
+    const summary=data.audit_summary;window.selfosI18n.bindText(document.getElementById('privacy-status'),'ui.common.value',()=>({value:window.selfosI18n.t('changes.export_summary',{operations:summary.operations,bytes:summary.bytes})+' '+window.selfosI18n.t('changes.'+(summary.earlier_history_omitted?'omitted':'complete'))}));
+    document.getElementById('privacy-download').hidden=false;
+  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
+}
+function downloadPrivacyData(){
+    if(!privacyPreparedExport)return;
+    const url=URL.createObjectURL(new Blob([privacyPreparedExport],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download='selfos-portable.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     document.getElementById('privacy-status').textContent=privacyMessage('exported');
-  }catch(error){document.getElementById('privacy-status').textContent=error.message;}
 }
 async function importPrivacyData(file){
   if(!file)return;
