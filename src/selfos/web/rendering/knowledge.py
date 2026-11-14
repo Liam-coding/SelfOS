@@ -16,4 +16,4 @@ CONTROLS = frontend_text('templates/knowledge-quality.html') + frontend_text('te
 from selfos.web.rendering.import_status import HTML as PUBLICATION_HTML, SCRIPT as PUBLICATION_SCRIPT
 CONTROLS = CONTROLS.replace('<dialog id="knowledge-settings"', PUBLICATION_HTML + '\n<dialog id="knowledge-settings"', 1)
 CONTROLS = CONTROLS.replace('<div id="knowledge-domains">', '<p id="import-modal-published" role="status"></p><p id="import-modal-boundary"></p><div id="knowledge-domains">', 1)
-CONTROLS = CONTROLS.replace('let knowledgeOperation = null;', 'let knowledgeOperation = null;\n' + PUBLICATION_SCRIPT, 1)
+CONTROLS += '<script data-selfos-module="publication" data-selfos-generation="1">'+PUBLICATION_SCRIPT+'</script>'

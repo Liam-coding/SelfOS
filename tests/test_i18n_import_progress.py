@@ -5,7 +5,7 @@ from selfos.web.rendering.resources import frontend_text
 
 def test_language_switch_preserves_import_stream_log_and_stop_state(tmp_path):
     common=runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
-    script=frontend_text('scripts/dashboard-imports.js')
+    script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/dashboard-imports.js')
     harness=r"""
 const elements=new Map(),listeners=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{textContent:'',isConnected:true,disabled:false,style:{},classList:{add(){},remove(){}},addEventListener(){}});return elements.get(id);}
@@ -35,7 +35,7 @@ selfosI18n.setLocale('zh');if(element('progress-title').textContent.includes('St
 def test_import_settings_keys_are_declared_and_status_binding_preserves_unsaved_inputs(tmp_path):
     import re
     from selfos.web.i18n import catalogs
-    source=frontend_text('scripts/import-controls.js')
+    source=frontend_text('scripts/ui-runtime.js')+"selfosUI.register('publication',()=>({render(){}}));"+frontend_text('scripts/import-controls.js')
     template=frontend_text('templates/import-controls.html')
     assert 'knowledgeText' not in source
     assert 'data-zh' not in template and 'data-en' not in template
