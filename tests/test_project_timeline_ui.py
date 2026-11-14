@@ -6,7 +6,7 @@ def test_timeline_resources_and_cached_dashboard_refresh():
     from selfos.web.rendering import timeline, library
     assert timeline.LOCALES["en"].keys() == timeline.LOCALES["zh"].keys()
     assert "Project timeline" in timeline.LOCALES["en"].values()
-    page = '<header>Private scores</header><section id="knowledge-library">old</section><dialog id="kb-detail"></dialog><script>oldLibrary();</script><main>Notes</main>'
+    page = '<header>Private scores</header><section id="knowledge-library">old</section><dialog id="kb-detail"></dialog><script>window.browseKnowledge=function(){};</script><main>Notes</main>'
     updated = library.refresh_library(page)
     assert "Private scores" in updated and "Notes" in updated
     assert "oldLibrary" not in updated

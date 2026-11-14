@@ -48,7 +48,7 @@ def test_cached_dashboard_get_refreshes_search_without_rewriting_file(http, tmp_
     cookie = 'selfos_session=' + auth.login('synthetic cached dashboard password')
     page = tmp_path / 'dashboard.html'
     old = '<html><head><style>.knowledge-library{color:red}</style></head><body>'
-    old += '<section id="knowledge-library">legacy</section><dialog id="kb-detail"></dialog><script>legacySearch();</script>'
+    old += '<section id="knowledge-library">legacy</section><dialog id="kb-detail"></dialog><script>window.browseKnowledge=function(){};</script>'
     old += '<main>Existing scores remain</main></body></html>'
     page.write_text(old, encoding='utf-8')
     raw = page.read_bytes()

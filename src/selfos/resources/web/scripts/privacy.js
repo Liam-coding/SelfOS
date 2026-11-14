@@ -1,5 +1,5 @@
 (function(window){'use strict';window.selfosUI.register('privacy',()=>{
-let privacySelection=null,generation=0,dirty=false,loading=false,draft=null,prepared=null,exportGeneration=0;
+let privacySelection=null,generation=0,dirty=false,loading=false,draft=null,prepared=null,exportGeneration=0,ignoreClose=0;
 const requests=new Set(),cleanups=[],downloads=new Map();
 const el=id=>document.getElementById(id);
 const message=key=>window.selfosI18n.t('privacy.'+key);
@@ -28,10 +28,10 @@ function downloadData(){
 async function importData(file){if(!file||window.selfosReadOnlyDemo)return;const owner=generation;try{if(file.size>90*1024*1024)throw Error('privacy_size');const packageData=JSON.parse(await file.text());if(owner!==generation)return;const data=await request({action:'import',package:packageData});if(owner===generation)status('imported',String.fromCharCode(10)+JSON.stringify(data.sources,null,2));}catch(error){if(owner===generation)status('error');}}
 function action(event){const node=event.target.closest?.('[data-selfos-action]');if(!node||!document.contains(node)||!node.closest('#privacy-settings,#app-settings'))return;const actions={'privacy.open':['click',open],'privacy.close':['click',close],'privacy.save':['click',save],'privacy.export':['click',exportData],'privacy.download':['click',downloadData],'privacy.import':['change',()=>importData(node.files[0])]};if(!Object.hasOwn(actions,node.dataset.selfosAction)||actions[node.dataset.selfosAction][0]!==event.type)return;event.preventDefault();actions[node.dataset.selfosAction][1]();}
 function init(){
- ++generation;on(document,'click',action);on(document,'change',action);on(el('privacy-rules'),'input',()=>{dirty=true;});on(el('privacy-settings'),'close',()=>{++generation;loading=false;});
+ ++generation;on(document,'click',action);on(document,'change',action);on(el('privacy-rules'),'input',()=>{dirty=true;});on(el('privacy-settings'),'close',()=>{if(ignoreClose){--ignoreClose;return;}if(el('privacy-settings').open)return;++generation;loading=false;});
  for(const id of ['privacy-originals','privacy-backups','privacy-audit','privacy-audit-recent'])on(el(id),'change',invalidateExport);
  if(draft){el('privacy-rules').value=draft.rules;el('privacy-originals').checked=draft.originals;el('privacy-backups').checked=draft.backups;el('privacy-audit').value=draft.audit;el('privacy-audit-recent').value=draft.auditRecent;dirty=draft.dirty;prepared=draft.prepared;
-  if(draft.open){const dialog=el('privacy-settings');if(dialog.open)dialog.close();dialog.showModal();}const resume=draft.loading&&draft.open;draft=null;if(resume)load();
+  if(draft.open){const dialog=el('privacy-settings');if(dialog.open){++ignoreClose;dialog.close();}dialog.showModal();}const resume=draft.loading&&draft.open;draft=null;if(resume)load();
  }renderExport();
 }
 function teardown(){draft={rules:el('privacy-rules').value,originals:el('privacy-originals').checked,backups:el('privacy-backups').checked,audit:el('privacy-audit').value,auditRecent:el('privacy-audit-recent').value,prepared,dirty,open:el('privacy-settings').open,loading};++generation;++exportGeneration;loading=false;for(const controller of requests)controller.abort();requests.clear();for(const [url,timer]of downloads){clearTimeout(timer);URL.revokeObjectURL(url);}downloads.clear();el('privacy-import').value='';cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}

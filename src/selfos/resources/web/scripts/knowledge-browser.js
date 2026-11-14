@@ -159,12 +159,12 @@
   if(root&&root!==el('knowledge-library')){tabs.clear();el('kb-tabs').replaceChildren();}root=el('knowledge-library');
   const state=draft;draft=null;if(state)for(const id of fields)el(id).value=state.values[id];
   on(document,'click',action);on(document,'submit',action);on(document,'change',action);
-  on(el('kb-search'),'input',()=>{++generation;clearTimeout(timer);timer=setTimeout(()=>load(),250);});
-  on(el('kb-detail'),'close',()=>{if(ignoreClose){--ignoreClose;return;}++detailGeneration;activeId='';detailCache=null;});
-  translate();if(!initialized||state?.listPending)load(!!state?.listMore);else{renderResults();const holder=el('kb-correction-history');if(holder)window.selfosUI.module('corrections').history(holder,()=>load());}initialized=true;
+  on(el('kb-search'),'input',()=>{++generation;clearTimeout(timer);timer=setTimeout(()=>{timer=null;load();},250);});
+  on(el('kb-detail'),'close',()=>{if(ignoreClose){--ignoreClose;return;}if(el('kb-detail').open)return;++detailGeneration;activeId='';detailCache=null;});
+  translate();if(!initialized||state?.listPending||state?.searchPending)load(state?.searchPending?false:!!state?.listMore);else{renderResults();const holder=el('kb-correction-history');if(holder)window.selfosUI.module('corrections').history(holder,()=>load());}initialized=true;
   if(state?.detailOpen){const dialog=el('kb-detail');if(dialog.open){++ignoreClose;dialog.close();}dialog.showModal();if(detailCache)renderDetail();else if(activeId)openDetail(activeId);}
  }
- function teardown(){draft={values:Object.fromEntries(fields.map(id=>[id,el(id).value])),listPending:loading,listMore,detailOpen:el('kb-detail').open};++generation;++detailGeneration;clearTimeout(timer);timer=null;for(const controller of requests)controller.abort();requests.clear();loading=false;sourceListLoading=false;for(const page of sourcePages.values())page.loading=false;cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
+ function teardown(){draft={values:Object.fromEntries(fields.map(id=>[id,el(id).value])),listPending:loading,searchPending:timer!=null,listMore,detailOpen:el('kb-detail').open};++generation;++detailGeneration;clearTimeout(timer);timer=null;for(const controller of requests)controller.abort();requests.clear();loading=false;sourceListLoading=false;for(const page of sourcePages.values())page.loading=false;cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
  return {browse,openDetail,closeDetail:()=>el('kb-detail').close(),refresh:load,readSource:readOriginal,moreSources,init,teardown,busy:()=>requests.size>0};
 },{dependencies:['corrections','timeline','request','locale'],roots:['#knowledge-library','#kb-detail']});
 for(const [name,method]of Object.entries({browseKnowledge:'browse',openKnowledgeDetail:'openDetail'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('knowledge')[method](...args);

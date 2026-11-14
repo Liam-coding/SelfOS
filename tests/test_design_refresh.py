@@ -53,3 +53,23 @@ def test_cached_chat_and_dimension_actions_skip_custom_handlers_and_script_text(
     assert '<button id="chat-send" data-selfos-action="chat.send">' in page
     assert 'data-selfos-action="dimensions.open"' in page
     assert outside in page and custom_script in page
+
+
+def test_custom_owned_script_after_old_library_shell_survives_repeated_refresh():
+    from selfos.web.rendering.refresh import refresh_dashboard
+    custom='<script data-note=">" data-selfos-module="custom">window.shellNeighborKept=true;const marker="window.browseKnowledge";</script>'
+    page='<html><head></head><body><section id="knowledge-library">Old shell</section><dialog id="kb-detail">Old detail</dialog>'+custom+'</body></html>'
+    for _ in range(3):
+        page=refresh_dashboard(page)
+        assert custom in page
+        assert page.count('<script data-selfos-module="knowledge"')==1
+
+
+def test_library_refresh_preserves_custom_owned_neighbor():
+    from selfos.web.rendering.library import refresh_library
+    custom='<script data-note=">" data-selfos-module="custom">window.shellNeighborKept=true;const marker="window.browseKnowledge";</script>'
+    page='<section id="knowledge-library">Old shell</section><dialog id="kb-detail">Old detail</dialog>'+custom
+    for _ in range(3):
+        page=refresh_library(page)
+        assert custom in page
+        assert page.count('<script data-selfos-module="knowledge"')==1
