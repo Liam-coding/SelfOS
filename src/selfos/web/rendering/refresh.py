@@ -67,9 +67,9 @@ def refresh_dashboard(page):
     from selfos.web.rendering import auth, knowledge, model, library, overall, onboarding
     from selfos.web.rendering.legacy_i18n import upgrade_legacy_markup
     page=_upgrade_scoped_actions(upgrade_legacy_markup(page))
-    # Retire the script owned by an old search shell even if its implementation
-    # predates today's global entry point. Preserve unrelated cached scripts.
-    page=re.sub(r'<section\b[^>]*\bid="knowledge-library"[^>]*>.*?</section>\s*<dialog\b[^>]*\bid="kb-detail"[^>]*>.*?</dialog>\s*<script\b[^>]*>.*?</script>',
+    # Replace old shells independently of neighboring scripts. Script ownership
+    # is checked below, including explicit unknown owners.
+    page=re.sub(r'<section\b[^>]*\bid="knowledge-library"[^>]*>.*?</section>\s*<dialog\b[^>]*\bid="kb-detail"[^>]*>.*?</dialog>',
                 '<!--selfos-library-anchor-->',page,count=1,flags=re.S)
     page=re.sub(r'<style>\s*\.knowledge-library.*?</style>',lambda _:library.STYLE,page,count=1,flags=re.S)
     def strip_script(match):

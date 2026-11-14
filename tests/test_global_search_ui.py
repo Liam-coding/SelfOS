@@ -95,7 +95,7 @@ def test_search_strings_are_packaged_and_complete_in_both_languages():
 
 def test_cached_library_refresh_preserves_surrounding_content():
     old = '<style>.knowledge-library{color:red}</style><header>Existing private dashboard</header>'
-    old += '<section id="knowledge-library">old search</section><dialog id="kb-detail">old detail</dialog><script>oldSearch();</script>'
+    old += '<section id="knowledge-library">old search</section><dialog id="kb-detail">old detail</dialog><script>window.browseKnowledge=function(){};</script>'
     old += '<main>Existing scores and notes</main>'
     updated = library.refresh_library(old)
     assert 'Existing private dashboard' in updated and 'Existing scores and notes' in updated

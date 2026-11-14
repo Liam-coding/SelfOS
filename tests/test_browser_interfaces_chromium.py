@@ -35,7 +35,7 @@ def interfaces_server(tmp_path,request):
     counts=Counter();posts=[];queries=[];release=threading.Event();release.set();state={'auth':'setup','hold':False}
     item={'id':'project1','category':'projects','title':'Fixture project','summary':'Initial project context','status':'in_progress','date':'2026-01-02','source_count':1,'decisions':['Literal decision'],'blockers':['Literal blocker'],'next_steps':['Literal next step'],'source_scope':'session_context'}
     source={'id':'source1','source':'codex','role':'user','timestamp':'2026-01-02T08:00:00Z','file':'synthetic.jsonl'}
-    detail={'item':item,'sources':[source],'source_count':1,'corrections':{'editable':True,'text':'Initial project context','compatible':[]}}
+    detail={'item':item,'sources':[source],'source_count':1,'corrections':{'editable':True,'text':'Initial project context','compatible':[{'id':'project2','title':'Other project'}]}}
     usage={'budget':{'max_requests':100},'runs':[]}
     settings={'settings':{'domains':['work'],'detail':'balanced'},'counts':{'cards':1},'saved_checkpoints':2,'publication':{'operations':[]},'usage':usage}
     model={'provider':'openai','model':'fixture-model','base_url':'http://fixture.invalid','has_api_key':False,'proxy_source':'direct','effective_proxy':{},'proxy_mode':'direct','proxy_url':''}
@@ -64,13 +64,14 @@ def interfaces_server(tmp_path,request):
             if path=='/__knowledge_timeline__':return self.respond({'revision':'a'*64,'current':{'title':'Fixture project','intent':'Current fixture goal','status':'blocked','blockers':['Literal blocker'],'decisions':[],'next_steps':[]},'items':[dict(milestone,id='milestone'+query.get('offset',['0'])[0])],'total':2})
             if path=='/__knowledge_stream__':return self.respond(b'data: {"line":"synthetic task"}\n\ndata: {"done":true,"ok":true}\n\n',kind='text/event-stream')
             data={'/__knowledge_run__':{'running':False},'/__knowledge_corrections__':{'actions':[]},'/__knowledge_settings__':settings,'/__knowledge_usage__':usage,'/__knowledge_quality__':{'counts':{'cards':1},'categories':{},'stages':{},'examples':[{'stage':'review','category':'projects','reason':'unknown','record_id':'project1','source_ids':[]}],'jobs':[]},'/__staging__':{'files':[]},'/__model_settings__':model,'/__onboarding__':guide,'/__privacy__':privacy}.get(path)
+            if path=='/__privacy__' and state.get('hold_privacy'):release.wait(10)
             if data is not None:return self.respond(data)
             self.send_error(404)
         def do_POST(self):
             path=urlsplit(self.path).path;body=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))) or b'{}');counts['POST '+path]+=1;posts.append((path,body))
             if path=='/fixture-control':
                 state.update(body)
-                if state['hold']:release.clear()
+                if state['hold'] or state.get('hold_privacy'):release.clear()
                 else:release.set()
                 return self.respond({})
             if path in ['/auth/setup','/auth/login']:return self.respond({'error_code':'auth_error'},422)
@@ -132,3 +133,23 @@ def test_native_standalone_login_validation_reinit_locked_state_and_cleanup(tmp_
 @pytest.mark.parametrize('interfaces_server',['pre45'],indirect=True)
 def test_native_pre45_cached_page_uses_current_owners_and_actions(tmp_path,interfaces_server):
     test_refreshed_native_dashboard_every_owner_and_accessible_workflows(tmp_path,interfaces_server,'en',390,'dark')
+
+
+@pytest.mark.parametrize('cloned',[False,True])
+def test_native_pending_privacy_and_unsaved_correction_search_remount(tmp_path,interfaces_server,cloned):
+    url,counts=interfaces_server
+    checks=r"""(async()=>{
+ const get=id=>document.getElementById(id),pause=ms=>new Promise(r=>setTimeout(r,ms)),assert=(value,message)=>{if(!value)throw Error(message);},wait=async predicate=>{const end=Date.now()+7000;while(!predicate()){if(Date.now()>end)throw Error('remount wait timeout');await pause(20);}},control=body=>fetch('/fixture-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ await wait(()=>get('kb-list').textContent.includes('Fixture project'));
+ const privacy=selfosUI.module('privacy');await control({hold_privacy:true});const opening=privacy.open();await wait(()=>requestRecords.some(record=>record.url==='/__privacy__'));
+ get('privacy-rules').value='Dirty private rules';get('privacy-rules').dispatchEvent(new Event('input',{bubbles:true}));selfosUI.teardown();if(CLONED){const root=get('privacy-settings');root.replaceWith(root.cloneNode(true));}selfosUI.init(document);await pause(100);await control({hold_privacy:false});await opening;await wait(()=>get('privacy-destination').textContent.includes('Fixture model'));assert(get('privacy-rules').value==='Dirty private rules','Privacy dirty rules lost');await privacy.save();assert(requestRecords.filter(record=>record.url==='/__privacy__'&&record.body).length===1,'Privacy save unavailable');privacy.close();await pause(20);
+ await selfosUI.module('knowledge').openDetail('project1');get('kb-detail').close();await selfosUI.module('knowledge').openDetail('project1');await pause(50);assert(get('kb-detail-content').querySelector('[data-selfos-action="knowledge.timeline"]'),'Queued old close invalidated reopened detail');
+ for(const mode of ['edit','merge']){
+  await selfosUI.module('knowledge').openDetail('project1');get('kb-detail-content').querySelector('[data-correction-'+mode+']').click();const text=get('kb-detail-content').querySelector('[data-correction-text]');text.value='Unsaved '+mode;const candidates=get('kb-detail-content').querySelector('[data-correction-candidates]');if(candidates)candidates.options[0].selected=true;
+  selfosUI.teardown();if(CLONED)for(const id of ['knowledge-library','kb-detail']){const root=get(id);root.replaceWith(root.cloneNode(true));}selfosUI.init(document);await pause(100);
+  assert(get('kb-detail-content').querySelector('[data-correction-text]')?.value==='Unsaved '+mode,'Correction draft lost');if(mode==='merge')assert(get('kb-detail-content').querySelector('[data-correction-candidates]').selectedOptions[0]?.value==='project2','Merge selection lost');assert(!requestRecords.some(record=>record.url==='/__knowledge_correct__'),'Remount sent correction');get('kb-detail').close();await pause(20);
+ }
+ const before=requestRecords.filter(record=>record.url.startsWith('/__knowledge__?')).length;get('kb-search').value='Pending remount query';get('kb-search').dispatchEvent(new Event('input',{bubbles:true}));selfosUI.teardown();selfosUI.init(document);await wait(()=>requestRecords.filter(record=>record.url.startsWith('/__knowledge__?')).length===before+1);await pause(300);const queries=requestRecords.filter(record=>record.url.startsWith('/__knowledge__?'));assert(queries.length===before+1&&new URL(queries.at(-1).url,location.origin).searchParams.get('query')==='Pending remount query','Pending search lost or duplicated');selfosUI.teardown();return 'pending privacy, correction and search remount passed';
+ })()""".replace('CLONED',str(cloned).lower())
+    run_chromium(tmp_path,url+'/',checks,width=1280)
+    assert counts['POST /__privacy__']==1 and not counts['POST /__knowledge_correct__']

@@ -201,6 +201,11 @@
           "role": "compatibility-export"
         },
         {
+          "path": "src/selfos/web/rendering/library.py",
+          "line": 33,
+          "role": "renderer-migration"
+        },
+        {
           "path": "src/selfos/web/rendering/refresh.py",
           "line": 78,
           "role": "renderer-reference"
@@ -208,31 +213,34 @@
       ],
       "test_callers": [
         {
-          "path": "tests/browser/frontend_integration.py",
-          "lines": [
-            118,
-            135
-          ]
-        },
-        {
-          "path": "tests/browser/knowledge_corrections.py",
-          "lines": [
-            56,
-            69
-          ]
-        },
-        {
-          "path": "tests/browser/preference_revision.py",
-          "lines": [
-            59,
-            64,
-            69
-          ]
-        },
-        {
           "path": "tests/test_auth_design_system.py",
           "lines": [
             78
+          ]
+        },
+        {
+          "path": "tests/test_auth_global_search.py",
+          "lines": [
+            51
+          ]
+        },
+        {
+          "path": "tests/test_design_refresh.py",
+          "lines": [
+            60,
+            70
+          ]
+        },
+        {
+          "path": "tests/test_global_search_ui.py",
+          "lines": [
+            98
+          ]
+        },
+        {
+          "path": "tests/test_project_timeline_ui.py",
+          "lines": [
+            9
           ]
         }
       ]
@@ -676,8 +684,9 @@
           "path": "tests/test_browser_interfaces_chromium.py",
           "lines": [
             33,
-            94,
-            126
+            95,
+            127,
+            142
           ]
         },
         {
@@ -695,7 +704,8 @@
         {
           "path": "tests/test_browser_knowledge_lifecycle.py",
           "lines": [
-            13
+            13,
+            40
           ]
         },
         {
@@ -721,7 +731,7 @@
         {
           "path": "tests/test_browser_privacy_lifecycle.py",
           "lines": [
-            11
+            13
           ]
         },
         {
@@ -1164,14 +1174,7 @@
           "role": "compatibility-export"
         }
       ],
-      "test_callers": [
-        {
-          "path": "tests/browser/onboarding.py",
-          "lines": [
-            66
-          ]
-        }
-      ]
+      "test_callers": []
     },
     {
       "name": "onboardingNewAllowance",
@@ -1575,13 +1578,6 @@
       ],
       "test_callers": [
         {
-          "path": "tests/browser/frontend_integration.py",
-          "lines": [
-            90,
-            93
-          ]
-        },
-        {
           "path": "tests/test_auth_design_system.py",
           "lines": [
             87
@@ -1833,14 +1829,6 @@
       ],
       "test_callers": [
         {
-          "path": "tests/browser/frontend_integration.py",
-          "lines": [
-            151,
-            163,
-            177
-          ]
-        },
-        {
           "path": "tests/test_import_publication_ui.py",
           "lines": [
             41,
@@ -1961,19 +1949,6 @@
       ],
       "test_callers": [
         {
-          "path": "tests/browser/frontend_integration.py",
-          "lines": [
-            111
-          ]
-        },
-        {
-          "path": "tests/browser/onboarding.py",
-          "lines": [
-            70,
-            74
-          ]
-        },
-        {
           "path": "tests/test_i18n_settings.py",
           "lines": [
             27
@@ -2023,7 +1998,7 @@
       "references": [
         {
           "path": "src/selfos/resources/web/scripts/knowledge-corrections.js",
-          "line": 86,
+          "line": 89,
           "role": "compatibility-export"
         }
       ],
@@ -2420,37 +2395,6 @@
       ],
       "test_callers": [
         {
-          "path": "tests/browser/frontend_integration.py",
-          "lines": [
-            70,
-            106,
-            110,
-            155,
-            162,
-            184
-          ]
-        },
-        {
-          "path": "tests/browser/knowledge_corrections.py",
-          "lines": [
-            62,
-            65
-          ]
-        },
-        {
-          "path": "tests/browser/onboarding.py",
-          "lines": [
-            60,
-            62
-          ]
-        },
-        {
-          "path": "tests/browser/retention_report.py",
-          "lines": [
-            64
-          ]
-        },
-        {
           "path": "tests/test_auth_design_system.py",
           "lines": [
             113,
@@ -2479,10 +2423,10 @@
         {
           "path": "tests/test_browser_interfaces_chromium.py",
           "lines": [
-            98,
-            106,
-            112,
-            125
+            99,
+            107,
+            113,
+            126
           ]
         },
         {
@@ -2495,7 +2439,8 @@
         {
           "path": "tests/test_browser_knowledge_lifecycle.py",
           "lines": [
-            12
+            12,
+            40
           ]
         },
         {
@@ -2515,7 +2460,7 @@
         {
           "path": "tests/test_browser_privacy_lifecycle.py",
           "lines": [
-            10
+            12
           ]
         },
         {
@@ -2871,7 +2816,7 @@
         },
         {
           "path": "src/selfos/resources/web/scripts/knowledge-corrections.js",
-          "line": 86,
+          "line": 89,
           "role": "external-consumer"
         },
         {
@@ -3120,19 +3065,25 @@
         {
           "path": "tests/test_browser_interfaces_chromium.py",
           "lines": [
-            98,
             99,
-            102,
+            100,
             103,
             104,
-            108,
+            105,
             109,
             110,
             111,
             112,
             113,
-            124,
-            126
+            114,
+            125,
+            127,
+            144,
+            145,
+            146,
+            148,
+            149,
+            152
           ]
         },
         {
@@ -3168,7 +3119,12 @@
             19,
             21,
             22,
-            25
+            25,
+            43,
+            46,
+            49,
+            53,
+            54
           ]
         },
         {
@@ -3208,12 +3164,12 @@
         {
           "path": "tests/test_browser_privacy_lifecycle.py",
           "lines": [
-            13,
-            16,
+            15,
             18,
-            19,
             20,
-            23
+            21,
+            22,
+            25
           ]
         },
         {
