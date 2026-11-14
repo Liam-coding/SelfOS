@@ -102,8 +102,27 @@ def run(output,browser_path):
                 page.locator('[data-knowledge-changes]').click()
                 expect(page.locator('.changes-change')).to_have_count(1)
                 expect(page.locator('#changes-before-after')).to_contain_text('Awaiting synthetic access')
+                page.locator('#changes-close').click()
+                page.evaluate('window.selfosUI.module("settings").open()')
+                page.locator('[data-selfos-action="settings.privacy"]').click()
+                expect(page.locator('#privacy-destination')).not_to_be_empty()
+                page.locator('#privacy-audit').select_option('recent')
+                page.locator('#privacy-audit-recent').fill('2')
+                page.locator('[data-selfos-action="privacy.export"]').click()
+                expect(page.locator('#privacy-download')).to_be_visible()
+                expect(page.locator('#privacy-status')).to_contain_text('2')
+                page.evaluate('window.selfosUI.teardown();window.selfosUI.init(document);window.selfosUI.init(document)')
+                expect(page.locator('#privacy-audit')).to_have_value('recent')
+                expect(page.locator('#privacy-audit-recent')).to_have_value('2')
+                expect(page.locator('#privacy-download')).to_be_visible()
+                with page.expect_download() as download_info:
+                    page.locator('#privacy-download').click()
+                exported=json.loads(Path(download_info.value.path()).read_text(encoding='utf-8'))
+                assert exported['audit_summary']['operations']==2
+                assert exported['audit_summary']['earlier_history_omitted']
+                assert path.read_bytes()==raw
                 assert not errors,errors
-                print(locale,'import/edit/delete/undo/merge/restore, provenance, stale head, safe text and responsive history passed')
+                print(locale,'history/corrections/restoration, scoped navigation, audit export preview/remount/download passed')
             finally:
                 context.close();server.shutdown();server.server_close()
         browser.close()

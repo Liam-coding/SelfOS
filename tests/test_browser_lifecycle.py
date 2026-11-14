@@ -21,7 +21,7 @@ global.selfosI18n={};let redirects=0,calls=0;global.location={replace(){redirect
 global.fetch=async()=>{calls++;return {status:401}};
 for(const entry of JSON.parse(fs.readFileSync(process.argv[1],'utf8'))){
  if(['runtime','request','bootstrap'].includes(entry.owner))eval(entry.source);
- if(entry.owner==='legacy-dashboard')document.addEventListener('DOMContentLoaded',()=>fetch('/private-fixture'));
+ if(entry.owner==='chat')document.addEventListener('DOMContentLoaded',()=>fetch('/private-fixture'));
 }
 (async()=>{ready.forEach(callback=>callback());await Promise.resolve();await Promise.resolve();assert.equal(calls,1);assert.equal(redirects,1,'Auth boundary mounted after feature reads');})();
 """,str(payload)],capture_output=True,text=True)
@@ -72,7 +72,7 @@ let calls=0,redirects=0,translated=0,release;const native=async path=>{calls++;i
 const window={fetch:native};const document={getElementById:()=>null,addEventListener(){},removeEventListener(){}};
 const ctx=vm.createContext({window,document,location:{replace(){redirects++}},authRequest(){},translateAuth(){translated++}});
 vm.runInContext(fs.readFileSync(process.argv[1]+'/ui-runtime.js','utf8'),ctx);
-window.selfosUI.register('locale',()=>({}));
+window.selfosUI.register('locale',()=>({}));window.selfosUI.register('auth',()=>({translate(){translated++;}}));
 vm.runInContext(fs.readFileSync(process.argv[1]+'/ui-request.js','utf8'),ctx);
 const source=fs.readFileSync(process.argv[1]+'/account.js','utf8');
 vm.runInContext(source,ctx);assert.equal(window.fetch,native);

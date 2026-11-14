@@ -102,7 +102,7 @@
     <div class="dim-modal-score" id="dim-modal-score">—</div>
     <div class="dim-modal-status" id="dim-modal-status">—</div>
     <div class="dim-modal-sugg" id="dim-modal-sugg">—</div>
-    <button class="dim-modal-chat" onclick="chatAboutDim()"
+    <button class="dim-modal-chat" data-selfos-action="dimensions.discuss"
             data-i18n="ui.dashboard.chat_about_this">Chat about this</button>
   </div>
 </div>
@@ -170,11 +170,11 @@
 
 <!-- Chat panel -->
 <div class="chat-panel collapsed" id="chat-panel">
-  <div class="chat-header" onclick="toggleChat()">
+  <div class="chat-header" data-selfos-action="chat.toggle">
     <div class="chat-header-dot"></div>
     <span class="chat-header-title" data-i18n="ui.dashboard.let_s_talk">Let&#x27;s talk</span>
     <span class="chat-header-sub" data-i18n="ui.dashboard.from_your_knowledge">from your knowledge</span>
-    <button class="chat-collapse-btn" id="chat-collapse-btn" onclick="toggleChat(event)" aria-expanded="false" aria-label="Expand chat" data-i18n-aria-label="ui.chat.expand">▼</button>
+    <button class="chat-collapse-btn" id="chat-collapse-btn" data-selfos-action="chat.toggle" aria-expanded="false" aria-label="Expand chat" data-i18n-aria-label="ui.chat.expand">▼</button>
   </div>
   <div class="chat-messages" id="chat-messages">
     <div class="msg msg-ai" data-i18n="ui.dashboard.hi_want_to_think_through_a_project_or_talk_about_what_s_on_your_mind">Hi. Want to think through a project, or talk about what&#x27;s on your mind?</div>
@@ -182,13 +182,15 @@
   <div class="chat-input-row">
     <textarea class="chat-input" id="chat-input" rows="1"
       placeholder="Type a message..." data-i18n-placeholder="ui.chat.placeholder"></textarea>
-    <button class="chat-send" id="chat-send" aria-label="Send message" data-i18n-aria-label="ui.chat.send" onclick="sendChat()">↑</button>
+    <button class="chat-send" id="chat-send" aria-label="Send message" data-i18n-aria-label="ui.chat.send" data-selfos-action="chat.send">↑</button>
   </div>
 </div>
 
 <script data-selfos-module="theme" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-theme-language.js@@</script>
 <script data-selfos-module="jobs" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-imports.js@@</script>
-<script data-selfos-module="legacy-dashboard" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-dimensions.js@@@@SELFOS_RESOURCE:scripts/dashboard-chat.js@@@@SELFOS_RESOURCE:scripts/dashboard-sparklines.js@@</script>
+<script data-selfos-module="chat" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-chat.js@@</script>
+<script data-selfos-module="dimensions" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-dimensions.js@@</script>
+<script data-selfos-module="sparklines" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-sparklines.js@@</script>
 <script data-selfos-module="staging" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-staging.js@@</script>
 </body>
 </html>

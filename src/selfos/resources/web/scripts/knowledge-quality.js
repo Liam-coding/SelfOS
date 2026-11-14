@@ -26,7 +26,7 @@
    if(!data.examples.length)examples.append(node('p',()=>tr('unknown')));
    for(const item of data.examples){
      const box=document.createElement('div');box.append(node('p',()=>tr(item.stage)+' · '+(item.category==='all'?tr('all'):category(item.category))+' · '+tr(item.reason)));
-     if(item.record_id){const button=node('button',()=>tr('record'));button.type='button';button.onclick=()=>window.openKnowledgeDetail(item.record_id);box.append(button);}
+     if(item.record_id){const button=node('button',()=>tr('record'));button.type='button';button.dataset.selfosAction='quality.record';button.dataset.recordId=item.record_id;box.append(button);}
      if(item.job_id){const job=node('a',()=>tr('jobs')+' '+item.job_id);job.href='#import-publication';box.append(job);}
      for(const identity of item.source_ids){
        if(item.source_available===false){box.append(node('p',()=>tr('source_unavailable')+' '+identity.slice(0,12)));continue;}
@@ -37,7 +37,7 @@
    const jobs=document.createElement('article');jobs.append(node('h3',()=>tr('jobs')),node('p',()=>tr('staging')));
    for(const item of data.jobs){
      const link=node('a',()=>item.id+' · '+window.selfosI18n.t('import.'+item.status)+(item.retryable?' · '+tr('retryable'):''));
-     link.href='#import-publication';link.onclick=()=>{const details=document.querySelector('#import-publication details');if(details)details.open=true;};jobs.append(link);
+     link.href='#import-publication';link.dataset.selfosAction='quality.publication';jobs.append(link);
    }content.append(jobs);
  }
  async function refresh(){
@@ -48,7 +48,8 @@
    catch(error){if(current===generation){el('quality-content').replaceChildren();el('quality-status').replaceChildren(node('span',()=>tr('error')));}}
    finally{requests.delete(controller);if(current===generation){fetching=false;if(queued){queued=false;refresh();}}}
  }
- function init(){++generation;el('quality-refresh').addEventListener('click',refresh);unsubscribe=window.selfosUI.module('jobs').subscribe(state=>{if(state.kind==='knowledge'&&state.event==='finished')refresh();});refresh();}
- function teardown(){++generation;for(const controller of requests)controller.abort();requests.clear();fetching=false;queued=false;unsubscribe?.();unsubscribe=null;el('quality-refresh').removeEventListener('click',refresh);}
+ function action(event){const button=event.target.closest?.('[data-selfos-action]');if(!button||!document.contains(button)||!button.closest('#knowledge-quality'))return;const actions={'quality.record':()=>{event.preventDefault();window.selfosUI.module('knowledge').openDetail(button.dataset.recordId);},'quality.publication':()=>window.selfosUI.module('publication').openDetails()};if(Object.hasOwn(actions,button.dataset.selfosAction))actions[button.dataset.selfosAction]();}
+ function init(){++generation;document.addEventListener('click',action);el('quality-refresh').addEventListener('click',refresh);unsubscribe=window.selfosUI.module('jobs').subscribe(state=>{if(state.kind==='knowledge'&&state.event==='finished')refresh();});refresh();}
+ function teardown(){++generation;document.removeEventListener('click',action);for(const controller of requests)controller.abort();requests.clear();fetching=false;queued=false;unsubscribe?.();unsubscribe=null;el('quality-refresh').removeEventListener('click',refresh);}
  return {refresh,render,init,teardown,busy:()=>requests.size>0};
-},{dependencies:['jobs','request','locale'],roots:['#knowledge-quality']});})(window);
+},{dependencies:['jobs','knowledge','publication','request','locale'],roots:['#knowledge-quality']});})(window);

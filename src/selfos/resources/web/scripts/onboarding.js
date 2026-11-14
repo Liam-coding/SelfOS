@@ -73,7 +73,7 @@ function refresh(){
 }
 function close(){onboardingElement('dialog').close();}
 function action(event){const node=event.target.closest?.('[data-selfos-action]');if(!node||!document.contains(node)||!node.closest('#onboarding-dialog,#onboarding-welcome'))return;
- const actions={'onboarding.open':openOnboarding,'onboarding.close':close,'onboarding.sources':onboardingSaveSources,'onboarding.model':onboardingConfigureModel,'onboarding.preview':()=>onboardingPreview('sample'),'onboarding.start':onboardingStart,'onboarding.allowance':onboardingNewAllowance,'onboarding.progress':()=>{close();window.selfosUI.module('jobs').recover();},'onboarding.browse':()=>{close();window.browseKnowledge('all');},'onboarding.more':()=>onboardingPreview('more'),'onboarding.back':()=>onboardingStep(-1),'onboarding.skip':onboardingSkip,'onboarding.next':()=>onboardingStep(1)};
+ const actions={'onboarding.open':openOnboarding,'onboarding.close':close,'onboarding.sources':onboardingSaveSources,'onboarding.model':onboardingConfigureModel,'onboarding.preview':()=>onboardingPreview('sample'),'onboarding.start':onboardingStart,'onboarding.allowance':onboardingNewAllowance,'onboarding.progress':()=>{close();window.selfosUI.module('jobs').recover();},'onboarding.browse':()=>{close();window.selfosUI.module('knowledge').browse('all');},'onboarding.more':()=>onboardingPreview('more'),'onboarding.back':()=>onboardingStep(-1),'onboarding.skip':onboardingSkip,'onboarding.next':()=>onboardingStep(1)};
  if(!Object.hasOwn(actions,node.dataset.selfosAction))return;event.preventDefault();actions[node.dataset.selfosAction]();
 }
 function init(){
@@ -81,13 +81,13 @@ function init(){
  const overview=document.querySelector('.knowledge-overview');if(overview)overview.after(onboardingElement('welcome'));
  on(document,'click',action);on(onboardingElement('dialog'),'close',()=>{++onboardingGeneration;onboardingBusy=false;refreshing=null;refreshQueued=false;});
  for(const id of ['roots','exclusions'])on(onboardingElement(id),'input',()=>{onboardingSourcesDirty=true;});
- on(document.getElementById('model-settings'),'close',()=>{if(onboardingReturnFromModel){onboardingReturnFromModel=false;openOnboarding();}});
+ cleanups.push(window.selfosUI.module('settings').onModelClosed(()=>{if(onboardingReturnFromModel){onboardingReturnFromModel=false;openOnboarding();}}));
  on(document,'selfos-language',renderOnboarding);
  cleanups.push(window.selfosUI.module('jobs').subscribe(state=>{if(state.kind==='knowledge'&&state.event==='finished')refresh();}));
  if(draft){onboardingElement('roots').value=draft.roots;onboardingElement('exclusions').value=draft.exclusions;if(draft.open){const dialog=onboardingElement('dialog');if(dialog.open)dialog.close();dialog.showModal();}draft=null;}renderOnboarding();refresh();
 }
 function teardown(){draft={roots:onboardingElement('roots').value,exclusions:onboardingElement('exclusions').value,open:onboardingElement('dialog').open};++onboardingGeneration;onboardingBusy=false;refreshing=null;refreshQueued=false;for(const controller of requests)controller.abort();requests.clear();cleanups.splice(0).reverse().forEach(cleanup=>cleanup());}
 return {open:openOnboarding,close,resume:onboardingResumeSetup,refresh,step:onboardingStep,saveSources:onboardingSaveSources,preview:onboardingPreview,newAllowance:onboardingNewAllowance,start:onboardingStart,skip:onboardingSkip,configureModel:onboardingConfigureModel,init,teardown,busy:()=>requests.size>0};
-},{dependencies:['jobs','settings','request','locale'],roots:['#onboarding-dialog','#onboarding-welcome']});
+},{dependencies:['jobs','settings','knowledge','request','locale'],roots:['#onboarding-dialog','#onboarding-welcome']});
 for(const [name,method]of Object.entries({openOnboarding:'open',onboardingResumeSetup:'resume',onboardingStep:'step',onboardingSaveSources:'saveSources',onboardingPreview:'preview',onboardingNewAllowance:'newAllowance',onboardingStart:'start',onboardingSkip:'skip',onboardingConfigureModel:'configureModel'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('onboarding')[method](...args);
 })(window);

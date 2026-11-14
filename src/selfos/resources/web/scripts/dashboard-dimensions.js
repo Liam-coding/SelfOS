@@ -1,3 +1,4 @@
+(function(window){'use strict';window.selfosUI.register('dimensions',()=>{
 // ── Dim icons ──
 const DIM_ICONS = {
   career:'💼', work:'🛠', health:'💪', learning:'📚',
@@ -7,8 +8,8 @@ let _currentDimKey = '';
 
 function chatAboutDim() {
   document.getElementById('dim-modal').classList.remove('open');
-  if (chatCollapsed) toggleChat();
-  _sendChatSilent(window.selfosI18n.t('ui.dimension.discuss',{label:window.selfosI18n.t('ui.dimension.'+_currentDimKey)}));
+  window.selfosUI.module('chat').open();
+  return window.selfosUI.module('chat').send(window.selfosI18n.t('ui.dimension.discuss',{label:window.selfosI18n.t('ui.dimension.'+_currentDimKey)}));
 }
 
 function openDim(card) {
@@ -29,32 +30,13 @@ function openDim(card) {
   document.getElementById('dim-modal').classList.add('open');
 
 }
-document.getElementById('dim-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) document.getElementById('dim-modal').classList.remove('open');
-});
 
-// Send a chat message without touching the input box
-async function _sendChatSilent(text) {
-  appendMsg(text, 'user');
-  chatHistory.push({role:'user', content: text});
-  const thinking = appendMsg('', 'ai');
-  window.selfosI18n.bindText(thinking,'ui.chat.thinking');
-  thinking.classList.add('thinking');
-  try {
-    const fetchPromise = fetch('/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages: chatHistory})
-    });
-    const res = await fetchPromise;
-    const data = await res.json();
-    if(!res.ok||typeof data.reply!=='string'||!data.reply.trim())throw Error('chat_failed');
-    thinking.remove();
-    const reply = data.reply;
-    appendMsg(reply, 'ai');
-    chatHistory.push({role:'assistant', content: reply});
-  } catch(e) {
-    window.selfosI18n.bindText(thinking,'ui.chat.failed');
-  }
-}
-
+function close(){document.getElementById('dim-modal').classList.remove('open');}
+function backdrop(event){if(event.target===event.currentTarget)close();}
+function action(event){const node=event.target.closest?.('[data-selfos-action]');if(!node||!document.contains(node))return;const actions={'dimensions.open':()=>{if(node.closest('.grid'))openDim(node);},'dimensions.discuss':()=>{if(node.closest('#dim-modal'))chatAboutDim();}};if(!Object.hasOwn(actions,node.dataset.selfosAction))return;event.preventDefault();actions[node.dataset.selfosAction]();}
+function init(){document.addEventListener('click',action);document.getElementById('dim-modal').addEventListener('click',backdrop);}
+function teardown(){document.removeEventListener('click',action);document.getElementById('dim-modal').removeEventListener('click',backdrop);}
+return {open:openDim,discuss:chatAboutDim,close,init,teardown};
+},{dependencies:['chat','locale'],roots:['#dim-modal','.grid']});
+for(const [name,method]of Object.entries({openDim:'open',chatAboutDim:'discuss'}))if(!window[name])window[name]=(...args)=>window.selfosUI.module('dimensions')[method](...args);
+})(window);

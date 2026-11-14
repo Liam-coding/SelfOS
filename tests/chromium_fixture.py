@@ -17,7 +17,8 @@ const fs=require('fs');
  const call=(method,params={},sessionId)=>new Promise((r,j)=>{const id=++seq;pending.set(id,[r,j]);ws.send(JSON.stringify({id,method,params,sessionId}));});
  const {targetId}=await call('Target.createTarget',{url:'about:blank'});
  const {sessionId}=await call('Target.attachToTarget',{targetId,flatten:true});
- await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true},sessionId);
+ await call('Emulation.setDeviceMetricsOverride',{width:Number(process.argv[5]||390),height:844,deviceScaleFactor:1,mobile:true},sessionId);
+ await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]},sessionId);
  await call('Page.enable',{},sessionId);const loaded=new Promise(resolve=>loadResolve=resolve);
  await call('Page.navigate',{url:process.argv[3]},sessionId);
  await loaded;await call('Runtime.enable',{},sessionId);
@@ -29,7 +30,7 @@ const fs=require('fs');
 setTimeout(()=>{console.error('CDP timeout');process.exit(2)},30000);
 """
 
-def run_chromium(tmp_path, url, expression):
+def run_chromium(tmp_path, url, expression, width=390):
     chrome=Path(os.environ.get('SELFOS_CHROME','C:/Program Files/Google/Chrome/Application/chrome.exe'))
     node=shutil.which('node')
     if not node or not chrome.exists():pytest.skip('Node and SELFOS_CHROME are needed')
@@ -44,7 +45,7 @@ def run_chromium(tmp_path, url, expression):
                 with urlopen(endpoint+'/json/version',timeout=1):break
             except OSError:time.sleep(.1)
         else:raise AssertionError('Synthetic browser failed to start')
-        result=subprocess.run([node,str(script),endpoint,url,str(check)],capture_output=True,text=True,timeout=40)
+        result=subprocess.run([node,str(script),endpoint,url,str(check),str(width)],capture_output=True,text=True,timeout=40)
         assert result.returncode==0,result.stdout+result.stderr
         return result.stdout
     finally:

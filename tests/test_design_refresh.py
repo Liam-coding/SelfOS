@@ -40,3 +40,16 @@ def test_cached_refresh_upgrades_exact_job_and_staging_handler_pairs():
     assert '<button id="knowledge-btn" data-selfos-action="jobs.knowledge">' in page
     assert '<button id="staging-btn" data-selfos-action="staging.open">' in page
     assert '<button id="custom-job" onclick="confirmHarvest(false, true)">' in page
+
+
+def test_cached_chat_and_dimension_actions_skip_custom_handlers_and_script_text():
+    from selfos.web.rendering.refresh import refresh_dashboard
+    custom_script="""<script data-selfos-module="custom">window.buttonExample='<button id="chat-send" onclick="sendChat()">Custom</button>';</script>"""
+    outside='<button class="dim-modal-chat" onclick="chatAboutDim()">Custom outside</button>'
+    page='<html><head></head><body><div id="chat-panel"><div class="chat-header" onclick="toggleChat()"></div><button id="chat-collapse-btn" onclick="toggleChat(event)"></button><button id="chat-send" onclick="sendChat()"></button></div><div class="grid"><div class="card" data-key="career" onclick="openDim(this)"></div></div>'+outside+custom_script+'</body></html>'
+    page=refresh_dashboard(page)
+    assert '<div class="chat-header" data-selfos-action="chat.toggle">' in page
+    assert '<button id="chat-collapse-btn" data-selfos-action="chat.toggle">' in page
+    assert '<button id="chat-send" data-selfos-action="chat.send">' in page
+    assert 'data-selfos-action="dimensions.open"' in page
+    assert outside in page and custom_script in page

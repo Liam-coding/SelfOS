@@ -1,6 +1,7 @@
 (function(window){
 'use strict';
 window.selfosUI.register('settings',()=>{
+const modelClosed=new Set();
 const cleanups=[];
 const requests=new Set();
 const draftFields=['model-provider','model-base','model-name','model-proxy-mode','model-proxy-url'];
@@ -115,8 +116,8 @@ function init(document){
     'settings.open':['click',openAppSettings],
     'settings.language':['change',(_,node)=>setSettingsLanguage(node.value)],
     'settings.model':['click',()=>{document.getElementById('app-settings').close();openModelSettings();}],
-    'settings.privacy':['click',()=>openPrivacySettings()],
-    'settings.setup':['click',()=>{document.getElementById('app-settings').close();onboardingResumeSetup();}],
+    'settings.privacy':['click',()=>window.selfosUI.module('privacy').open()],
+    'settings.setup':['click',()=>{document.getElementById('app-settings').close();window.selfosUI.module('onboarding').resume();}],
     'settings.close':['click',()=>document.getElementById('app-settings').close()],
     'settings.save':['submit',()=>saveModelSettings(false)],
     'settings.provider':['change',changeModelProvider],
@@ -129,14 +130,14 @@ function init(document){
   function action(event){
     const node=event.target.closest?.('[data-selfos-action]');
     if(!node||!document.contains(node)||!node.closest('#app-settings,#model-settings,#model-settings-entry'))return;
-    const entry=actions[node.dataset.selfosAction];
+    if(!Object.hasOwn(actions,node.dataset.selfosAction))return;const entry=actions[node.dataset.selfosAction];
     if(!entry||entry[0]!==event.type)return;
     event.preventDefault();entry[1](event,node);
   }
   for(const type of ['click','change','submit'])on(document,type,action);
   const form=document.querySelector('#model-settings form');
   on(form,'input',modelDiscoveryDraftChanged);on(form,'change',modelDiscoveryDraftChanged);
-  on(document.getElementById('model-settings'),'close',invalidateModelList);
+  on(document.getElementById('model-settings'),'close',()=>{invalidateModelList();for(const callback of modelClosed)callback();});
   const settings=document.getElementById('app-settings');
   on(settings,'close',()=>{
     if(!document.querySelector('dialog[open]'))document.querySelector('#model-settings-entry button')?.focus();
@@ -153,9 +154,9 @@ function teardown(){
   document.getElementById('model-key').value='';document.getElementById('model-clear-key').checked=false;
   ++modelSettingsGeneration;++modelListGeneration;
   for(const request of requests)request.abort();requests.clear();
-  cleanups.splice(0).reverse().forEach(cleanup=>cleanup());
+  cleanups.splice(0).reverse().forEach(cleanup=>cleanup());modelClosed.clear();
 }
-return {busy:()=>requests.size>0,open:openAppSettings,openModel:openModelSettings,saveModel:saveModelSettings,openAppSettings,setSettingsLanguage,updateModelProxy,changeModelProvider,modelStatus,showCurrentModel,modelRequest,modelDraft,modelListStatus,invalidateModelList,modelDiscoveryDraftChanged,chooseAvailableModel,loadAvailableModels,openModelSettings,saveModelSettings,init,teardown};
-},{dependencies:['request','locale'],roots:['#app-settings','#model-settings','#model-settings-entry']});
+return {onModelClosed(callback){modelClosed.add(callback);return()=>modelClosed.delete(callback);},busy:()=>requests.size>0,open:openAppSettings,openModel:openModelSettings,saveModel:saveModelSettings,openAppSettings,setSettingsLanguage,updateModelProxy,changeModelProvider,modelStatus,showCurrentModel,modelRequest,modelDraft,modelListStatus,invalidateModelList,modelDiscoveryDraftChanged,chooseAvailableModel,loadAvailableModels,openModelSettings,saveModelSettings,init,teardown};
+},{dependencies:['privacy','request','locale'],roots:['#app-settings','#model-settings','#model-settings-entry']});
 for(const [name,method]of Object.entries({openAppSettings:'openAppSettings',setSettingsLanguage:'setSettingsLanguage',updateModelProxy:'updateModelProxy',changeModelProvider:'changeModelProvider',modelStatus:'modelStatus',showCurrentModel:'showCurrentModel',modelRequest:'modelRequest',modelDraft:'modelDraft',modelListStatus:'modelListStatus',invalidateModelList:'invalidateModelList',modelDiscoveryDraftChanged:'modelDiscoveryDraftChanged',chooseAvailableModel:'chooseAvailableModel',loadAvailableModels:'loadAvailableModels',openModelSettings:'openModelSettings',saveModelSettings:'saveModelSettings'})){if(!window[name])window[name]=(...args)=>window.selfosUI.module('settings')[method](...args);}
 })(window);

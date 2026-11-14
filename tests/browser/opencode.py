@@ -17,7 +17,7 @@ def run_case(browser, output, locale):
     from tests.test_opencode_database import create_database
     from tests.test_opencode_export import export_wire
     import selfos.web.server as runtime
-    with tempfile.TemporaryDirectory(prefix='selfos-native-ui-') as directory, ModelFixture() as model:
+    with tempfile.TemporaryDirectory(prefix='selfos-native-ui-', ignore_cleanup_errors=True) as directory, ModelFixture() as model:
         root = Path(directory)
         vault = root/'vault'
         vault.mkdir()

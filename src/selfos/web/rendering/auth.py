@@ -18,7 +18,8 @@ def script(include_runtime=True):
 
 
 def login_page():
-    return frontend_text('templates/login-head.html')+STYLE+frontend_text('templates/login-form.html')+script()+frontend_text('templates/login-tail.html')
+    lifecycle=''.join('<script data-selfos-module="'+identity+'" data-selfos-generation="1">'+frontend_text('scripts/ui-'+identity+'.js')+'</script>' for identity in ('runtime','request','bootstrap'))
+    return frontend_text('templates/login-head.html')+lifecycle+STYLE+frontend_text('templates/login-form.html')+script()+frontend_text('templates/login-tail.html')
 
 
 def account_controls(include_runtime=True, include_lifecycle=True):

@@ -4,14 +4,14 @@
   <pre id="privacy-destination" style="white-space:pre-wrap"></pre>
   <p data-i18n="privacy.effect">Excluded source and project paths are withheld from new model requests, including retries and cached context. Existing knowledge and backups remain locally inspectable. Unsourced vault notes and digests are withheld from chat while exclusions are active. Remove local data separately if required.</p>
   <label><span data-i18n="privacy.rules">Excluded projects, directories and files: one absolute path per line</span><textarea id="privacy-rules" rows="5" style="width:100%"></textarea></label>
-  <button type="button" onclick="savePrivacyRules()" data-i18n="privacy.save">Save exclusions</button>
+  <button type="button" data-selfos-action="privacy.save" data-i18n="privacy.save">Save exclusions</button>
   <p data-i18n="privacy.export_note">Exports contain knowledge, provenance and settings and may be sensitive. API keys and account credentials are omitted. Originals and backups are omitted unless selected below. Import into an empty knowledge vault; unresolved source links are reported.</p>
   <label><input id="privacy-originals" type="checkbox"><span data-i18n="privacy.originals">Include uploaded originals</span></label>
   <label><input id="privacy-backups" type="checkbox"><span data-i18n="privacy.backups">Include knowledge backups</span></label>
   <label><span data-i18n="changes.audit_range">Change history to include</span><select id="privacy-audit"><option value="none" data-i18n="changes.none">No change history</option><option value="recent" data-i18n="changes.recent">Recent whole operations</option><option value="all" data-i18n="changes.all_history">All available history</option></select></label>
   <label><span data-i18n="changes.recent_count">Number of recent operations</span><input id="privacy-audit-recent" type="number" min="1" max="10000" value="20"></label>
-  <p><button type="button" onclick="exportPrivacyData()" data-i18n="changes.preview">Prepare export</button> <button id="privacy-download" type="button" onclick="downloadPrivacyData()" data-i18n="changes.download" hidden>Download prepared export</button></p>
-  <label><span data-i18n="privacy.import">Import local export</span><input id="privacy-import" type="file" accept="application/json,.json" onchange="importPrivacyData(this.files[0])"></label>
+  <p><button type="button" data-selfos-action="privacy.export" data-i18n="changes.preview">Prepare export</button> <button id="privacy-download" type="button" data-selfos-action="privacy.download" data-i18n="changes.download" hidden>Download prepared export</button></p>
+  <label><span data-i18n="privacy.import">Import local export</span><input id="privacy-import" type="file" accept="application/json,.json" data-selfos-action="privacy.import"></label>
   <pre id="privacy-status" role="status" style="white-space:pre-wrap"></pre>
-  <button type="button" onclick="document.getElementById('privacy-settings').close()" data-i18n="privacy.close">Close</button>
+  <button type="button" data-selfos-action="privacy.close" data-i18n="privacy.close">Close</button>
 </dialog>

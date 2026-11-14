@@ -38,5 +38,5 @@ OWNER
 })().catch(error=>{console.error(error);process.exitCode=1;});
 """.replace('RUNTIME',frontend_text('scripts/ui-runtime.js')).replace('OWNER',frontend_text('scripts/import-controls.js')).replace('REPLACE_ROOT',str(replace_root).lower())
     path=tmp_path/'pending.js';path.write_text(script,encoding='utf-8')
-    result=subprocess.run([shutil.which('node'),str(path)],capture_output=True,text=True)
+    result=subprocess.run([shutil.which('node'),str(path)],capture_output=True,text=True,encoding='utf-8')
     assert result.returncode==0,result.stderr

@@ -5,9 +5,9 @@
       <h1 class="knowledge-heading" id="knowledge-heading" data-i18n="ui.overview.your_knowledge_a_little_clearer">Your knowledge. A little clearer.</h1>
       <p class="knowledge-description" data-i18n="ui.overview.keep_the_facts_choices_and_experience_that_matter_turn_past_thinking_into_a_star">Keep the facts, choices and experience that matter. Turn past thinking into a starting point for what comes next.</p>
       <div class="knowledge-actions">
-        <button class="knowledge-secondary" onclick="browseKnowledge('projects')" data-i18n="ui.overview.browse_knowledge">Browse knowledge</button>
-        <button class="knowledge-primary" onclick="confirmHarvest(false,true)" data-i18n="ui.overview.organize_my_knowledge">Organize my knowledge</button>
-        <button class="knowledge-secondary" onclick="openKnowledgeSettings()" data-i18n="ui.overview.choose_what_matters">Choose what matters</button>
+        <button class="knowledge-secondary" data-selfos-action="overview.browse" data-i18n="ui.overview.browse_knowledge">Browse knowledge</button>
+        <button class="knowledge-primary" data-selfos-action="overview.build" data-i18n="ui.overview.organize_my_knowledge">Organize my knowledge</button>
+        <button class="knowledge-secondary" data-selfos-action="overview.settings" data-i18n="ui.overview.choose_what_matters">Choose what matters</button>
       </div>
       <div class="knowledge-status-line" aria-live="polite"><span class="knowledge-status-dot" id="knowledge-connection-dot"></span><span id="knowledge-overview-status" data-i18n="ui.overview.connecting">Connecting to local knowledge...</span></div>
     </div>

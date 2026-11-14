@@ -5,7 +5,7 @@ from selfos.web.rendering.resources import frontend_text
 
 def test_auth_unknown_error_and_invalid_json_keep_status_and_localized_binding(tmp_path):
     common=runtime().split('<script',1)[1].split('>',1)[1].split('</script>',1)[0]
-    auth=frontend_text('scripts/auth-common.js')
+    auth=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/auth-common.js')
     harness=r"""
 const status={textContent:'',isConnected:true};global.window=global;global.localStorage={getItem:()=>null,setItem(){}};global.document={documentElement:{lang:'en'},getElementById:()=>status,querySelectorAll:()=>[],addEventListener(){},dispatchEvent(){}};
 COMMON

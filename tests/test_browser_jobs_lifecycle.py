@@ -30,14 +30,14 @@ const release=async state=>{const entry=pending.shift();assert(entry,'Missing st
  selfosUI.init(document);selfosUI.init(document);vm.runInThisContext(fs.readFileSync(process.argv[1]+'/dashboard-imports.js','utf8'));selfosUI.init(document);
  assert.equal(requests.length,1);assert.equal(streams.length,0);
  const notifications=[];jobs.subscribe(state=>notifications.push(state));
- jobs.start(false,true);jobs.start(true,false);assert.equal(streams.length,1);assert.equal(jobs.snapshot().kind,'knowledge');assert(Object.isFrozen(jobs.snapshot()));
+ jobs.start(false,true);assert.equal(node('progress-icon').textContent,'\u23f3');jobs.start(true,false);assert.equal(streams.length,1);assert.equal(jobs.snapshot().kind,'knowledge');assert(Object.isFrozen(jobs.snapshot()));
  const knowledge=streams[0];selfosUI.init(document);assert.equal(knowledge.closed,0);assert.equal(streams.length,1);
  await Promise.all([jobs.stop(),jobs.stop()]);assert.equal(requests.filter(r=>r.url==='/__knowledge_stop__').length,1);
  knowledge.onmessage({data:JSON.stringify({done:true,ok:true,cancelled:true})});knowledge.onmessage({data:JSON.stringify({done:true,ok:true})});
- assert.equal(knowledge.closed,1);assert.equal(jobs.snapshot().phase,'cancelled');assert.equal(events.filter(e=>e==='selfos-import-finished').length,1);
+ assert.equal(knowledge.closed,1);assert.equal(jobs.snapshot().phase,'cancelled');assert.equal(node('progress-icon').textContent,'\u2705');assert.equal(events.filter(e=>e==='selfos-import-finished').length,1);
  assert.equal(notifications.filter(s=>s.event==='finished').length,1);
  jobs.start(true,false);const harvest=streams[1],statusBefore=requests.filter(r=>r.url==='/__knowledge_run__').length;
- harvest.onerror();await tick();assert.equal(harvest.closed,1);assert.equal(jobs.snapshot().kind,'harvest');assert.equal(jobs.snapshot().phase,'failed');
+ harvest.onerror();await tick();assert.equal(harvest.closed,1);assert.equal(jobs.snapshot().kind,'harvest');assert.equal(jobs.snapshot().phase,'failed');assert.equal(node('progress-icon').textContent,'\u26a0\ufe0f');
  await jobs.stop();assert.equal(requests.filter(r=>r.url==='/__knowledge_stop__').length,1);assert.equal(requests.filter(r=>r.url==='/__knowledge_run__').length,statusBefore);assert.equal(timers.size,0);
  jobs.start(false,true);const interrupted=streams[2];interrupted.onerror();assert.equal(interrupted.closed,1);
  await release({running:true,total:4,completed:1,phase:'running'});assert.equal(timers.size,1);
@@ -46,8 +46,8 @@ const release=async state=>{const entry=pending.shift();assert(entry,'Missing st
  active.release({running:false,result:{ok:true}});await tick();pending.shift();assert.equal(events.filter(e=>e==='selfos-import-finished').length,1);assert.equal(requests.filter(r=>r.url==='/__knowledge_stop__').length,stopBefore);assert.equal(streams.length,3);
  selfosUI.init(document);await release({running:true,total:4,completed:2,phase:'running'});assert.equal(streams.length,3);assert.equal(jobs.snapshot().kind,'knowledge');assert.equal(timers.size,1);
  const recovered=[...timers][0];timers.delete(recovered[0]);recovered[1]();await tick();await release({running:false,result:{ok:true},total:4,completed:4});
- assert.equal(jobs.snapshot().phase,'succeeded');assert.equal(timers.size,0);assert.equal(events.filter(e=>e==='selfos-import-finished').length,2);selfosUI.teardown();
+ assert.equal(jobs.snapshot().phase,'succeeded');assert.equal(node('progress-icon').textContent,'\u2705');assert.equal(timers.size,0);assert.equal(events.filter(e=>e==='selfos-import-finished').length,2);selfosUI.teardown();
  console.log('Jobs lifecycle transport contract passed');
 })().catch(error=>{console.error(error);process.exitCode=1});
-""",str(scripts)],capture_output=True,text=True,timeout=20)
+""",str(scripts)],capture_output=True,text=True,encoding='utf-8',timeout=20)
     assert result.returncode==0,result.stdout+result.stderr
