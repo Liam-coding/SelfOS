@@ -1,5 +1,5 @@
 """Shared local source selection and directory-prefix exclusions."""
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import os
 from contextlib import contextmanager, ExitStack
 
@@ -96,8 +96,11 @@ def project_allowed(directory, selection):
     """Only explicit directory metadata; opaque project IDs are never paths."""
     if not directory:
         return not selection.get('project_exclusions')
-    if not isinstance(directory, str) or not Path(directory).is_absolute():
+    if not isinstance(directory, str):
         return False
+    if not Path(directory).is_absolute():
+        return (not selection.get('project_exclusions') and
+                any(path_type(directory).is_absolute() for path_type in (PurePosixPath, PureWindowsPath)))
     resolved = Path(directory).resolve()
     return not any(resolved.is_relative_to(Path(excluded)) for excluded in
                    selection.get('project_exclusions', []) + selection.get('privacy_exclusions', []))

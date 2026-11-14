@@ -137,3 +137,39 @@ def test_identical_slices_have_distinct_acknowledgement_ids(tmp_path):
     remaining = acknowledge_scan(vault, entry, [first_id], max_chars=18)
     assert len(remaining['sealed_ids']) == len(result['sealed_ids']) - 1
     assert first_id not in remaining['sealed_ids']
+
+
+def test_canonical_restore_requeues_acknowledged_parts_without_model_calls(tmp_path):
+    from selfos.storage.harness_scans import advance_scan, acknowledge_scan
+    from selfos.storage.settings import load_settings
+    from selfos.knowledge.settings import policy_hash
+    vault, path, entry, _ = setup_scan(tmp_path, count=1)
+    result = advance_scan(vault, entry, max_chars=30)
+    receipts = {identity: {'cache_key': identity, 'fingerprint': 'a'*64,
+                          'policy_hash': policy_hash(load_settings(vault))} for identity in result['sealed_ids']}
+    canonical = {'cache': {identity:'a'*64 for identity in result['sealed_ids']},
+                 'summaries': {identity:{} for identity in result['sealed_ids']}}
+    state_path = vault / '.knowledge_pipeline.json'
+    state_path.write_text(json.dumps(canonical), encoding='utf-8')
+    acknowledged = acknowledge_scan(vault, entry, result['sealed_ids'], max_chars=30, canonical=receipts)
+    assert not acknowledged['sealed_sessions']
+    assert not advance_scan(vault, entry, max_chars=30)['sealed_sessions']
+    state_path.unlink()
+    restored = advance_scan(vault, entry, max_chars=30)
+    assert restored['sealed_ids'] == result['sealed_ids']
+    assert restored['sealed_sessions'] == result['sealed_sessions']
+
+
+def test_explicit_new_scan_archives_old_checkpoint_and_reads_later_rows(tmp_path):
+    from selfos.storage.harness_scans import advance_scan, restart_scan
+    vault, path, entry, _ = setup_scan(tmp_path, count=1)
+    first = advance_scan(vault, entry)
+    checkpoint = next((vault/'.knowledge_harness_scans').glob('*.json'))
+    before = checkpoint.read_bytes()
+    with sqlite3.connect(path) as connection:
+        add_message(connection, 99, created=1700000020000)
+    assert advance_scan(vault, entry)['sealed_ids'] == first['sealed_ids']
+    restart_scan(vault, entry)
+    assert next((vault/'.knowledge_harness_scans/archive').glob('*.json')).read_bytes() == before
+    fresh = advance_scan(vault, entry)
+    assert len({message['native_message_id'] for part in fresh['sealed_sessions'] for message in part['messages']}) == 2

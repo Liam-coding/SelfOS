@@ -16,7 +16,7 @@ from selfos.knowledge.identity import unique
 @lru_cache(maxsize=512)
 def canonical_project(identity):
     path = Path(identity)
-    if not path.is_dir():
+    if not path.is_absolute() or not path.is_dir():
         return identity
     for parent in (path, *path.parents):
         git = parent / ".git"
@@ -60,11 +60,13 @@ def prepare_sessions(messages, max_chars=12000, cancel=lambda: False, aliases=No
                     audit['examples'].append({'source_ids':[raw['id']], 'reason':
                         'transient_content' if transient_only(raw.get('text','')) else 'runtime_content'})
             continue
-        m["project_id"] = canonical_project(raw.get("project_id") or raw.get("project") or "unknown")
+        project_id = canonical_project(raw.get("project_id") or raw.get("project") or "unknown")
         if aliases:
-            m["project_id"] = aliases.get(m["project_id"], m["project_id"])
+            project_id = aliases.get(project_id, project_id)
+        if m.get('source') != 'opencode':
+            m['project_id'] = project_id
         m["session_id"] = raw.get("session_id") or raw.get("path") or "unknown"
-        groups[(m["project_id"], m["session_id"])].setdefault(m["id"], m)
+        groups[(project_id, m["session_id"])].setdefault(m["id"], m)
     sessions = []
     for (project, session), records in sorted(groups.items()):
         if cancel():
@@ -74,7 +76,7 @@ def prepare_sessions(messages, max_chars=12000, cancel=lambda: False, aliases=No
             parts.append(part)
         for index, part in enumerate(parts):
             sessions.append(dict(project_id=project, session_id=session, part=index, messages=part,
-                                 fingerprint=digest(part)))
+                                 fingerprint=part_fingerprint(part)))
     return sessions
 
 
@@ -91,6 +93,12 @@ def pack_records(messages, max_chars, part=None):
             part.append(piece)
             size += len(piece['text'])
     return parts, part
+
+
+def part_fingerprint(messages):
+    transport = {'path', 'source_locator', 'source_locators', 'document_id', 'content_sha256', 'original_filename'}
+    return digest([{key: value for key, value in message.items() if key not in transport}
+                   if message.get('source') == 'opencode' else message for message in messages])
 
 from selfos.knowledge.filtering import compact_message
 from selfos.knowledge.identity import digest

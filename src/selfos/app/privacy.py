@@ -30,6 +30,10 @@ def selection_hash(vault):
 
 
 def permitted_source(source, selection, vault):
+    if source.get('source') == 'opencode' and isinstance(source.get('source_locators'), list):
+        return any(isinstance(locator, dict) and permitted_source(
+            {**source, 'path': locator.get('path', ''), 'source_locator': locator, 'source_locators': None},
+            selection, vault) for locator in source['source_locators'])
     def resolved(value):
         path = Path(value)
         return (path if path.is_absolute() else Path(vault)/path).resolve()
@@ -78,6 +82,8 @@ def guard_request(vault, expected_hash, sources):
     if selection_hash(vault) != expected_hash:
         raise ValueError('Privacy rules changed; restart the import')
     selection = load_sources(vault)
+    from selfos.sources.adapters import verified_inputs
+    sources = verified_inputs(vault, sources, selection)
     if any(not permitted_source(source, selection, vault) for source in sources):
         raise ValueError('Request contains an excluded or unavailable source')
 

@@ -16,6 +16,7 @@ function renderOnboarding(){
   const availability=onboardingElement('availability');availability.replaceChildren();
   for(const source of data.availability){const p=document.createElement('p');p.textContent=source.path+' · '+window.selfosI18n.t('onboarding.'+(source.available?'available':'missing'));availability.append(p);}
   if(!onboardingSourcesDirty){onboardingElement('roots').value=data.sources.roots.join('\n');onboardingElement('exclusions').value=data.sources.exclusions.join('\n');}
+  if(window.selfosHarness)window.selfosHarness.update(data.sources,data.availability,onboardingSourcesDirty);
   onboardingText('model-status','current_model',{provider:data.model.provider,model:data.model.model||window.selfosI18n.t('onboarding.not_configured')});
   const preview=data.preview,budget=data.budget;
   onboardingElement('excerpts').replaceChildren();
@@ -50,7 +51,13 @@ async function onboardingPerform(body){
   finally{if(generation===onboardingGeneration){onboardingBusy=false;renderOnboarding();}}
 }
 async function onboardingStep(direction){if(!onboardingData)return;const step=onboardingData.progress.step;if(direction>0&&step===1&&onboardingSourcesDirty){if(!await onboardingSaveSources())return;}await onboardingPerform({action:'save_step',step:Math.max(0,Math.min(4,step+direction))});}
-async function onboardingSaveSources(){const lines=id=>onboardingElement(id).value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);return await onboardingPerform({action:'save_sources',sources:{roots:lines('roots'),exclusions:lines('exclusions')}});}
+async function onboardingSaveSources(){
+  const lines=id=>onboardingElement(id).value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  const roots=lines('roots'),native=window.selfosHarness?window.selfosHarness.entries():[],previous=onboardingData?.sources||{};
+  const sources=native.length||previous.version===2?{version:2,entries:[...roots.map(path=>({kind:'directory',path})),...native],exclusions:lines('exclusions'),project_exclusions:lines('project-exclusions')}:{roots,exclusions:lines('exclusions')};
+  if(previous.privacy_exclusions)sources.privacy_exclusions=previous.privacy_exclusions;
+  return await onboardingPerform({action:'save_sources',sources});
+}
 async function onboardingPreview(tier){await onboardingPerform({action:'preview',tier});}
 async function onboardingNewAllowance(){if(onboardingData?.preview)await onboardingPerform({action:'new_allowance',preview_id:onboardingData.preview.id});}
 async function onboardingStart(){if(!onboardingData?.preview)return;const data=await onboardingPerform({action:'start',preview_id:onboardingData.preview.id});if(data?.stream_url){onboardingElement('dialog').close();confirmHarvest(false,true,false,data.stream_url);}}

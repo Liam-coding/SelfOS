@@ -222,6 +222,11 @@ def knowledge_detail(vault,identity,source_offset=0,source_limit=30):
 def knowledge_source(vault,identity, *, offset=0,limit=24000):
     state=_state(vault);source=state.get('sources',{}).get(identity)
     if not isinstance(source,dict):raise KeyError('Unknown conversation source')
+    if source.get('source') == 'opencode':
+        from selfos.sources.adapters import verify_source
+        from selfos.sources.selection import load_sources
+        verified = verify_source(vault, source, load_sources(vault))
+        return {**_sources(state, [identity])[0], **source_page(verified['text'], offset, limit)}
     if source.get('source')=='uploaded_file':
         from selfos.app.privacy import permitted_source
         from selfos.sources.selection import load_sources

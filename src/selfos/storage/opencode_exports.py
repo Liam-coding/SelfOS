@@ -99,7 +99,8 @@ def export_sessions(vault, document_id, part_ids, *, part_chars=24000):
         manifest, sessions, ids = _load(vault, document_id, part_chars, folder, profile)
         if set(part_ids) - set(manifest['part_ids']):
             raise ValueError('Selected export part is not indexed or does not belong to document')
-        return [sessions[ids.index(identity)] for identity in part_ids]
+        return [dict(sessions[ids.index(identity)], upload_document_id=document_id,
+                     upload_part_id=identity, upload_profile=profile) for identity in part_ids]
 
 
 def export_status(vault, document_id, *, part_chars=24000):

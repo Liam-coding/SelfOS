@@ -12,7 +12,7 @@ from selfos.storage.files import _atomic_write
 def metadata_path(vault, name):
     root = Path(vault).resolve()
     if name not in (".knowledge_sources.json", ".knowledge_onboarding.json") and not re.fullmatch(
-            r"\.knowledge_onboarding/(?:previews|budgets)/[a-f0-9]{32}\.json", name):
+            r"(?:\.knowledge_onboarding/(?:previews|budgets)|\.knowledge_harness/previews)/[a-f0-9]{32}\.json", name):
         raise ValueError("Unsupported onboarding metadata path")
     path = root / name
     if not path.resolve().is_relative_to(root):

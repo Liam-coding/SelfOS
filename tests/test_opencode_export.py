@@ -122,7 +122,8 @@ def test_selected_export_parts_use_existing_compaction_without_model_calls(tmp_p
     assert len(indexed['part_ids']) == 2
     selected = document_sessions(tmp_path, doc['id'], indexed['part_ids'][:1], part_chars=16000)
     expected = prepare_sessions(read_export(tmp_path, doc['id'])['messages'], max_chars=16000)
-    assert selected == expected[:1]
+    assert [{key:value for key,value in session.items() if not key.startswith('upload_')}
+            for session in selected] == expected[:1]
     with pytest.raises(ValueError):
         document_sessions(tmp_path, doc['id'], ['f'*64], part_chars=16000)
 
@@ -137,3 +138,12 @@ def test_export_verifies_the_bytes_actually_parsed_not_an_earlier_file_hash(tmp_
     (tmp_path / doc['path']).write_bytes(changed)
     with pytest.raises(ValueError):
         exports.read_export(tmp_path, doc['id'])
+
+
+def test_export_directory_metadata_can_describe_a_foreign_platform(tmp_path):
+    from selfos.sources.opencode_export import parse_export
+    import os
+    wire = export_wire(tmp_path)
+    wire['info']['directory'] = '/synthetic/mac/project' if os.name == 'nt' else 'C:/synthetic/windows/project'
+    result = parse_export(json.dumps(wire).encode(), origin(tmp_path))
+    assert result['messages'][0]['cwd'] == wire['info']['directory']

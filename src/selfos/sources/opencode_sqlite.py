@@ -4,7 +4,7 @@ import json
 import sqlite3
 
 from selfos.sources.documents import SourceUnavailable
-from selfos.sources.opencode_records import normalize_record, _native_id, _absolute, _diagnostic
+from selfos.sources.opencode_records import normalize_record, _native_id, _directory, _diagnostic
 from selfos.sources.text import redact
 from selfos.knowledge.identity import digest
 
@@ -88,7 +88,7 @@ def session_metadata(connection, identity, *, validate=True):
     _native_id(session['id'])
     _native_id(session['projectID'])
     if session['directory']:
-        session['directory'] = _absolute(session['directory'])
+        session['directory'] = _directory(session['directory'])
     elif session['directory'] is None:
         raise ValueError('OpenCode directory metadata is unavailable')
     return session
@@ -98,7 +98,7 @@ def session_proof(session):
     directory = session['directory']
     if directory:
         try:
-            directory = _absolute(directory)
+            directory = _directory(directory)
         except ValueError:
             pass
     return digest([session['id'], session['projectID'], directory, session['row_time']])

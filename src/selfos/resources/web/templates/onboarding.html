@@ -15,5 +15,20 @@
   <p id="onboarding-status" role="status" aria-live="polite"></p>
   <footer><button id="onboarding-back" type="button" onclick="onboardingStep(-1)" data-i18n="onboarding.back">Back</button><button id="onboarding-skip" type="button" onclick="onboardingSkip()" data-i18n="onboarding.skip">Skip for now</button><button id="onboarding-next" type="button" onclick="onboardingStep(1)" data-i18n="onboarding.next">Next</button></footer>
 </dialog>
+<section id="native-controls" class="native-controls" hidden>
+  <h4 data-i18n="native.title">OpenCode conversations</h4><p data-i18n="native.help">Select an exact database file. Scanning stays local; only an explicit start sends selected excerpts to your model.</p>
+  <div id="native-entries"></div>
+  <label for="native-path" data-i18n="native.custom">Add another database path</label><input id="native-path" type="text" spellcheck="false" placeholder="/absolute/path/opencode.db"><button id="native-add" type="button" data-i18n="native.add">Add database</button>
+  <label for="onboarding-project-exclusions" data-i18n="native.project_exclusions">Exclude project folders inside conversations</label><textarea id="onboarding-project-exclusions" rows="2" spellcheck="false"></textarea>
+  <p id="native-source-status" role="status" aria-live="polite"></p>
+</section>
+<dialog id="native-dialog" aria-labelledby="native-heading">
+  <header><h2 id="native-heading" data-i18n="native.preview">OpenCode local preview</h2><button id="native-close" type="button" data-i18n="native.close">Close</button></header>
+  <p data-i18n="native.limits">At most 2 selected parts and 12 model requests per preview. Resuming keeps the same allowance.</p>
+  <p id="native-status" role="status" aria-live="polite"></p><div id="native-excerpts"></div>
+  <p data-i18n="native.restart_help">A new scan includes later conversations and preserves the previous checkpoint.</p>
+  <footer><button id="native-reset" type="button" data-i18n="native.restart">New scan</button><button id="native-more" type="button" data-i18n="native.more">Scan next page</button><button id="native-start" type="button" data-i18n="native.start" disabled>Organize this sample</button></footer>
+</dialog>
 <script>@@SELFOS_RESOURCE:scripts/onboarding.js@@</script>
+<script>@@SELFOS_RESOURCE:scripts/opencode.js@@</script>
 <!-- selfos-onboarding-end -->

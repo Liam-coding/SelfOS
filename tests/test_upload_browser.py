@@ -23,7 +23,7 @@ def test_upload_picker_has_native_input_and_distinct_cancel_and_organize_control
     parsed.feed(frontend_text('templates/uploads.html'))
     tag, picker = parsed.elements['uploads-files']
     assert tag == 'input' and picker['type'] == 'file' and 'multiple' in picker
-    assert picker['accept'] == '.txt,.md'
+    assert picker['accept'] == '.txt,.md,.json'
     assert parsed.elements['uploads-choose'][0] == 'button'
     assert parsed.elements['uploads-organize'][0] == 'button'
     assert parsed.elements['uploads-cancel'][0] == 'button'

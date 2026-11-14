@@ -4,7 +4,7 @@ import hashlib
 import math
 import re
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from selfos.paths import canonical_path
 from selfos.sources.compaction import canonical_project
@@ -42,7 +42,20 @@ def _absolute(value):
     return str(canonical_path(value)).replace(chr(92), '/')
 
 
-def _origin(value):
+def _directory(value):
+    """Directory is descriptive metadata; foreign paths must never become local IO targets."""
+    if (not isinstance(value, str) or not value or len(value) > 4096 or any(ord(char) < 32 for char in value)):
+        raise ValueError('Invalid OpenCode directory metadata')
+    if Path(value).is_absolute():
+        return _absolute(value)
+    for path_type in (PureWindowsPath, PurePosixPath):
+        path = path_type(value)
+        if path.is_absolute() and '..' not in path.parts:
+            return path.as_posix()
+    raise ValueError('OpenCode directory must be an absolute path')
+
+
+def _origin(value, path_validator=_absolute):
     """Only adapter-owned origin metadata; document adapters verify admission first."""
     if not isinstance(value, dict) or value.get('kind') not in ('database', 'document'):
         raise ValueError('Invalid OpenCode source origin')
@@ -51,7 +64,7 @@ def _origin(value):
         keys |= {'document_id', 'content_sha256', 'original_filename'}
     if set(value) != keys:
         raise ValueError('Invalid OpenCode origin fields')
-    result = {**value, 'path': _absolute(value['path'])}
+    result = {**value, 'path': path_validator(value['path'])}
     if value['kind'] == 'document':
         for key in ('document_id', 'content_sha256'):
             if not isinstance(value[key], str) or not _HASH.fullmatch(value[key]):
@@ -90,7 +103,7 @@ def normalize_record(session, record, origin, *, diagnostics=None):
             raise ValueError('Missing OpenCode creation time')
         timestamp = _timestamp(info['time'].get('created'))
         directory = session.get('directory')
-        directory = '' if directory is None or directory == '' else _absolute(directory)
+        directory = '' if directory is None or directory == '' else _directory(directory)
         owned_origin = _origin(origin)
         if info['role'] == 'assistant' and info.get('summary') is True:
             _diagnostic(diagnostics, 'filtered_message')
@@ -138,7 +151,8 @@ def normalize_record(session, record, origin, *, diagnostics=None):
         normalized = dict(source='opencode', role=info['role'], timestamp=timestamp, text=text,
             project=redact(Path(directory).name) if directory else 'OpenCode project',
             project_id=canonical_project(directory) if directory else 'opencode-project:' + project,
-            cwd=directory, session_id=session_id, path=owned_origin['path'], provenance=provenance,
+            cwd=directory, session_id=('opencode-export:' + session_id if owned_origin['kind'] == 'document' else session_id),
+            path=owned_origin['path'], provenance=provenance,
             native_project_id=project, native_session_id=session_id, native_message_id=message_id,
             native_created_ms=info['time']['created'], source_locator=locator, source_locators=[copy.deepcopy(locator)])
         if owned_origin['kind'] == 'document':
@@ -172,10 +186,26 @@ def _check_locator(locator, message):
         raise ValueError('Duplicate OpenCode locator parts')
 
 
-def opencode_metadata(message, existing=None):
+def opencode_metadata(message, existing=None, *, path_validator=_absolute):
     """Retain adapter-owned metadata; fresh byte verification remains an IO boundary."""
     if message.get('source') != 'opencode' or not isinstance(message.get('id'), str) or not _HASH.fullmatch(message['id']):
         raise ValueError('Invalid OpenCode source metadata')
+    for key in ('native_project_id', 'native_session_id', 'native_message_id'):
+        _native_id(message.get(key))
+    timestamp = message.get('timestamp')
+    try:
+        instant = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        if instant.tzinfo is None or instant.utcoffset().total_seconds() != 0:
+            raise ValueError('Invalid OpenCode timestamp')
+    except (AttributeError, TypeError, ValueError):
+        raise ValueError('Invalid OpenCode timestamp') from None
+    if (message.get('role') not in ('user', 'assistant') or
+            message.get('provenance') not in ('user_statement', 'assistant_suggestion', 'quoted_dialogue') or
+            not isinstance(message.get('project_id'), str) or not message['project_id'] or
+            not isinstance(message.get('cwd'), str)):
+        raise ValueError('Invalid OpenCode semantic source fields')
+    if message['cwd']:
+        _directory(message['cwd'])
     locators = message.get('source_locators')
     if not isinstance(locators, list) or not 1 <= len(locators) <= MAX_LOCATORS:
         raise ValueError('Missing OpenCode copy locators')
@@ -190,13 +220,19 @@ def opencode_metadata(message, existing=None):
             raise ValueError('OpenCode locator metadata conflicts with source')
         origin_keys = ('kind', 'path') if locator.get('kind') == 'database' else (
             'kind', 'path', 'document_id', 'content_sha256', 'original_filename')
-        _origin({key: locator.get(key) for key in origin_keys})
+        _origin({key: locator.get(key) for key in origin_keys}, path_validator)
         metadata_keys = {'version', 'profile', 'project_id', 'session_id', 'message_id', 'part_ids', 'text_sha256', 'source_id'}
         if (set(locator) != set(origin_keys) | metadata_keys or not isinstance(locator.get('text_sha256'), str)
                 or not _HASH.fullmatch(locator['text_sha256']) or not isinstance(locator.get('part_ids'), list)
                 or not 1 <= len(locator['part_ids']) <= MAX_PARTS
                 or len({_native_id(value) for value in locator['part_ids']}) != len(locator['part_ids'])):
             raise ValueError('Invalid OpenCode locator structure')
+        expected_id = digest([NAMESPACE, message['native_project_id'], message['native_session_id'],
+            message['native_message_id'], message['cwd'], timestamp, message['role'],
+            message['provenance'], locator['text_sha256']])
+        expected_session = ('opencode-export:' if locator['kind'] == 'document' else '') + message['native_session_id']
+        if message['id'] != expected_id or message.get('session_id') != expected_session:
+            raise ValueError('OpenCode semantic metadata does not match its identity')
     if message.get('source_locator') not in locators:
         raise ValueError('OpenCode primary locator is not a registered copy')
     result = {key: copy.deepcopy(message[key]) for key in METADATA_FIELDS if key in message}
@@ -205,6 +241,10 @@ def opencode_metadata(message, existing=None):
                     'cwd', 'native_project_id', 'native_session_id', 'native_message_id')
         if any(existing.get(key) != result.get(key) for key in semantic):
             raise ValueError('OpenCode source identity changed')
+        previous = opencode_metadata(existing, path_validator=path_validator)
+        for locator in previous['source_locators']:
+            if locator not in result['source_locators'] and len(result['source_locators']) < MAX_LOCATORS:
+                result['source_locators'].append(copy.deepcopy(locator))
     return result
 
 

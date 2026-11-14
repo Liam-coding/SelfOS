@@ -2,7 +2,7 @@
 import copy
 import json
 
-from selfos.sources.compaction import canonical_project, pack_records
+from selfos.sources.compaction import canonical_project, pack_records, part_fingerprint
 from selfos.knowledge.filtering import compact_message
 from selfos.knowledge.identity import digest
 
@@ -45,7 +45,7 @@ def resume_compaction(messages, carry, *, session_end, max_chars):
     def seal(parts):
         for part in parts:
             sealed.append(dict(project_id=state['project_id'], session_id=state['session_id'],
-                part=state['next_part'], messages=part, fingerprint=digest(part)))
+                part=state['next_part'], messages=part, fingerprint=part_fingerprint(part)))
             state['next_part'] += 1
 
     def close_tie():

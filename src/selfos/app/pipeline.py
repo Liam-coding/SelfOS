@@ -465,6 +465,8 @@ def register_project_aliases(vault, aliases):
             writes["02_Work/projects/"+digest(origin)+".md"] = None
             writes["02_Work/projects/"+digest(target)+".md"] = render_card(state["cards"][target])
         for source in state["sources"].values():
+            if source.get('source') == 'opencode':
+                continue  # Immutable adapter identity is independent of application grouping.
             if source.get("project_id") in aliases:
                 source.setdefault("original_project_id",source["project_id"])
                 source["project_id"] = aliases[source["project_id"]]

@@ -1,6 +1,7 @@
 """SelfOS-owned bounded scan checkpoints; upstream databases are never modified."""
 import json
 import threading
+import uuid
 from pathlib import Path
 
 from selfos.storage.files import _atomic_write, _locked
@@ -9,6 +10,9 @@ from selfos.sources.opencode_records import PROFILE
 from selfos.sources.opencode_database import scan_database
 from selfos.sources.resumable_compaction import resume_compaction, _validate as validate_carry
 from selfos.knowledge.identity import digest
+from selfos.sources.compaction import part_fingerprint
+from selfos.storage.settings import load_settings
+from selfos.knowledge.settings import policy_hash
 
 MAX_PAGE_BYTES = 8 * 1024 * 1024
 MAX_SNAPSHOT_BYTES = 64 * 1024 * 1024
@@ -33,7 +37,8 @@ def _location(vault, entry, selection, max_chars):
 
 def _new(identity, selection, max_chars):
     return dict(version=1, identity=identity, selection_hash=digest(selection), max_chars=max_chars,
-                cursor=None, snapshot=None, carry=None, sealed_sessions=[], status='partial', diagnostics=[])
+                cursor=None, snapshot=None, carry=None, sealed_sessions=[], history_sessions=[],
+                canonical_receipts={}, status='partial', diagnostics=[])
 
 
 def _load(path, identity, selection, max_chars):
@@ -53,17 +58,50 @@ def _load(path, identity, selection, max_chars):
             or state['selection_hash'] != digest(selection) or state['max_chars'] != max_chars
             or state['status'] not in ('partial', 'complete', 'stopped', 'bounded_read')
             or not isinstance(state['sealed_sessions'], list) or not isinstance(state['diagnostics'], list)
+            or not isinstance(state['history_sessions'], list) or not isinstance(state['canonical_receipts'], dict)
             or (state['cursor'] is not None and not isinstance(state['cursor'], dict))
             or (state['snapshot'] is not None and not isinstance(state['snapshot'], dict))):
         raise ValueError('Invalid durable harness checkpoint')
     if state['carry'] is not None:
         validate_carry(state['carry'], max_chars)
-    for part in state['sealed_sessions']:
+    for part in [*state['sealed_sessions'], *state['history_sessions']]:
         if (not isinstance(part, dict) or set(part) != {'project_id', 'session_id', 'part', 'messages', 'fingerprint'}
                 or type(part['part']) is not int or part['part'] < 0 or not isinstance(part['messages'], list)
-                or part['fingerprint'] != digest(part['messages'])):
+                or part['fingerprint'] != part_fingerprint(part['messages'])):
             raise ValueError('Invalid sealed harness input')
     return state
+
+
+def _canonical(vault):
+    path = Path(vault).resolve() / '.knowledge_pipeline.json'
+    if not path.exists():
+        return {}
+    with path.open('rb') as stream:
+        raw = stream.read(64*1024*1024 + 1)
+    if len(raw) > 64*1024*1024:
+        raise ValueError('Canonical knowledge exceeds native receipt validation allowance')
+    state = json.loads(raw)
+    if not isinstance(state, dict):
+        raise ValueError('Invalid canonical knowledge')
+    return state
+
+
+def _receipt_valid(receipt, state, current_policy):
+    return (isinstance(receipt, dict) and set(receipt) == {'cache_key', 'fingerprint', 'policy_hash'}
+            and receipt['policy_hash'] == current_policy
+            and isinstance(receipt['cache_key'], str) and isinstance(receipt['fingerprint'], str)
+            and state.get('cache', {}).get(receipt['cache_key']) == receipt['fingerprint']
+            and receipt['cache_key'] in state.get('summaries', {}))
+
+
+def _restore_pending(vault, state):
+    if not state['canonical_receipts']:
+        return state
+    canonical, current_policy = _canonical(vault), policy_hash(load_settings(vault))
+    pending = {_part_id(state, part) for part in state['sealed_sessions']}
+    missing = [part for part in state['history_sessions'] if _part_id(state, part) not in pending
+               and not _receipt_valid(state['canonical_receipts'].get(_part_id(state, part)), canonical, current_policy)]
+    return {**state, 'sealed_sessions': [*missing, *state['sealed_sessions']]}
 
 
 def _publish(root, path, state):
@@ -127,6 +165,11 @@ def advance_scan(vault, source_entry, *, cancel=lambda: False, limits=None, max_
             state = _load(path, identity, selection, max_chars)
             if cancel():
                 return _result(state, 'stopped')
+            restored = _restore_pending(vault, state)
+            if restored != state:
+                if not _publish(root, path, restored):
+                    return _result(state, 'staging_limit')
+                state = restored
             if state['sealed_sessions']:
                 return _result(state)
             cursor = state['cursor'] or state['snapshot']
@@ -149,7 +192,7 @@ def advance_scan(vault, source_entry, *, cancel=lambda: False, limits=None, max_
             return _result(candidate)
 
 
-def acknowledge_scan(vault, source_entry, part_ids, *, max_chars=12000):
+def acknowledge_scan(vault, source_entry, part_ids, *, max_chars=12000, canonical=None):
     """Call only after canonical cache/knowledge publication; replay is safe before then."""
     if (not isinstance(part_ids, list) or any(not isinstance(item, str) for item in part_ids)
             or len(set(part_ids)) != len(part_ids)):
@@ -162,8 +205,60 @@ def acknowledge_scan(vault, source_entry, part_ids, *, max_chars=12000):
             available = {_part_id(state, part) for part in state['sealed_sessions']}
             if set(part_ids) - available:
                 raise ValueError('Processed parts do not belong to this snapshot')
+            receipts = dict(state['canonical_receipts'])
+            history = list(state['history_sessions'])
+            if canonical is not None:
+                if not isinstance(canonical, dict) or set(canonical) != set(part_ids):
+                    raise ValueError('Native acknowledgement needs exact canonical receipts')
+                current, current_policy = _canonical(vault), policy_hash(load_settings(vault))
+                if any(not _receipt_valid(receipt, current, current_policy) for receipt in canonical.values()):
+                    raise ValueError('Native parts are not canonically committed')
+                receipts.update(canonical)
+                historical = {_part_id(state, part) for part in history}
+                history.extend(part for part in state['sealed_sessions']
+                               if _part_id(state, part) in part_ids and _part_id(state, part) not in historical)
             candidate = {**state, 'sealed_sessions': [part for part in state['sealed_sessions']
-                                                     if _part_id(state, part) not in part_ids]}
+                                                     if _part_id(state, part) not in part_ids],
+                         'history_sessions': history, 'canonical_receipts': receipts}
             if not _publish(root, path, candidate):
                 raise ValueError('Harness staging limit prevents acknowledgement')
             return _result(candidate)
+
+
+def native_parts(vault, source_entry, part_ids, *, max_chars=12000):
+    """Read an atomic checkpoint and verify consumed input without advancing disk state."""
+    selection = load_sources(vault)
+    _, path, identity = _location(vault, source_entry, selection, max_chars)
+    state = _load(path, identity, selection, max_chars)
+    snapshot = state['cursor'] or state['snapshot']
+    if snapshot is not None:
+        checked = scan_database(source_entry['path'], selection, cursor=snapshot, limits={'messages':1})
+        if checked['status'] not in ('complete', 'partial'):
+            raise ValueError('OpenCode scan prefix is unavailable or changed; restart the scan')
+    available = {_part_id(state, part):part for part in [*state['history_sessions'], *state['sealed_sessions']]}
+    if (not isinstance(part_ids, list) or any(not isinstance(key, str) or key not in available for key in part_ids)
+            or len(set(part_ids)) != len(part_ids)):
+        raise ValueError('Selected native parts do not belong to the retained scan')
+    return [available[key] for key in part_ids]
+
+
+def restart_scan(vault, source_entry, *, max_chars=12000):
+    """Explicit fresh snapshot; preserve old sealed/unsealed state as a contained archive."""
+    with _SCAN_LOCK, policy_lock(vault):
+        selection = load_sources(vault)
+        root, path, identity = _location(vault, source_entry, selection, max_chars)
+        with _locked(root):
+            archived = None
+            if path.exists():
+                with path.open('rb') as stream:
+                    raw = stream.read(MAX_PAGE_BYTES + 1)
+                if len(raw) > MAX_PAGE_BYTES:
+                    raise ValueError('Old checkpoint exceeds archive allowance')
+                archived = root / 'archive' / (uuid.uuid4().hex + '.json')
+                if not archived.resolve().is_relative_to(root.resolve()) or archived.exists():
+                    raise ValueError('Native scan archive escapes staging')
+                _atomic_write(archived, raw)
+            if not _publish(root, path, _new(identity, selection, max_chars)):
+                if archived is not None:
+                    archived.unlink()
+                raise ValueError('Native staging allowance prevents a fresh scan')

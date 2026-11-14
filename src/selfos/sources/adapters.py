@@ -6,6 +6,7 @@ from selfos.sources.documents import SourceUnavailable
 from selfos.sources.selection import validate_selection, allowed_database, project_allowed
 from selfos.sources.opencode_database import resolve_database
 from selfos.sources.opencode_records import opencode_metadata
+from selfos.sources.opencode_records import METADATA_FIELDS
 from selfos.storage.opencode_exports import resolve_export
 
 
@@ -45,3 +46,14 @@ def verify_source(vault, source, selection):
     if matched is None:
         raise SourceUnavailable('source_changed', 'No permitted unchanged OpenCode source copy is available')
     return {**matched, 'source_locator': copies[0], 'source_locators': copies, 'path': copies[0]['path']}
+
+
+def verified_inputs(vault, sources, selection):
+    result = []
+    for source in sources:
+        if source.get('source') != 'opencode':
+            result.append(copy.deepcopy(source))
+            continue
+        verified = verify_source(vault, source, selection)
+        result.append({**source, **{key:copy.deepcopy(verified[key]) for key in METADATA_FIELDS if key in verified}})
+    return result
