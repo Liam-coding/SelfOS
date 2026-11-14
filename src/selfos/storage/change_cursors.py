@@ -16,6 +16,9 @@ _lock=threading.Lock()
 class NavigationLimit(ValueError):
     code='history_navigation_limit'
 
+class CursorUnavailable(ValueError):
+    code='restart_required'
+
 def owner(vault,session):
     if not isinstance(session,str) or not session:raise ValueError('Authenticated session required')
     from pathlib import Path
@@ -41,10 +44,12 @@ def save(vault,session,context):
     if size>CACHE_LIMIT:raise NavigationLimit('History proof context limit exceeded')
     with _lock:
         _expire()
-        if len(_cache)>=MAX_CURSORS or size+sum(entry['bytes'] for entry in _cache.values())>CACHE_LIMIT:
-            raise NavigationLimit('History cursor cache limit reached; restart navigation')
+        if MAX_CURSORS<1:raise NavigationLimit('History cursor cache is disabled')
+        while _cache and (len(_cache)>=MAX_CURSORS or size+sum(entry['bytes'] for entry in _cache.values())>CACHE_LIMIT):
+            oldest=min(_cache,key=lambda key:_cache[key]['accessed'])
+            del _cache[oldest]
         token=secrets.token_urlsafe(32)
-        _cache[token]={'owner':owner(vault,session),'created':time.monotonic(),'parts':parts,'bytes':size}
+        _cache[token]={'owner':owner(vault,session),'created':time.monotonic(),'accessed':time.monotonic(),'parts':parts,'bytes':size}
         return token
 
 def load(vault,session,token):
@@ -52,7 +57,8 @@ def load(vault,session,token):
     with _lock:
         _expire()
         entry=_cache.get(token)
-        if not entry or entry['owner']!=owner(vault,session):raise ValueError('Invalid or expired history cursor; restart navigation')
+        if not entry or entry['owner']!=owner(vault,session):raise CursorUnavailable('Invalid or expired history cursor; restart navigation')
+        entry['accessed']=time.monotonic()
         context={'proofs':{},'reverted':[]}
         for part in entry['parts']:
             for kind,value in json.loads(part):

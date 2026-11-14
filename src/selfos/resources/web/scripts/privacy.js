@@ -27,7 +27,7 @@ async function exportPrivacyData(){
   document.getElementById('privacy-download').hidden=true;privacyPreparedExport=null;
   try{const data=await privacyRequest({action:'export',originals:document.getElementById('privacy-originals').checked,backups:document.getElementById('privacy-backups').checked,audit:document.getElementById('privacy-audit').value,audit_recent:Number(document.getElementById('privacy-audit-recent').value)});
     privacyPreparedExport=JSON.stringify(data,null,2);
-    const summary=data.audit_summary;window.selfosI18n.bindText(document.getElementById('privacy-status'),'ui.common.value',()=>({value:window.selfosI18n.t('changes.export_summary',{operations:summary.operations,bytes:summary.bytes})+' '+window.selfosI18n.t('changes.'+(summary.earlier_history_omitted?'omitted':'complete'))}));
+    const summary=data.audit_summary;window.selfosI18n.bindText(document.getElementById('privacy-status'),'ui.common.value',()=>({value:window.selfosI18n.t('changes.export_summary',{operations:summary.operations,bytes:summary.bytes})+' '+(summary.oldest?window.selfosI18n.t('changes.export_range',{oldest:summary.oldest.run_id+':'+summary.oldest.index,newest:summary.newest.run_id+':'+summary.newest.index})+' ':'')+window.selfosI18n.t('changes.'+(summary.earlier_history_omitted?'omitted':'complete'))}));
     document.getElementById('privacy-download').hidden=false;
   }catch(error){document.getElementById('privacy-status').textContent=error.message;}
 }

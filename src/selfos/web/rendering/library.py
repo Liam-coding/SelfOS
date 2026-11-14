@@ -17,11 +17,12 @@ HTML = _HTML + '<script>' + _SCRIPT + '</script>'
 
 from selfos.web.rendering.timeline import HTML as TIMELINE_HTML
 HTML += TIMELINE_HTML
-HTML += frontend_text('templates/changes.html').replace('<!-- selfos-changes-end -->','<style>'+frontend_text('styles/changes.css')+'</style><script>'+frontend_text('scripts/changes.js')+'</script><!-- selfos-changes-end -->')
+HTML += frontend_text('templates/changes.html').rstrip().replace('<!-- selfos-changes-end -->','<style>'+frontend_text('styles/changes.css')+'</style><script>'+frontend_text('scripts/changes.js')+'</script><!-- selfos-changes-end -->')
 
 def refresh_library(html):
     """Refresh an existing library without regenerating private dashboard data."""
     html = re.sub(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->', '', html, flags=re.S)
+    html = re.sub(r'<!-- selfos-changes-start -->.*?<!-- selfos-changes-end -->', '', html, flags=re.S)
     pattern = r'<section\b[^>]*\bid="knowledge-library"[^>]*>.*?</section>\s*<dialog\b[^>]*\bid="kb-detail"[^>]*>.*?</dialog>\s*<script>.*?</script>'
     updated, count = re.subn(pattern, lambda _: HTML, html, count=1, flags=re.S)
     if not count:

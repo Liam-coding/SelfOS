@@ -11,11 +11,11 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
-        if parsed_path.path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__'):
+        if parsed_path.path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__','/__knowledge_record_changes__'):
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':
                 return self._send_json(403,{'code':'history_forbidden'})
-            from selfos.app.changes import list_changes,change_detail,change_source
+            from selfos.app.changes import list_changes,change_detail,change_source,record_change
             from selfos.storage.change_cursors import NavigationLimit
             qs=parse_qs(parsed_path.query)
             def value(key,default=''):return qs.get(key,[default])[0]
@@ -24,6 +24,8 @@ class DashboardRoutes:
                 if parsed_path.path=='/__knowledge_changes__':
                     result=list_changes(self.runtime.VAULT,session=session,cursor=value('cursor') or None,
                         category=value('category','all'),action=value('action','all'),conflict=value('conflict')=='true')
+                elif parsed_path.path=='/__knowledge_record_changes__':
+                    result=record_change(self.runtime.VAULT,value('record'),session=session,cursor=value('cursor') or None)
                 elif parsed_path.path=='/__knowledge_change__':
                     result=change_detail(self.runtime.VAULT,value('id'),session=session,cursor=value('cursor') or None)
                 else:

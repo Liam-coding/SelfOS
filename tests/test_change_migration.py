@@ -75,3 +75,16 @@ def test_migrated_historical_uploaded_source_uses_included_local_original(tmp_pa
     result=change_source(destination,RUN+':1',source_id,session='a',proof=page['cursor'])
     assert result['status']=='verified' and result['text']
     assert json.loads((destination/'.knowledge_pipeline.json').read_text())=={}
+
+def test_no_history_export_retains_independent_full_backup_restore(tmp_path):
+    import json
+    from selfos.app.change_publication import publish_changes
+    from selfos.app.migration import export_package,import_package
+    from selfos.storage.pipeline import restore_pipeline_backup
+    vault=tmp_path/'source';vault.mkdir()
+    # Keep canonical serialization identical across the existing migration path.
+    publish_changes(vault,{'.knowledge_pipeline.json':b'{}'},RUN,1,kind='import')
+    package=export_package(vault,tmp_path,audit='none',include_backups=True)
+    target=tmp_path/'target';import_package(target,tmp_path/'new-root',package)
+    restore_pipeline_backup(target,RUN)
+    assert not (target/'.knowledge_pipeline.json').exists()

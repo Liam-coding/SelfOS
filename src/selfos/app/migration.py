@@ -246,6 +246,12 @@ def export_package(vault, root, *, include_originals=False, include_backups=Fals
             if path.stat().st_size > MAX_BYTES - total: raise ValueError('Export exceeds 64 MiB')
             with path.open('rb') as handle:
                 raw = handle.read(MAX_BYTES - total + 1)
+            if audit_data['manifest'] is None and name.endswith('/pipeline-manifest.json'):
+                from selfos.storage.change_receipts import HEAD_NAME,encode
+                manifest=json.loads(raw)
+                if HEAD_NAME in manifest:
+                    manifest.pop(HEAD_NAME)
+                    raw=encode(manifest)
             total += len(raw)
             if total > MAX_BYTES: raise ValueError('Export exceeds 64 MiB')
             entries[name] = base64.b64encode(raw).decode('ascii')

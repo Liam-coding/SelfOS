@@ -68,5 +68,10 @@
   "export_summary": "已准备 {operations} 次操作，审计数据 {bytes} 字节。",
   "omitted": "更早的历史未包含。",
   "complete": "包含全部可用历史。",
-  "backup_restored": "???????????????"
+  "backup_restored": "通过恢复已保存的纠正事务还原。",
+  "restart_required": "历史游标已过期或被回收，请重新加载历史。",
+  "valid_until": "有效期截止",
+  "status": "状态",
+  "reverted_targets": "本次恢复撤销的操作",
+  "export_range": "包含从 {oldest} 到 {newest} 的完整操作。"
 }

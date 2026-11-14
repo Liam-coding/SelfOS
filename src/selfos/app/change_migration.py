@@ -36,7 +36,8 @@ def audit_export(vault,*,mode='none',recent=20):
     if total>EXPORT_LIMIT:raise ValueError('Audit export byte limit exceeded')
     files[HEAD_NAME]=raw
     manifest={'version':1,'included':included,'omitted_parent':ref}
-    return {'files':files,'manifest':manifest,'summary':{'operations':len(included),'bytes':total,'earlier_history_omitted':ref is not None}}
+    return {'files':files,'manifest':manifest,'summary':{'operations':len(included),'bytes':total,
+            'earlier_history_omitted':ref is not None,'newest':included[0],'oldest':included[-1]}}
 
 def validate_audit_import(decoded,manifest):
     if manifest is None:

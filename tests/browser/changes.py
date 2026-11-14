@@ -75,12 +75,34 @@ def run(output,browser_path):
                 entry.click();expect(page.locator('#changes-status')).to_contain_text('Restart' if locale=='en' else '重新加载')
                 page.locator('#changes-restart').click();expect(page.locator('.changes-operation')).to_have_count(6)
                 expect(page.locator('[data-event="'+merged['backup_id']+':1"]')).to_contain_text('Reverted' if locale=='en' else '已恢复')
-                page.locator('#changes-conflicts').check();expect(page.locator('.changes-operation')).to_have_count(0)
+                page.locator('#changes-conflicts').check();expect(page.locator('.changes-operation')).to_have_count(5)
                 page.locator('#changes-conflicts').uncheck();expect(page.locator('.changes-operation')).to_have_count(6)
                 page.locator('.changes-operation').first.click();expect(page.locator('.changes-change')).to_have_count(1)
                 assert page.evaluate('document.querySelector("#knowledge-changes").scrollWidth<=document.querySelector("#knowledge-changes").clientWidth+1')
                 assert path.read_bytes()==raw and not errors,errors
                 page.screenshot(path=str(output/('changes-'+locale+'.png')))
+                current=json.loads((vault/'.knowledge_pipeline.json').read_text())
+                card={'project_id':'synthetic-project','title':'Synthetic project','intent':'Stable project goal','domain':'work',
+                      'status':'in_progress','source_ids':['m1'],'decisions':[],'blockers':[],'next_steps':[]}
+                current['cards']={'synthetic-project':card}
+                publish_changes(vault,{'.knowledge_pipeline.json':json.dumps(current).encode()},'20261114T100001-123456abcdef',1,kind='import')
+                current['cards']['synthetic-project']={**card,'status':'blocked','blockers':['Awaiting synthetic access'],
+                    'decisions':['Keep immutable originals'],'next_steps':['Review source permissions']}
+                publish_changes(vault,{'.knowledge_pipeline.json':json.dumps(current).encode()},'20261114T100002-123456abcdef',1,kind='import')
+                page.locator('#changes-restart').click();expect(page.locator('.changes-operation')).to_have_count(8)
+                page.locator('[data-event="20261114T100002-123456abcdef:1"]').click()
+                expect(page.locator('.changes-change')).to_have_count(1)
+                expect(page.locator('.changes-values>div').first).to_contain_text('In progress' if locale=='en' else '进行中')
+                expect(page.locator('.changes-values>div').last).to_contain_text('Blocked' if locale=='en' else '存在阻碍')
+                expect(page.locator('.changes-values>div').last).to_contain_text('Awaiting synthetic access')
+                expect(page.locator('.changes-values>div').last).to_contain_text('Review source permissions')
+                page.locator('#changes-close').click()
+                project=context.request.get(url+'/__knowledge__?category=projects').json()['items'][0]
+                page.evaluate('window.openKnowledgeDetail('+json.dumps(project['id'])+')')
+                page.locator('[data-knowledge-changes]').click()
+                expect(page.locator('.changes-change')).to_have_count(1)
+                expect(page.locator('#changes-before-after')).to_contain_text('Awaiting synthetic access')
+                assert not errors,errors
                 print(locale,'import/edit/delete/undo/merge/restore, provenance, stale head, safe text and responsive history passed')
             finally:
                 context.close();server.shutdown();server.server_close()

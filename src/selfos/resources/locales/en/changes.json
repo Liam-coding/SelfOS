@@ -68,5 +68,10 @@
   "export_summary": "Prepared {operations} operations, {bytes} audit bytes.",
   "omitted": "Earlier history is omitted.",
   "complete": "Includes all available history.",
-  "backup_restored": "Restored by reversing a saved correction transaction."
+  "backup_restored": "Restored by reversing a saved correction transaction.",
+  "restart_required": "This history cursor expired or was replaced. Restart history to continue.",
+  "valid_until": "Effective until",
+  "status": "Status",
+  "reverted_targets": "Operations reversed by this restore",
+  "export_range": "Includes complete operations from {oldest} through {newest}."
 }

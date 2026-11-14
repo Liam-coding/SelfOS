@@ -25,6 +25,7 @@ def test_changed_head_invalidates_proof_without_exposing_old_detail(tmp_path):
     publish(tmp_path,state(record('new')),'20261114T100001-123456abcdef')
     detail=change_detail(tmp_path,page['items'][0]['id'],session='a',cursor=page['cursor'])
     assert detail['status']=='reset_required' and not detail.get('items')
+    assert list_changes(tmp_path,session='a',cursor=detail['cursor'])['items']
 
 def test_bounded_deep_link_does_not_expose_unproven_snapshots(tmp_path,monkeypatch):
     import selfos.app.changes as changes
@@ -118,3 +119,24 @@ def test_head_changed_during_detail_read_returns_reset_without_snapshots(tmp_pat
     monkeypatch.setattr(changes._Budget,'part',concurrent)
     result=changes.change_detail(tmp_path,RUN+':1',session='a',cursor=page['cursor'])
     assert result['status']=='reset_required' and not result.get('items')
+
+def test_sustained_navigation_reclaims_cursors_and_restart_still_works(tmp_path,monkeypatch):
+    from selfos.app.changes import list_changes,change_detail
+    import selfos.storage.change_cursors as cursors
+    monkeypatch.setattr(cursors,'MAX_CURSORS',2)
+    publish(tmp_path,state(record()))
+    page=list_changes(tmp_path,session='a');cursor=page['cursor']
+    for _ in range(8):
+        detail=change_detail(tmp_path,RUN+':1',session='a',cursor=cursor)
+        assert detail['status']=='verified';cursor=detail['cursor']
+    assert list_changes(tmp_path,session='a')['items']
+    assert list_changes(tmp_path,session='b')['items']
+
+def test_current_record_lookup_returns_its_verified_historical_operation(tmp_path):
+    from selfos.app.changes import record_change,change_detail
+    from selfos.knowledge.identity import record_version
+    publish(tmp_path,state(record()))
+    version=record_version('preferences',record())
+    result=record_change(tmp_path,version,session='a')
+    assert result['status']=='verified' and result['id']==RUN+':1'
+    assert change_detail(tmp_path,result['id'],session='a',cursor=result['cursor'])['items']

@@ -4,7 +4,7 @@ from tests.test_knowledge_corrections import state,record
 
 def test_change_endpoints_require_login_and_bind_proof_to_session(http,tmp_path):
     request,auth=http
-    for path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__'):
+    for path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__','/__knowledge_record_changes__'):
         assert request(path)[0]==401
     auth.setup('synthetic changes password')
     cookie='selfos_session='+auth.login('synthetic changes password')

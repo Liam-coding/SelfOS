@@ -16,3 +16,4 @@ def test_changes_catalogs_explain_historical_values_and_omitted_history():
     assert translate('changes.title','zh-CN',data=data)=='知识变化'
     assert 'export' in translate('changes.not_included',data=data)
     assert translate('changes.historical',data=data)!='changes.historical'
+    assert '?' not in translate('changes.backup_restored','zh-CN',data=data)
