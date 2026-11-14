@@ -48,7 +48,9 @@ Requires **Python 3.10+**, Git, and an Anthropic Messages or OpenAI-compatible C
 
     The interface defaults to English. Choose **Settings > Language** for Simplified Chinese.
 
-4. On a fresh knowledge profile, select **Get started** to choose sources/exclusions, configure your model and inspect a bounded local preview. **Start sample** processes at most 2 compact parts with a cumulative 12-request allowance. Stop/resume preserves progress and remaining requests. Existing users can reopen it through **Settings > Resume setup**. See [first-run setup](docs/first-run-onboarding.md).
+4. Open **Import center** to inspect conversation sources, uploaded originals, current tasks and committed results. **Preview a small local sample** enters the bounded setup flow; **Upload or organize files** opens file selection and drag/drop. Opening the center does not scan conversations or call a model. See [import center](docs/knowledge-import.md#import-center).
+
+   On a fresh knowledge profile, **Get started** also opens source/exclusion setup and a local preview. **Start sample** processes at most 2 compact parts with a cumulative 12-request allowance. Stop/resume preserves progress and remaining requests. Existing users can reopen setup through **Settings > Resume setup**. See [first-run setup](docs/first-run-onboarding.md).
 
    **Preview more conversations** offers a separate larger preview without launching all history. The ordinary organizer remains available under **Choose what matters**. Use **Browse knowledge** for published records and original sources.
 

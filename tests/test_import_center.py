@@ -235,3 +235,22 @@ def test_external_scan_lock_directory_is_rejected(tmp_path):
     assert not record_scan(vault, preview, 'local')
     assert list(outside.iterdir()) == []
     assert not (vault / '.knowledge_import_center.json').exists()
+
+
+def test_external_scan_lock_file_is_rejected(tmp_path):
+    import os
+    from selfos.storage.import_center import record_scan
+    from selfos.knowledge.settings import policy_hash
+    from selfos.storage.settings import load_settings
+    vault, root = setup_sources(tmp_path)
+    guard = vault / '.knowledge_import_center'
+    guard.mkdir()
+    outside = tmp_path / 'synthetic-external-lock'
+    outside.write_bytes(b'unchanged synthetic external file')
+    try:
+        os.symlink(outside, guard / '.knowledge.lock')
+    except OSError as error:
+        pytest.skip(f'File symlinks unavailable: {error}')
+    assert not record_scan(vault, dict(id='b'*32, files=[{'path': str(root/'s.jsonl')}],
+                                      sessions=[], policy_hash=policy_hash(load_settings(vault))), 'local')
+    assert outside.read_bytes() == b'unchanged synthetic external file'

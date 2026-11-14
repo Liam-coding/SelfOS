@@ -79,6 +79,7 @@ def refresh_dashboard(page):
                  'function updateKnowledgeOverview', 'function authRequest', 'const selfosFetch', 'window.openProjectTimeline', 'let privacySelection')
         owner=_OpeningTag(script).attributes.get('data-selfos-module')
         owned=owner in ('runtime','request','auth','login','account','settings','theme','jobs','import-settings','usage','publication','quality','overview','staging','onboarding','chat','dimensions','privacy','sparklines','knowledge','corrections','timeline','legacy-dashboard','bootstrap')
+        owned = owned or owner == 'import-center'
         if owner is not None and not owned:return script
         return '' if owned or any(marker in script for marker in markers) else script
     page=re.sub(r'<script\b[^>]*>.*?</script>',strip_script,page,flags=re.S)
@@ -92,6 +93,8 @@ def refresh_dashboard(page):
     remove(r'<!-- selfos-project-timeline-start -->.*?<!-- selfos-project-timeline-end -->')
     remove(r'<!-- selfos-changes-start -->.*?<!-- selfos-changes-end -->')
     remove(r'<!-- selfos-onboarding-start -->.*?<!-- selfos-onboarding-end -->')
+    remove(r'<!-- selfos-import-center-start -->.*?<!-- selfos-import-center-end -->')
+    remove(r'<button id="import-center-open"[^>]*>.*?</button>')
     remove(r'<!-- selfos-uploads-start -->.*?<!-- selfos-uploads-end -->')
     remove(r'<section id="import-publication"[^>]*>.*?</section>')
     remove(r'<!-- selfos-quality-start -->.*?<!-- selfos-quality-end -->')

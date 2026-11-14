@@ -1,5 +1,17 @@
 # Knowledge import and recovery
 
+## Import center
+
+Open **Import center** on the dashboard to inspect configured conversation directories, native OpenCode databases, uploaded originals, the current task and organization results together. Opening the center does not start a conversation scan or call your model.
+
+**Preview a small local sample** uses the existing bounded first-run preview. **Manage sources** opens source configuration; native databases have their own bounded preview there. **Upload or organize files** opens the existing upload/drop area and selected-document preview. Starting still requires the admitted preview and its request allowance; the center never launches all history automatically.
+
+The last-preview time and selected-part count describe that bounded preview, not the whole archive. An unscanned source has an unknown pending total. Changing source, privacy or retention settings invalidates stale scan receipts. Original files remain separate from extracted knowledge.
+
+Uploaded rows distinguish uploaded, indexing, ready-to-organize and canonically committed parts. Task progress counts saved extraction checkpoints; those remain provisional until publication. **View committed changes** opens the existing source-cited history. **Inspect saved work and recovery** opens checkpoint compatibility and recovery details. **Stop safely** cooperatively stops the existing task; refreshing or closing the center does not stop it.
+
+Scan metadata in vault/.knowledge_import_center.json is bounded, best-effort observability. It is not a publication receipt and contains no conversation bodies or model credentials. Canonical state and verified source receipts determine whether knowledge is committed. Failed or unavailable metadata is shown separately rather than interpreted as zero work.
+
 For a bounded initial preview with custom sources, exclusions and a cumulative request allowance, use the [first-run guide](first-run-onboarding.md). The ordinary import flow below remains available separately.
 
 SelfOS turns local AI conversations into traceable personal knowledge. The dashboard screenshot uses synthetic example records; it contains no personal conversation content.

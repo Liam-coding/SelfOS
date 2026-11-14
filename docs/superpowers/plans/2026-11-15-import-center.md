@@ -28,22 +28,22 @@
 **Files:** Create storage/import_center.py, app/import_center.py, tests/test_import_center.py; modify app/onboarding.py, app/harness_previews.py, app/upload_preview.py, app/knowledge.py, app/import_status.py, web/routes/dashboard.py (all under src/selfos).
 **Interfaces:** `record_scan(vault, preview, kind) -> bool`; `scan_receipts(vault) -> dict`; `import_center_status(vault, config_root, *, run=None, offset=0, limit=50) -> dict`. Existing previews remain unchanged except for best-effort metadata receipts; journal includes admitted preview identity.
 
-- [ ] Write failing synthetic tests: configured sources without scanning, unknown pending counts, scan receipt timestamp/restart survival, selection/policy invalidation, external/corrupt metadata, upload pagination, staged versus committed publication.
-- [ ] Run `python -m pytest tests/test_import_center.py -q`; confirm the missing interface failures.
-- [ ] Implement bounded metadata store/read model and best-effort receipt hooks. Add authenticated GET route using the existing same-origin guard.
-- [ ] Run new tests plus existing onboarding/upload/native/publication route tests; verify expected passes.
-- [ ] Commit `feat: expose truthful import center source and operation status`.
+- [x] Write failing synthetic tests: configured sources without scanning, unknown pending counts, scan receipt timestamp/restart survival, selection/policy invalidation, external/corrupt metadata, upload pagination, staged versus committed publication.
+- [x] Run `python -m pytest tests/test_import_center.py -q`; confirm the missing interface failures.
+- [x] Implement bounded metadata store/read model and best-effort receipt hooks. Add authenticated GET route using the existing same-origin guard.
+- [x] Run new tests plus existing onboarding/upload/native/publication route tests; verify expected passes.
+- [x] Commit `feat: expose truthful import center source and operation status`.
 
 ### Task 2: Browser center
 
 **Files:** Create resources/web/templates/import-center.html, scripts/import-center.js, styles/import-center.css, locales/en/center.json, locales/zh-CN/center.json; modify web/rendering/onboarding.py, web/rendering/refresh.py, resources/web/manifest.json; create tests/test_import_center_browser.py and browser fixture.
 **Interfaces:** `selfosUI.module('import-center')` exposes open/close/refresh/init/teardown/busy. Consumes Task 1 GET, jobs snapshot/subscribe/recover/stop, onboarding open/preview, selfosUploads.open and openKnowledgeChanges.
 
-- [ ] Write failing resource and real browser tests for en/zh, hostile labels, bounded preview/editor handoff, job recovery/stop and delayed close/remount.
-- [ ] Run new tests and confirm meaningful failures.
-- [ ] Implement text-safe center, paginated originals, lifecycle-aware status refresh and recovery controls. Replace competing import entry with center while retaining explicit old controls where required.
-- [ ] Run focused browser/frontend suite with Chrome, cached refresh and installed-wheel resource checks.
-- [ ] Commit `feat(web): unify bounded import sources and recovery workspace`.
+- [x] Write failing resource and real browser tests for en/zh, hostile labels, bounded preview/editor handoff, job recovery/stop and delayed close/remount.
+- [x] Run new tests and confirm meaningful failures.
+- [x] Implement text-safe center, paginated originals, lifecycle-aware status refresh and recovery controls. Replace competing import entry with center while retaining explicit old controls where required.
+- [x] Run focused browser/frontend suite with Chrome, cached refresh and installed-wheel resource checks.
+- [x] Commit `feat(web): unify bounded import sources and recovery workspace`.
 
 ### Task 3: Review and delivery
 
