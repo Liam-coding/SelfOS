@@ -11,7 +11,7 @@ def test_json_chat_errors_remain_visible_and_translate(tmp_path,script_name,http
     script=frontend_text('scripts/'+script_name)
     script=frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/dashboard-chat.js')+(frontend_text('scripts/dashboard-dimensions.js') if script_name=='dashboard-dimensions.js' else '')
     helper=''
-    action="await _sendChatSilent('Fixture question');" if script_name=='dashboard-dimensions.js' else "get('chat-input').value='Fixture question';await sendChat();"
+    action="await _sendChatSilent('Fixture question');" if script_name=='dashboard-dimensions.js' else "selfosUI.module('chat').setMode('conversation');get('chat-input').value='Fixture question';await sendChat();"
     harness=r"""
 const elements=new Map();
 class Element{

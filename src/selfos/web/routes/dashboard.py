@@ -11,6 +11,21 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path in ('/__knowledge_qa_context__', '/__knowledge_qa_citation__'):
+            from selfos.app.knowledge_qa import question_context, validate_citation, KnowledgeQAError
+            try:
+                if len(parsed_path.query) > 1024:
+                    raise ValueError('Invalid citation query')
+                qs = parse_qs(parsed_path.query)
+                result = question_context(self.runtime.VAULT) if parsed_path.path == '/__knowledge_qa_context__' else validate_citation(
+                    self.runtime.VAULT, qs.get('record', [''])[0], qs.get('revision', [''])[0])
+                return self._send_json(200, result)
+            except KnowledgeQAError as error:
+                return self._send_json(409, {'code': error.code})
+            except (ValueError, TypeError, KeyError):
+                return self._send_json(400, {'code': 'qa_invalid'})
+            except (OSError, RuntimeError):
+                return self._send_json(503, {'code': 'qa_unavailable'})
         if parsed_path.path == '/__import_center__':
             origin = self.headers.get('Origin')
             if (origin and origin != 'http://' + self.headers.get('Host', '')) or self.headers.get('Sec-Fetch-Site') == 'cross-site':
@@ -107,10 +122,21 @@ class DashboardRoutes:
                         project=qs.get('project',[''])[0],source=qs.get('source',[''])[0],
                         date_from=qs.get('date_from',[''])[0],date_to=qs.get('date_to',[''])[0])
                 elif parsed_path.path=='/__knowledge_item__':
+                    qa_revision=qs.get('qa_revision',[''])[0]
+                    if qa_revision:
+                        from selfos.app.knowledge_qa import validate_citation
+                        validate_citation(self.runtime.VAULT,qs.get('id',[''])[0],qa_revision)
                     result=knowledge_detail(self.runtime.VAULT,qs.get('id',[''])[0],
                         source_offset=int(qs.get('source_offset',['0'])[0]))
-                else:result=knowledge_source(self.runtime.VAULT,qs.get('id',[''])[0],
-                    offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['24000'])[0]))
+                    if qa_revision:validate_citation(self.runtime.VAULT,qs.get('id',[''])[0],qa_revision)
+                else:
+                    qa_revision=qs.get('qa_revision',[''])[0]
+                    if qa_revision:
+                        from selfos.app.knowledge_qa import validate_citation
+                        validate_citation(self.runtime.VAULT,qs.get('qa_record',[''])[0],qa_revision,qs.get('id',[''])[0])
+                    result=knowledge_source(self.runtime.VAULT,qs.get('id',[''])[0],
+                        offset=int(qs.get('offset',['0'])[0]),limit=int(qs.get('limit',['24000'])[0]))
+                    if qa_revision:validate_citation(self.runtime.VAULT,qs.get('qa_record',[''])[0],qa_revision,qs.get('id',[''])[0])
                 return self._send_json(200,result)
             except KeyError as error:return self._send_json(404,{'error':str(error).strip("'"),'code':'not_found'})
             except (ValueError,TypeError) as error:return self._send_json(400,{'error':str(error),

@@ -1,6 +1,8 @@
 {
   "version": 1,
   "resources": [
+    "scripts/knowledge-qa.js",
+    "styles/knowledge-qa.css",
     "templates/import-center.html",
     "scripts/import-center.js",
     "styles/import-center.css",

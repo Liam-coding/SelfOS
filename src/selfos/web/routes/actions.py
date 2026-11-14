@@ -4,11 +4,51 @@ from pathlib import Path
 from urllib.error import URLError
 
 class ActionsRoutes:
+    def _qa_cancelled(self):
+        if not self._session_alive():
+            return True
+        import select
+        import socket
+        try:
+            ready, _, _ = select.select([self.connection], [], [], 0)
+            return bool(ready) and self.connection.recv(1, socket.MSG_PEEK) == b''
+        except OSError:
+            return True
+
+    def _knowledge_qa_post(self):
+        from selfos.app.knowledge_qa import answer_question, KnowledgeQAError
+        try:
+            lengths = self.headers.get_all('Content-Length', [])
+            if len(lengths) != 1 or self.headers.get_all('Transfer-Encoding'):
+                raise ValueError('Invalid request framing')
+            length = int(lengths[0])
+            if not 0 < length <= 65536:
+                raise ValueError('Invalid request size')
+            body = json.loads(self._read_body())
+            if not isinstance(body, dict) or set(body) - {'question', 'project', 'locale'} or 'question' not in body:
+                raise ValueError('Invalid question fields')
+            locale = body.get('locale', 'en')
+            if locale not in ('en', 'zh-CN'):
+                raise ValueError('Invalid locale')
+            result = answer_question(self.runtime.VAULT, self.runtime.ROOT, body['question'],
+                project=body.get('project', ''), locale=locale, cancel=self._qa_cancelled)
+            if self._qa_cancelled():
+                raise KnowledgeQAError('cancelled')
+            return self._send_json(200, result)
+        except KnowledgeQAError as error:
+            return self._send_json(409, {'code': error.code})
+        except (ValueError, TypeError, KeyError):
+            return self._send_json(400, {'code': 'qa_invalid'})
+        except (OSError, RuntimeError):
+            return self._send_json(503, {'code': 'qa_unavailable'})
+
     def do_POST(self):
         if self.path == '/__knowledge_upload__':
             return self._upload_post()
         if not self._local_request():return self._send_json(403,{'error':'Use the local SelfOS dashboard'})
         if not self._auth_guard():return
+        if self.path == '/__knowledge_qa__':
+            return self._knowledge_qa_post()
         if self.path == '/__knowledge_upload_preview__':
             return self._upload_preview()
         if self.path == '/__knowledge_native_preview__':

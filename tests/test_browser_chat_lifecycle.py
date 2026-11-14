@@ -16,7 +16,7 @@ selfosUI.register('request',()=>({}));selfosUI.register('locale',()=>({}));
 CHAT
 DIMENSIONS
 (async()=>{
- const chat=selfosUI.module('chat');assert.equal(storageReads,0,'Factory performed a storage read');selfosUI.init(document);assert.equal(requests.length,0);
+ const chat=selfosUI.module('chat');assert.equal(storageReads,0,'Factory performed a storage read');chat.setMode('conversation');selfosUI.init(document);assert.equal(requests.length,0);
  element('chat-input').value='typed-first';const first=chat.send();assert.equal(element('chat-input').value,'');
  element('chat-input').value='retained typed draft';const second=chat.send('dimension-second');
  assert.equal(requests.length,2);assert.deepEqual(JSON.parse(requests[0].options.body).messages,[{role:'user',content:'typed-first'}]);assert.deepEqual(JSON.parse(requests[1].options.body).messages,[{role:'user',content:'typed-first'},{role:'user',content:'dimension-second'}]);
