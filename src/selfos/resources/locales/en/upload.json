@@ -1,4 +1,5 @@
 {
+  "source_loading": "Loading original…", "source_unavailable": "Could not load this original. Retry to continue.", "retry_source": "Retry",
   "open": "Upload documents", "eyebrow": "YOUR SOURCES", "close": "Close", "import_time": "Imported at",
   "local_only": "Files are saved locally. Only Organize selected sends eligible excerpts to your configured model.",
   "drop": "Drop your documents here", "formats": "UTF-8 .txt, .md or OpenCode export .json · up to 20 MiB each · 10 files at a time", "choose": "Choose files",
