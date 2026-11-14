@@ -57,6 +57,8 @@ def build_upload_preview(vault, ids):
     if privacy_hash != selection_hash(vault) or preview['policy_hash'] != policy_hash(load_settings(vault)):
         raise ValueError('Document preview settings changed; retry')
     _write(_path(vault, preview['id']), preview)
+    from selfos.storage.import_center import record_scan
+    record_scan(vault, preview, 'upload')
     return preview
 
 

@@ -66,6 +66,8 @@ def build_preview(vault, tier="sample"):
     write_metadata(vault, f".knowledge_onboarding/previews/{preview_id}.json", preview, PREVIEW_BYTES)
     write_metadata(vault, f".knowledge_onboarding/budgets/{preview_id}.json",
                    {"version": 1, "used": 0, "limit": budget_limit})
+    from selfos.storage.import_center import record_scan
+    record_scan(vault, preview, 'local')
     return preview
 
 

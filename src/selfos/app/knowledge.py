@@ -59,7 +59,9 @@ def _run_knowledge(vault, *, roots, summarize, refine, rebuild, cancel, progress
               'operation_id': None}
     from selfos.app.import_status import RunJournal
     journal = RunJournal(vault, operation, mode, expected, policy_hash(settings))
-    journal.update()
+    preview_identity = native_preview_id or upload_preview_id or sample_id
+    source_kind = 'native' if native_preview_id else 'upload' if upload_preview_id else 'local' if sample_id else None
+    journal.update(preview_id=preview_identity, source_kind=source_kind)
     usage = None
     usage_used_at_start = 0
     real_transport = summarize is None and refine is None
