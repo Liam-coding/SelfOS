@@ -31,5 +31,5 @@ function applySelectedStaging(){
  .finally(()=>{button.disabled=false;});
 }
 document.getElementById('staging-modal').addEventListener('click',event=>{if(event.target===event.currentTarget)closeStagingModal();});
-checkStaging();
+document.addEventListener('DOMContentLoaded',checkStaging);
 

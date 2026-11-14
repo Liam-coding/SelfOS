@@ -15,6 +15,7 @@ const name='<img src=x onerror=unsafe()>',files=[{name,target:''}];let calls=0,f
 global.fetch=async(url,options)=>{calls++;if(url==='/__staging__/apply'){if(JSON.parse(options.body).files[0]!==name)throw Error('Filename changed');return await new Promise(resolve=>finishApply=()=>resolve({ok:true,json:async()=>({ok:true})}));}return {ok:true,json:async()=>({files})};};
 COMMON
 STAGING
+document.dispatchEvent(new Event('DOMContentLoaded'));
 (async()=>{
 for(let n=0;n<20;n++)await Promise.resolve();openStagingModal();
 if(rows[0].children[0].textContent!==name)throw Error('Literal filename not preserved');

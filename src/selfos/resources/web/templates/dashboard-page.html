@@ -9,6 +9,9 @@
 <style>@@SELFOS_RESOURCE:styles/dashboard.css@@</style>
 @@SELFOS_VALUE:selfos_style@@
 @@SELFOS_VALUE:library_style@@
+<script data-selfos-module="runtime" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/ui-runtime.js@@</script>
+<script data-selfos-module="request" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/ui-request.js@@</script>
+<script data-selfos-module="bootstrap" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/ui-bootstrap.js@@</script>
 </head>
 <body>
 <div class="header">
@@ -26,8 +29,8 @@
       <button class="harvest-btn" onclick="openHarvestModal()" id="harvest-btn"
               data-i18n="ui.dashboard.harvest">⟳ Harvest</button>
       @@SELFOS_VALUE:knowledge_controls@@
-      <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="Switch theme" data-i18n-title="ui.dashboard.theme">☀</button>
-      <button class="lang-btn" id="lang-toggle" data-i18n="ui.common.language" onclick="toggleLang()">Language</button>
+      <button class="theme-btn" id="theme-toggle" data-selfos-action="theme.toggle" title="Switch theme" data-i18n-title="ui.dashboard.theme">☀</button>
+      <button class="lang-btn" id="lang-toggle" data-i18n="ui.common.language" data-selfos-action="theme.language">Language</button>
     </div>
   </div>
 </div>
@@ -183,6 +186,7 @@
   </div>
 </div>
 
-<script>@@SELFOS_RESOURCE:scripts/dashboard-theme-language.js@@@@SELFOS_RESOURCE:scripts/dashboard-dimensions.js@@@@SELFOS_RESOURCE:scripts/dashboard-imports.js@@@@SELFOS_RESOURCE:scripts/dashboard-chat.js@@@@SELFOS_RESOURCE:scripts/dashboard-sparklines.js@@@@SELFOS_RESOURCE:scripts/dashboard-staging.js@@</script>
+<script data-selfos-module="theme" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-theme-language.js@@</script>
+<script data-selfos-module="legacy-dashboard" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/dashboard-dimensions.js@@@@SELFOS_RESOURCE:scripts/dashboard-imports.js@@@@SELFOS_RESOURCE:scripts/dashboard-chat.js@@@@SELFOS_RESOURCE:scripts/dashboard-sparklines.js@@@@SELFOS_RESOURCE:scripts/dashboard-staging.js@@</script>
 </body>
 </html>

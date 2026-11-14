@@ -31,7 +31,7 @@ selfosI18n.setLocale('en');if(element('knowledge-overview-status').textContent!=
 
 def test_dashboard_language_glue_uses_shared_runtime_without_requests(tmp_path):
     script = frontend_text('scripts/dashboard-theme-language.js')
-    assert "let lang = window.selfosI18n.documentTag" in script
+    assert "selfosUI.register('theme'" in script
     assert 'updateKnowledgeOverview();' not in script
     assert 'data-zh' not in script
     assert 'selfosI18n.setLocale' in script

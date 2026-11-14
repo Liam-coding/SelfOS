@@ -13,7 +13,8 @@ def test_model_dynamic_text_and_placeholders_follow_language_without_resetting_i
         pytest.skip('Node is required to execute the browser state regression')
     from selfos.web.i18n import runtime
     common = runtime().split('<script', 1)[1].split('>', 1)[1].split('</script>', 1)[0]
-    script = re.search(r'<script>(.*?)</script>', CONTROLS, re.S)[1]
+    from selfos.web.rendering.resources import frontend_text
+    script = frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/settings-model.js')
     harness = r'''
 const assert = require('node:assert/strict');
 const listeners = {};

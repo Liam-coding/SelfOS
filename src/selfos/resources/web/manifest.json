@@ -1,6 +1,9 @@
 {
   "version": 1,
   "resources": [
+    "scripts/ui-runtime.js",
+    "scripts/ui-request.js",
+    "scripts/ui-bootstrap.js",
     "scripts/account.js",
     "scripts/auth-common.js",
     "scripts/dashboard-chat.js",

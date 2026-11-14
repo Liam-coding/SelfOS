@@ -16,7 +16,7 @@ def test_authenticated_cached_dashboard_refresh_is_read_only_and_runtime_is_earl
     assert page.count('id="selfos-i18n"')==1
     assert page.index('id="selfos-i18n"')<page.index('function openAppSettings')
     assert 'legacyMarker' not in page
-    assert 'window.selfosI18n.documentTag' in page
+    assert "selfosUI.register('theme'" in page
     assert 'Literal private source' in page
     assert dashboard.read_text(encoding='utf-8')==legacy
 
