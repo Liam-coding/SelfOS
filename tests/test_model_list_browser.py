@@ -21,20 +21,48 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
     for resource in ['styles/settings-model.css','scripts/settings-model.js']:
         template=template.replace('@@SELFOS_RESOURCE:'+resource+'@@',frontend_text(resource))
     fixture=r"""<script>
-    window.requests=[];window.releases=[];
+    window.requests=[];window.releases=[];window.saves=[];window.auths=[];window.pageErrors=[];window.addEventListener('error',event=>pageErrors.push(event.message));
     window.fetch=async(url,options)=>{
-      requests.push({url,body:options?.body?JSON.parse(options.body):null});
+      requests.push({url,body:options?.body?JSON.parse(options.body):null,signal:options?.signal});
       if(url==='/__model_list__')return await new Promise(resolve=>releases.push((status,data)=>resolve({ok:status===200,json:async()=>data})));
+      if(url==='/__model_settings__'&&options?.method==='POST')return await new Promise(resolve=>saves.push(()=>resolve({ok:true,json:async()=>({provider:'anthropic',model:'saved',has_api_key:true,proxy_source:'direct',effective_proxy:{}})})));
+      if(url==='/auth/change')return await new Promise(resolve=>auths.push(()=>resolve({ok:true,json:async()=>({})})));
       return {ok:true,json:async()=>({provider:'anthropic',model:'saved-model',base_url:'http://fixture',proxy_mode:'direct',proxy_url:'',has_api_key:true,proxy_source:'direct',effective_proxy:{}})};
     };
     </script>"""
-    html=tmp_path/'fixture.html';html.write_text('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">'+runtime()+'</head><body>'+fixture+template+'</body></html>',encoding='utf-8')
+    lifecycle='<script>'+frontend_text('scripts/ui-runtime.js')+frontend_text('scripts/ui-request.js')+'</script>'
+    bootstrap='<script>'+frontend_text('scripts/ui-bootstrap.js')+'</script>'
+    from selfos.web.rendering.auth import account_controls
+    account=account_controls(include_runtime=False,include_lifecycle=False)
+    theme='<button id="theme-toggle" data-selfos-action="theme.toggle"></button><button id="lang-toggle" data-selfos-action="theme.language"></button><script>'+frontend_text('scripts/dashboard-theme-language.js')+'</script>'
+    html=tmp_path/'fixture.html';html.write_text('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">'+runtime()+lifecycle+'</head><body>'+fixture+account+template+theme+bootstrap+'</body></html>',encoding='utf-8')
     checks=r"""(async()=>{
      const get=id=>document.getElementById(id),assert=(v,m)=>{if(!v)throw Error(m);};
+     const settingsButton=get('model-settings-entry').querySelector('button'),nested=document.createElement('span');settingsButton.append(nested);nested.click();
+     assert(get('app-settings').open,'Nested settings action did not open dialog');get('app-settings').close();
+     get('theme-toggle').click();assert(document.body.classList.contains('dark'),'Theme action failed');
+     for(const needle of ['function updateThemeBtn','function openChange']){const source=[...document.scripts].find(s=>s.textContent.includes(needle)).textContent,script=document.createElement('script');script.textContent=source;document.body.append(script);}
+     selfosUI.init(document);selfosUI.init(document);assert(document.body.classList.contains('dark'),'Theme reset after reinitialization');
+     get('theme-toggle').click();assert(!document.body.classList.contains('dark'),'Duplicate theme listener');
+     get('lang-toggle').click();assert(selfosI18n.locale==='zh-CN','Language action failed');selfosI18n.setLocale('en');
+     get('app-settings').showModal();document.querySelector('[data-selfos-action="account.change"]').click();
+     assert(get('auth-change').open&&!get('app-settings').open,'Account change action failed');
+     get('auth-current').value='synthetic current password';get('auth-new').value='synthetic next password';get('auth-new-confirm').value='synthetic mismatch password';
+     const beforeAccount=requests.length;get('auth-change').querySelector('form').requestSubmit();
+     assert(requests.length===beforeAccount&&get('auth-change-status').textContent,'Invalid confirmation sent auth request');
+     document.querySelector('[data-selfos-action="account.close"]').click();assert([...document.querySelectorAll('#auth-change input')].every(e=>e.value===''),'Account close retained credentials');
      await openModelSettings();assert(get('model-load-models'),'Missing discovery button');
      get('model-base').value='http://draft/v1';get('model-key').value='draft-key';get('model-name').value='manual-model';
      get('model-proxy-mode').value='manual';get('model-proxy-url').value='http://draft-proxy:7890';updateModelProxy();
+     const count=requests.length,source=[...document.scripts].find(s=>s.textContent.includes('function openAppSettings')).textContent;
+     const repeated=document.createElement('script');repeated.textContent=source;document.body.append(repeated);
+     selfosUI.init(document);selfosUI.init(document);selfosUI.init(document);
+     assert(requests.length===count&&get('model-key').value==='draft-key'&&get('model-base').value==='http://draft/v1','Reinitialization reset draft or requested settings');
+     assert(selfosUI.module('settings').openModel===selfosUI.module('settings').openModel,'Missing stable settings API');
      let pending=loadAvailableModels();
+     const mountedDialog=get('model-settings'),replacement=mountedDialog.cloneNode(true);mountedDialog.replaceWith(replacement);
+     let remountError='';try{selfosUI.init(document);}catch(error){remountError=error.message;}
+     assert(remountError.includes('remount-required')&&remountError.includes('busy'),'Busy root replacement was silently accepted');replacement.replaceWith(mountedDialog);selfosUI.init(document);
      assert(requests.at(-1).body.api_key==='draft-key'&&requests.at(-1).body.base_url==='http://draft/v1'&&requests.at(-1).body.proxy_url==='http://draft-proxy:7890','Draft not used');
      assert(get('model-load-models').disabled&&!get('model-name').disabled,'Loading controls wrong');
      selfosI18n.setLocale('zh');assert(get('model-list-status').textContent.includes('正在'),'Chinese loading status missing');releases.at(-1)(200,{models:['a-model','<literal-model>']});await pending;
@@ -50,7 +78,19 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
      }
      pending=loadAvailableModels();get('model-settings').close();releases.at(-1)(200,{models:['closed-stale']});await pending;
      await openModelSettings();assert(get('model-available').hidden,'Closed request leaked');
-     assert(document.documentElement.scrollWidth<=innerWidth,'Mobile overflow');return 'model discovery browser passed';
+     assert(document.documentElement.scrollWidth<=innerWidth,'Mobile overflow');
+     get('auth-current').value='synthetic current password';get('auth-new').value='synthetic next password';get('auth-new-confirm').value='synthetic next password';
+     const changing=selfosUI.module('account').changePassword({preventDefault(){},target:get('auth-change').querySelector('form')}),authRequest=requests.at(-1);
+     get('model-name').value='preserved-remount-draft';
+     pending=loadAvailableModels();const active=requests.at(-1),saving=selfosUI.module('settings').saveModel(false);selfosUI.teardown();assert(active.signal?.aborted,'Teardown did not cancel active model request');
+     assert(authRequest.signal?.aborted,'Teardown did not cancel account request');auths.at(-1)();await changing;
+     get('model-key').value='after-teardown-fixture-key';saves.at(-1)();await saving;assert(get('model-key').value==='after-teardown-fixture-key','Stale save modified credentials after teardown');
+     releases.at(-1)(200,{models:['after-teardown']});await pending;assert(get('model-available').hidden,'Stale teardown response mounted');
+     assert(!requests.some(r=>r.url==='/chat'||r.url==='/__model_test__'),'Lifecycle made model calls');assert(!pageErrors.length,pageErrors.join(';'));
+     get('model-name').value='replacement-default';const remounted=get('model-settings').cloneNode(true);get('model-settings').replaceWith(remounted);selfosUI.init(document);
+     assert(get('model-name').value==='preserved-remount-draft'&&get('model-key').value===''&&!get('model-name').disabled,'Explicit remount did not restore safe draft');
+     assert(get('model-settings').matches(':modal'),'Explicit remount lost native modal focus behavior');
+     return 'model discovery browser passed';
     })()"""
     harness=r"""
 const fs=require('fs');

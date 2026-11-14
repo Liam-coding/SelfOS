@@ -54,8 +54,10 @@ function recoverKnowledgeRun() {
   recover();
 }
 // A reload attaches to a live task without launching an import.
+document.addEventListener('DOMContentLoaded',()=>{
 fetch('/__knowledge_run__', {cache: 'no-store'}).then(response => response.ok ? response.json() : null)
   .then(state => { if (state && state.running && !importRunning) recoverKnowledgeRun(); }).catch(() => {});
+});
 async function stopKnowledge() {
   const btn = document.getElementById('knowledge-stop-btn');
   btn.disabled = true;
