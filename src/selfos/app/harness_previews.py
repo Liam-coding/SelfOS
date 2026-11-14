@@ -73,6 +73,8 @@ def prepare_native(vault, entry, *, cancel=lambda: False, restart=False):
     if policy != policy_hash(load_settings(vault)) or digest(selection) != digest(load_sources(vault)):
         raise ValueError('Native preview settings changed')
     write_metadata(vault, _path(preview['id']), preview, PREVIEW_BYTES)
+    from selfos.storage.import_center import record_scan
+    record_scan(vault, preview, 'native')
     return preview
 
 

@@ -1,6 +1,9 @@
 {
   "version": 1,
   "resources": [
+    "templates/import-center.html",
+    "scripts/import-center.js",
+    "styles/import-center.css",
     "templates/changes.html",
     "styles/changes.css",
     "scripts/changes.js",

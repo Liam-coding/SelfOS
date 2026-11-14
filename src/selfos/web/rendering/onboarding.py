@@ -2,3 +2,4 @@
 from selfos.web.rendering.resources import frontend_text
 
 CONTROLS = frontend_text('templates/onboarding.html')
+CONTROLS += frontend_text('templates/import-center.html')

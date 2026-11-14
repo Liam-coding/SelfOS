@@ -1,0 +1,15 @@
+<!-- selfos-import-center-start -->
+<style>@@SELFOS_RESOURCE:styles/import-center.css@@</style>
+<button id="import-center-open" type="button" data-center-action="open" data-i18n="center.title">Import center</button>
+<dialog id="import-center-dialog" aria-labelledby="import-center-title">
+  <header><div><h2 id="import-center-title" data-i18n="center.title">Import center</h2><p data-i18n="center.intro">Choose a small preview, organize it, then inspect committed knowledge and its sources.</p></div><button type="button" data-center-action="close" data-i18n="center.close">Close</button></header>
+  <p data-i18n="center.bounded"></p><p id="import-center-model"></p>
+  <p id="import-center-status" role="status" aria-live="polite"></p>
+  <section><h3 data-i18n="center.sources">Conversation sources</h3><div id="import-center-sources"></div><div class="center-actions"><button id="import-center-sources-edit" type="button" data-center-action="sources" data-i18n="center.sources_edit">Manage sources</button><button id="import-center-preview" type="button" data-center-action="preview" data-i18n="center.preview">Preview a small local sample</button></div></section>
+  <section><h3 data-i18n="center.uploads">Uploaded originals</h3><div id="import-center-uploads"></div><div class="center-actions"><button type="button" data-center-action="uploads" data-i18n="center.upload">Upload or organize files</button><button id="import-center-more" type="button" data-center-action="more" data-i18n="center.more" hidden>More originals</button></div></section>
+  <section><h3 data-i18n="center.job">Current task</h3><p id="import-center-job"></p><div class="center-actions"><button id="import-center-progress" type="button" data-center-action="progress" data-i18n="center.progress">View progress</button><button id="import-center-stop" type="button" data-center-action="stop" data-i18n="center.stop" disabled>Stop safely</button></div></section>
+  <section><h3 data-i18n="center.operations">Organization results</h3><p data-i18n="center.provisional"></p><div id="import-center-operations"></div><button type="button" data-center-action="recovery" data-i18n="center.recovery">Inspect saved work and recovery</button></section>
+  <footer><button type="button" data-center-action="refresh" data-i18n="center.refresh">Refresh status</button><button type="button" data-center-action="close" data-i18n="center.close">Close</button></footer>
+</dialog>
+<script data-selfos-module="import-center" data-selfos-generation="1">@@SELFOS_RESOURCE:scripts/import-center.js@@</script>
+<!-- selfos-import-center-end -->

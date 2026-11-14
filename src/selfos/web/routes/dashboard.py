@@ -11,6 +11,19 @@ class DashboardRoutes:
         if not self._auth_guard():return
         from urllib.parse import urlparse,parse_qs
         parsed_path=urlparse(self.path)
+        if parsed_path.path == '/__import_center__':
+            origin = self.headers.get('Origin')
+            if (origin and origin != 'http://' + self.headers.get('Host', '')) or self.headers.get('Sec-Fetch-Site') == 'cross-site':
+                return self._send_json(403, {'code': 'import_center_forbidden'})
+            from selfos.app.import_center import import_center_status
+            qs = parse_qs(parsed_path.query)
+            try:
+                result = import_center_status(self.runtime.VAULT, self.runtime.ROOT,
+                    run=self.runtime.knowledge_run_status(),
+                    offset=int(qs.get('offset', ['0'])[0]), limit=int(qs.get('limit', ['50'])[0]))
+            except (ValueError, OSError):
+                return self._send_json(400, {'code': 'import_center_unavailable'})
+            return self._send_json(200, result)
         if parsed_path.path in ('/__knowledge_changes__','/__knowledge_change__','/__knowledge_change_source__','/__knowledge_record_changes__'):
             origin=self.headers.get('Origin');host=self.headers.get('Host','')
             if (origin and origin!=f'http://{host}') or self.headers.get('Sec-Fetch-Site')=='cross-site':

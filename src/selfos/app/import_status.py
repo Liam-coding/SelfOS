@@ -134,6 +134,8 @@ def publication_status(vault, canonical, settings, *, operation_paths=None, scan
             snapshot_published = installed or (isinstance(staged_operation, dict) and
                                                published is not None and staged_operation.get('id') == published)
             operations.append(dict(id=item['id'], status=outcome, phase=phase,
+                preview_id=item.get('preview_id') if isinstance(item.get('preview_id'), str) and re.fullmatch('[a-f0-9]{32}', item['preview_id']) else None,
+                source_kind=item.get('source_kind') if item.get('source_kind') in ('local', 'native', 'upload') else None,
                 published=installed, compatible=compatible,
                 was_published=installed or item.get('installed') is True,
                 snapshot_operation=staged_operation.get('id') if isinstance(staged_operation, dict) and isinstance(staged_operation.get('id'), str) and OPERATION.fullmatch(staged_operation['id']) else None,
