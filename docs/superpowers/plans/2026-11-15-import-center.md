@@ -47,7 +47,7 @@
 
 ### Task 3: Review and delivery
 
-- [ ] Update docs/knowledge-import.md and README usage to explain source totals/preview/staging/canonical distinctions.
-- [ ] Run full pytest with Chrome; record exact results.
-- [ ] Dispatch one fresh whole-branch reviewer; fix Critical/Important findings with RED/GREEN tests and relevant green regressions.
+- [x] Update docs/knowledge-import.md and README usage to explain source totals/preview/staging/canonical distinctions.
+- [x] Run full pytest with Chrome; record exact results: 1429 passed, 7 skipped in 548.79 seconds.
+- [x] Dispatch one fresh whole-branch reviewer; fix Critical/Important findings with RED/GREEN tests and relevant green regressions.
 - [ ] Publish an English PR with implementation, validation, scope and `Closes #16` only when all acceptance criteria are delivered. Continue #18 then #83; keep broad goal active.
