@@ -24,6 +24,9 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
     window.requests=[];window.releases=[];window.saves=[];window.auths=[];window.pageErrors=[];window.addEventListener('error',event=>pageErrors.push(event.message));
     window.fetch=async(url,options)=>{
       requests.push({url,body:options?.body?JSON.parse(options.body):null,signal:options?.signal});
+      if(url==='/__knowledge_run__')return {ok:true,status:200,json:async()=>({running:false})};
+      if(url==='/__knowledge_settings__')return {ok:true,status:200,json:async()=>({settings:{domains:['work'],detail:'balanced'},counts:{},saved_checkpoints:0,publication:{operations:[]},usage:{budget:{max_requests:100},runs:[]}})};
+      if(url==='/__knowledge_usage__')return {ok:true,status:200,json:async()=>({budget:{max_requests:100},runs:[]})};
       if(url==='/__model_list__')return await new Promise(resolve=>releases.push((status,data)=>resolve({ok:status===200,json:async()=>data})));
       if(url==='/__model_settings__'&&options?.method==='POST')return await new Promise(resolve=>saves.push(()=>resolve({ok:true,json:async()=>({provider:'anthropic',model:'saved',has_api_key:true,proxy_source:'direct',effective_proxy:{}})})));
       if(url==='/auth/change')return await new Promise(resolve=>auths.push(()=>resolve({ok:true,json:async()=>({})})));
@@ -34,10 +37,21 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
     bootstrap='<script>'+frontend_text('scripts/ui-bootstrap.js')+'</script>'
     from selfos.web.rendering.auth import account_controls
     account=account_controls(include_runtime=False,include_lifecycle=False)
+    from selfos.web.rendering.knowledge import CONTROLS as imports
+    jobs='<div id="harvest-modal"></div><div id="progress-modal"><div id="progress-bar"></div><pre id="progress-log"></pre><span id="progress-icon"></span><span id="progress-title"></span><button id="progress-done-btn"></button><button id="knowledge-stop-btn"></button></div><script data-selfos-module="jobs" data-selfos-generation="1">'+frontend_text('scripts/dashboard-imports.js')+'</script>'
     theme='<button id="theme-toggle" data-selfos-action="theme.toggle"></button><button id="lang-toggle" data-selfos-action="theme.language"></button><script>'+frontend_text('scripts/dashboard-theme-language.js')+'</script>'
-    html=tmp_path/'fixture.html';html.write_text('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">'+runtime()+lifecycle+'</head><body>'+fixture+account+template+theme+bootstrap+'</body></html>',encoding='utf-8')
+    html=tmp_path/'fixture.html';html.write_text('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">'+runtime()+lifecycle+'</head><body>'+fixture+account+template+imports+jobs+theme+bootstrap+'</body></html>',encoding='utf-8')
     checks=r"""(async()=>{
      const get=id=>document.getElementById(id),assert=(v,m)=>{if(!v)throw Error(m);};
+     await selfosUI.module('import-settings').open();get('knowledge-custom').value='dirty-fixture-domain';get('knowledge-detail').value='detailed';get('workload-limit').value='777';
+     const beforeImport=requests.length,importSource=document.querySelector('script[data-selfos-module="import-settings"]').textContent;
+     const importRepeated=document.createElement('script');importRepeated.textContent=importSource;document.body.append(importRepeated);selfosUI.init(document);selfosUI.init(document);selfosUI.init(document);
+     assert(requests.length===beforeImport&&get('knowledge-custom').value==='dirty-fixture-domain'&&get('knowledge-detail').value==='detailed'&&get('workload-limit').value==='777','Import settings draft reset or startup reads repeated');
+     const unknownAction=document.createElement('button');unknownAction.type='button';unknownAction.dataset.selfosAction='__proto__';get('knowledge-settings').append(unknownAction);unknownAction.click();unknownAction.remove();
+     assert(!pageErrors.length&&requests.length===beforeImport,'Unknown action was executed');
+     get('workload-save').click();for(let n=0;n<15;n++)await Promise.resolve();
+     assert(requests.filter(r=>r.url==='/__knowledge_budget__').length===1,'Budget save invoked more than once');
+     selfosUI.module('import-settings').close();
      const settingsButton=get('model-settings-entry').querySelector('button'),nested=document.createElement('span');settingsButton.append(nested);nested.click();
      assert(get('app-settings').open,'Nested settings action did not open dialog');get('app-settings').close();
      get('theme-toggle').click();assert(document.body.classList.contains('dark'),'Theme action failed');
@@ -81,15 +95,18 @@ def test_model_discovery_browser_preserves_draft_and_ignores_stale_results(tmp_p
      assert(document.documentElement.scrollWidth<=innerWidth,'Mobile overflow');
      get('auth-current').value='synthetic current password';get('auth-new').value='synthetic next password';get('auth-new-confirm').value='synthetic next password';
      const changing=selfosUI.module('account').changePassword({preventDefault(){},target:get('auth-change').querySelector('form')}),authRequest=requests.at(-1);
+     await selfosUI.module('import-settings').open();get('knowledge-custom').value='remount-domain';get('knowledge-custom').dispatchEvent(new Event('input',{bubbles:true}));get('knowledge-detail').value='detailed';get('workload-limit').value='777';
      get('model-name').value='preserved-remount-draft';
      pending=loadAvailableModels();const active=requests.at(-1),saving=selfosUI.module('settings').saveModel(false);selfosUI.teardown();assert(active.signal?.aborted,'Teardown did not cancel active model request');
      assert(authRequest.signal?.aborted,'Teardown did not cancel account request');auths.at(-1)();await changing;
      get('model-key').value='after-teardown-fixture-key';saves.at(-1)();await saving;assert(get('model-key').value==='after-teardown-fixture-key','Stale save modified credentials after teardown');
      releases.at(-1)(200,{models:['after-teardown']});await pending;assert(get('model-available').hidden,'Stale teardown response mounted');
      assert(!requests.some(r=>r.url==='/chat'||r.url==='/__model_test__'),'Lifecycle made model calls');assert(!pageErrors.length,pageErrors.join(';'));
+     const importRemounted=get('knowledge-settings').cloneNode(true);get('knowledge-settings').replaceWith(importRemounted);selfosI18n.setLocale('zh');
      get('model-name').value='replacement-default';const remounted=get('model-settings').cloneNode(true);get('model-settings').replaceWith(remounted);selfosUI.init(document);
      assert(get('model-name').value==='preserved-remount-draft'&&get('model-key').value===''&&!get('model-name').disabled,'Explicit remount did not restore safe draft');
      assert(get('model-settings').matches(':modal'),'Explicit remount lost native modal focus behavior');
+     assert(get('knowledge-custom').value==='remount-domain'&&get('knowledge-detail').value==='detailed'&&get('workload-limit').value==='777','Import remount lost draft');selfosI18n.setLocale('en');assert(get('knowledge-domains').textContent.includes('Work'),'Import remount lost locale bindings');
      return 'model discovery browser passed';
     })()"""
     harness=r"""

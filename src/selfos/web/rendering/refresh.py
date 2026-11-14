@@ -12,10 +12,25 @@ class _OpeningTag(HTMLParser):
         if not self.attributes:self.attributes=dict(attrs)
 
 
-def _upgrade_theme_actions(page):
+def _upgrade_scoped_actions(page):
     def upgrade(match):
         tag=match[0];attrs=_OpeningTag(tag).attributes
-        pair={'theme-toggle':('toggleTheme()','theme.toggle'),'lang-toggle':('toggleLang()','theme.language')}.get(attrs.get('id'))
+        pair={
+            'theme-toggle':('toggleTheme()','theme.toggle'),'lang-toggle':('toggleLang()','theme.language'),
+            'knowledge-btn':('confirmHarvest(false, true)','jobs.knowledge'),
+            'harvest-btn':('openHarvestModal()','jobs.open'),
+            'knowledge-stop-btn':('stopKnowledge()','jobs.stop'),
+            'progress-done-btn':('location.reload()','jobs.reload'),
+            'staging-btn':('openStagingModal()','staging.open'),
+            'staging-apply-btn':('applySelectedStaging()','staging.apply'),
+        }.get(attrs.get('id'))
+        if pair is None:
+            pair={
+                ('modal-cancel','closeHarvestModal()'):('closeHarvestModal()','jobs.close'),
+                ('modal-confirm modal-confirm-incr','confirmHarvest(false)'):('confirmHarvest(false)','jobs.incremental'),
+                ('modal-confirm modal-confirm-full','confirmHarvest(true)'):('confirmHarvest(true)','jobs.full'),
+                ('staging-skip','closeStagingModal()'):('closeStagingModal()','staging.close'),
+            }.get((attrs.get('class'),attrs.get('onclick')))
         if not pair or attrs.get('onclick')!=pair[0]:return tag
         for quote in ('"',"'"):
             tag=tag.replace('onclick='+quote+pair[0]+quote,'data-selfos-action="'+pair[1]+'"')
@@ -26,7 +41,7 @@ def _upgrade_theme_actions(page):
 def refresh_dashboard(page):
     from selfos.web.rendering import auth, knowledge, model, library, overall, onboarding
     from selfos.web.rendering.legacy_i18n import upgrade_legacy_markup
-    page=_upgrade_theme_actions(upgrade_legacy_markup(page))
+    page=_upgrade_scoped_actions(upgrade_legacy_markup(page))
     # Retire the script owned by an old search shell even if its implementation
     # predates today's global entry point. Preserve unrelated cached scripts.
     page=re.sub(r'<section\b[^>]*\bid="knowledge-library"[^>]*>.*?</section>\s*<dialog\b[^>]*\bid="kb-detail"[^>]*>.*?</dialog>\s*<script\b[^>]*>.*?</script>',
@@ -38,7 +53,7 @@ def refresh_dashboard(page):
                  'function openAppSettings', 'window.browseKnowledge',
                  'function updateKnowledgeOverview', 'function authRequest', 'const selfosFetch', 'window.openProjectTimeline', 'let privacySelection')
         owner=_OpeningTag(script).attributes.get('data-selfos-module')
-        owned=owner in ('runtime','request','account','settings','theme','legacy-dashboard','bootstrap')
+        owned=owner in ('runtime','request','account','settings','theme','jobs','import-settings','usage','publication','quality','overview','staging','onboarding','legacy-dashboard','bootstrap')
         if owner is not None and not owned:return script
         return '' if owned or any(marker in script for marker in markers) else script
     page=re.sub(r'<script\b[^>]*>.*?</script>',strip_script,page,flags=re.S)
@@ -57,6 +72,7 @@ def refresh_dashboard(page):
         remove(r'<dialog id="'+identity+r'"[^>]*>.*?</dialog>')
     for identity in ('model-settings-entry','auth-account-buttons'):
         remove(r'<div id="'+identity+r'"[^>]*>.*?</div>')
+    page=re.sub(r'<button[^>]*id="knowledge-settings-entry"[^>]*>.*?</button>','<!--selfos-controls-anchor-->',page,count=1,flags=re.S)
     page=re.sub(r'<button\b[^>]*onclick="openKnowledgeSettings\(\)"[^>]*>.*?</button>','<!--selfos-controls-anchor-->',page,count=1,flags=re.S)
     page=page.replace(auth.STYLE,'')
     overview=overall.OVERVIEW
@@ -77,7 +93,7 @@ def refresh_dashboard(page):
     template=frontend_text('templates/dashboard-page.html')
     scripts={_OpeningTag(match[0]).attributes.get('data-selfos-module'):match[0] for match in re.finditer(r'<script\b[^>]*>.*?</script>',template,re.S) if 'data-selfos-module=' in match[0]}
     lifecycle=''.join(scripts[identity] for identity in ('runtime','request','bootstrap'))
-    main=scripts['theme']+scripts['legacy-dashboard']
+    main=scripts['theme']+scripts['jobs']+scripts['staging']+scripts['legacy-dashboard']
     controls=auth.account_controls(include_runtime=False,include_lifecycle=False)+model.CONTROLS+onboarding.CONTROLS+main
     if '<!--selfos-controls-anchor-->' in page:page=page.replace('<!--selfos-controls-anchor-->',knowledge.CONTROLS,1)
     else:controls=knowledge.CONTROLS+controls
